@@ -235,7 +235,7 @@
     <!-- 语音区 -->
     <div class="voice-zone" id="vz">
       <div class="amb-widget" id="awidget">
-        <div class="aw-title"><div class="l"><span class="dot"></span>Cabin Light · Warm Pink</div><div class="hint">Turn dial to adjust brightness</div></div>
+        <div class="aw-title"><div class="l"><span class="dot"></span>Cabin Light · Warm Pink</div></div>
         <div class="dial" id="brDialWrap">
           <div class="aura"></div>
           <div class="face"></div>
