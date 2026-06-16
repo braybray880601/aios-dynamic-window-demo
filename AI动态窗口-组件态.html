@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 动态窗口 · 组件态图</title>
+<style>
+  :root{--ink:#1c2330;--soft:#5b6678;--faint:#8a93a3;--line:#e4e8ee;--bg:#f6f7f9;--blue:#2f6bff;--amber:#d98a14;--green:#1faa55}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto;padding:34px 28px 90px}
+  h1{font-size:24px;margin:0 0 4px}
+  .lead{color:var(--soft);font-size:13.5px;margin:0 0 8px}
+  .modblk{margin-top:30px;padding-top:18px;border-top:2px solid var(--ink)}
+  .modblk h2{font-size:18px;margin:0 0 2px}
+  .modblk .desc{color:var(--faint);font-size:12.5px;margin:0 0 14px}
+  .states{display:flex;flex-wrap:wrap;gap:16px}
+  .tile{width:266px}
+  .canvas{height:150px;border-radius:14px;background:radial-gradient(120% 140% at 30% 10%,#19202b,#0b0e13);
+    border:1px solid #222a36;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+    display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden;position:relative}
+  .canvas.tall{height:220px}
+  .cap{margin-top:8px;font-size:12.5px;color:#33405a;font-weight:600;text-align:center}
+  .cap small{display:block;color:var(--faint);font-weight:400;font-size:11px;margin-top:1px}
+
+  /* ---------- 通用: MVA 光球 ---------- */
+  .orb{width:42px;height:42px;border-radius:50%;flex:none;position:relative}
+  .orb::before{content:'';position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(.6px);animation:spin 6s linear infinite}
+  .orb::after{content:'';position:absolute;inset:8px;border-radius:50%;
+    background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.62));box-shadow:0 0 11px rgba(255,255,255,.5)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .orb.sm{width:30px;height:30px}.orb.sm::after{inset:6px}
+
+  /* ---------- A. 状态栏 / ASR ---------- */
+  .asr{width:100%;color:#eef1f4;font-size:14px;font-weight:600;display:flex;align-items:center;gap:9px}
+  .asr .av{width:26px;height:26px;border-radius:50%;flex:none;background:linear-gradient(135deg,#f3c9b0,#cf9d86);box-shadow:inset 0 0 0 1.4px rgba(255,255,255,.6)}
+  .asr .tx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .asr .tx.dim{color:rgba(255,255,255,.34);font-weight:500}
+  .asr .tx.done{color:#43c46f}
+  .asr .tx.reply{color:#c2cad6;font-weight:500}
+  .asr .cur{display:inline-block;width:2px;height:15px;background:#56e08a;margin-left:1px;vertical-align:-2px;animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* ---------- B. 固定组件 / 思考胶囊 ---------- */
+  .pw{position:relative;width:200px;border-radius:14px;color:#fff;padding:10px 12px 10px 14px;
+    background:linear-gradient(135deg,rgba(96,152,236,.34),rgba(56,88,150,.2));box-shadow:inset 0 0 0 1px rgba(150,192,255,.5),0 6px 18px rgba(40,90,180,.22)}
+  .pw::before{content:'';position:absolute;left:0;top:7px;bottom:7px;width:4px;border-radius:0 4px 4px 0;background:linear-gradient(180deg,#8fd9ff,#5a9bff);box-shadow:0 0 9px rgba(125,185,255,.7)}
+  .pw .h{font-size:11px;color:rgba(190,218,255,.92);font-weight:700;margin-bottom:2px}
+  .pw .big{font-size:23px;font-weight:300;line-height:1}
+  .pw .sub{font-size:10.5px;color:rgba(255,255,255,.6);margin-top:2px}
+
+  .think{width:210px;border-radius:16px;background:rgba(26,30,46,.96);box-shadow:inset 0 0 0 1px rgba(140,140,255,.18),0 8px 22px rgba(0,0,0,.4);overflow:hidden}
+  .think .pill{display:flex;align-items:center;gap:11px;padding:10px 13px}
+  .think .spin{width:20px;height:20px;border-radius:50%;flex:none;border:2px solid rgba(150,140,255,.3);border-top-color:#9b8cff;animation:spin .8s linear infinite}
+  .think .l1{font-size:13px;font-weight:700;color:#eaecff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .think .l2{font-size:10.5px;color:rgba(180,188,220,.72);margin-top:1px}
+  .think .chev{margin-left:auto;color:rgba(180,188,220,.7);font-size:12px}
+  .think .panel{border-top:1px solid rgba(255,255,255,.07);padding:8px 13px 10px}
+  .think .step{display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(200,206,230,.7);padding:2px 0}
+  .think .step .d{width:13px;height:13px;border-radius:50%;flex:none;border:1.6px solid rgba(140,140,255,.5)}
+  .think .step.done .d{background:#7be6a4;border-color:#7be6a4}
+  .think .step.active{color:#fff}.think .step.active .d{border-color:#b58cff;box-shadow:0 0 7px rgba(150,120,255,.6)}
+
+  /* ---------- C. 动态窗口内容 ---------- */
+  .vcard{width:210px;border-radius:16px;overflow:hidden;background:rgba(22,28,40,.96);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+  .vcard .top{display:flex;align-items:baseline;justify-content:space-between;padding:11px 13px 0}
+  .vcard .loc{font-size:11px;color:rgba(255,255,255,.6)}
+  .vcard .tmp{font-size:30px;font-weight:300;color:#fff;padding:0 13px}
+  .vcard .meta{font-size:10.5px;color:rgba(255,255,255,.55);padding:0 13px 12px}
+
+  .feed{width:212px;display:flex;flex-direction:column;gap:8px}
+  .fc{display:flex;align-items:center;gap:10px;background:rgba(20,26,38,.86);border-radius:13px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);padding:8px 10px}
+  .fc .ic{width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(255,255,255,.08)}
+  .fc .t{font-size:12px;font-weight:700;color:#fff;line-height:1.2}
+  .fc .s{font-size:10px;color:rgba(255,255,255,.55);margin-top:1px}
+  .fc .x{margin-left:auto;width:20px;height:20px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(255,255,255,.5);background:rgba(255,255,255,.08)}
+
+  .appmini{width:200px;border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#3a2b4a,#1a1622);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);padding:14px;text-align:center;color:#fff}
+  .appmini .disc{width:72px;height:72px;border-radius:50%;margin:2px auto 10px;background:#444 center/cover;box-shadow:0 6px 16px rgba(0,0,0,.5),inset 0 0 0 4px rgba(255,255,255,.06)}
+  .appmini .mt{font-size:15px;font-weight:700}
+  .appmini .ma{font-size:11px;color:rgba(255,255,255,.62);margin-top:1px}
+  .appmini .ctl{display:flex;justify-content:center;gap:18px;margin-top:11px;color:#fff;font-size:14px;align-items:center}
+  .appmini .ctl .pp{width:34px;height:34px;border-radius:50%;background:#fff;color:#1a1622;display:flex;align-items:center;justify-content:center;font-size:14px}
+
+  .empty{color:rgba(255,255,255,.3);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:10px}
+
+  /* ---------- D. Smart bar ---------- */
+  .cap2{position:relative;display:flex;align-items:center;gap:10px;border-radius:21px;padding:5px 14px 5px 6px;color:#fff;
+    background:rgba(11,14,20,.92);box-shadow:0 14px 36px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.09)}
+  .cap2 .t{font-size:12.5px;font-weight:650;white-space:nowrap}
+  .cap2 .s{font-size:10.5px;color:rgba(255,255,255,.55)}
+  .cap2 .col{min-width:0}
+  /* 灵动岛变色核 */
+  .orb.feed::after{background:radial-gradient(circle at 38% 34%,#fff2d6,#ffae33);box-shadow:0 0 14px rgba(255,176,60,.95)}
+  .orb.content::after{background:radial-gradient(circle at 38% 34%,#dcffec,#2ecb7a);box-shadow:0 0 14px rgba(54,205,128,.95)}
+  .orb.feed{box-shadow:0 0 0 3px rgba(255,188,78,.5),0 0 18px 4px rgba(255,165,45,.5);border-radius:50%}
+  .orb.content{box-shadow:0 0 0 3px rgba(58,210,132,.5),0 0 18px 4px rgba(36,198,118,.5);border-radius:50%}
+  .chip{font-size:10.5px;font-weight:600;color:#ffd27a;background:rgba(255,200,90,.16);border:1px solid rgba(255,200,90,.26);border-radius:11px;padding:3px 9px;margin-left:2px}
+
+  .ball{width:46px;height:46px;border-radius:50%;flex:none;position:relative;display:flex;align-items:center;justify-content:center;
+    background:rgba(11,14,20,.92);box-shadow:0 10px 26px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.1);color:#fff;font-size:18px}
+  .ball.green{box-shadow:0 0 0 2px rgba(60,210,130,.55),0 10px 26px rgba(0,0,0,.5);}
+  .ball.cov{background:#444 center/cover}
+  .mcap{display:flex;align-items:center;gap:9px;border-radius:21px;padding:5px 12px 5px 5px;color:#fff;
+    background:rgba(11,14,20,.92);box-shadow:0 14px 36px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.09)}
+  .mcap .cov{width:34px;height:34px;border-radius:50%;flex:none;background:#444 center/cover;box-shadow:inset 0 0 0 3px rgba(255,255,255,.08)}
+  .mcap .t{font-size:12px;font-weight:650;white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis}
+  .mcap .pp{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;background:rgba(255,255,255,.12)}
+  .row{display:flex;align-items:center;gap:12px}
+  .cover-shinian{background-image:url('cover-shinian.jpg')}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI 动态窗口 · 组件态图</h1>
+  <p class="lead">按架构四区(状态栏 / 固定组件区 / 动态窗口区 / Smart bar)分别列出各组件的单独状态,供需求文档引用。深色画布为车机底,组件为真实视觉语言的还原(部分含实时动效)。</p>
+
+  <!-- A -->
+  <div class="modblk" id="m-asr">
+    <h2>A · 状态栏区域 / MVA ASR <span style="font-weight:400;color:#8a93a3;font-size:12.5px">(锁高不锁宽)</span></h2>
+    <p class="desc">识别与回复显示在顶部状态栏,不占用动态窗口内容区。</p>
+    <div class="states">
+      <div class="tile"><div class="canvas"><div class="asr"><span class="av"></span><span class="tx dim">待机 · 未唤醒</span></div></div><div class="cap">待机<small>无识别内容</small></div></div>
+      <div class="tile"><div class="canvas"><div class="asr"><span class="av"></span><span class="tx">明天会下雨吗<span class="cur"></span></span></div></div><div class="cap">识别中<small>逐字上屏 + 光标</small></div></div>
+      <div class="tile"><div class="canvas"><div class="asr"><span class="av"></span><span class="tx done">明天会下雨吗?</span></div></div><div class="cap">识别完成<small>转绿,随后淡出</small></div></div>
+      <div class="tile"><div class="canvas"><div class="asr"><span class="av"></span><span class="tx reply">明天上海有中雨,出门记得带伞</span></div></div><div class="cap">回复(TTS)<small>回复出现 = 地图右推时机锚点</small></div></div>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="modblk" id="m-fixed">
+    <h2>B · 固定组件区域 <span style="font-weight:400;color:#8a93a3;font-size:12.5px">(锁宽不锁高)</span></h2>
+    <p class="desc">承载固定组件(原快捷卡片)或思考胶囊,二选一。</p>
+    <div class="states">
+      <div class="tile"><div class="canvas"><div class="pw"><div class="h">天气</div><div class="big">14°</div><div class="sub">夜间晴 · 上海 · 体感 12°</div></div></div><div class="cap">固定组件<small>蓝色玻璃磁贴 + 左侧高亮条</small></div></div>
+      <div class="tile"><div class="canvas"><div class="think"><div class="pill"><span class="spin"></span><div class="col"><div class="l1">理解多目的地指令</div><div class="l2">下一步 · 识别「常去的超市」位置</div></div><span class="chev">v</span></div></div></div><div class="cap">思考胶囊 · 收起<small>一行进度 pill</small></div></div>
+      <div class="tile"><div class="canvas tall"><div class="think"><div class="pill"><span class="spin"></span><div class="col"><div class="l1">规划路线与预计耗时</div><div class="l2">即将生成结果</div></div><span class="chev">^</span></div>
+        <div class="panel">
+          <div class="step done"><span class="d"></span>理解多目的地出行指令</div>
+          <div class="step done"><span class="d"></span>获取 4 个目的地坐标</div>
+          <div class="step active"><span class="d"></span>规划路线与预计耗时</div>
+          <div class="step"><span class="d"></span>生成行程</div>
+        </div></div></div><div class="cap">思考胶囊 · 展开<small>步骤清单(可点开回看)</small></div></div>
+    </div>
+  </div>
+
+  <!-- C -->
+  <div class="modblk" id="m-window">
+    <h2>C · 动态窗口区域 <span style="font-weight:400;color:#8a93a3;font-size:12.5px">(锁宽不锁高)</span></h2>
+    <p class="desc">三类内容互斥:语音交互内容 / AI 推荐内容 / 应用内容;另有空状态。</p>
+    <div class="states">
+      <div class="tile"><div class="canvas tall"><div class="vcard"><div class="top"><span class="loc">上海 · 明天</span><span class="chip">中雨</span></div><div class="tmp">16°</div><div class="meta">体感 14° · 降水 80% · 东风 3 级</div></div></div><div class="cap">语音交互内容<small>对话结果卡(随场景生长)</small></div></div>
+      <div class="tile"><div class="canvas tall"><div class="feed">
+        <div class="fc"><span class="ic">☕</span><div><div class="t">顺路 · Manner 咖啡</div><div class="s">前方 1.2km · 本周来过 2 次</div></div><span class="x">✕</span></div>
+        <div class="fc"><span class="ic">🚗</span><div><div class="t">现在回家约 38 分钟</div><div class="s">全程畅通 · 快 6 分钟</div></div><span class="x">✕</span></div>
+        <div class="fc"><span class="ic">🔧</span><div><div class="t">机油寿命剩 8%</div><div class="s">建议本周预约保养</div></div><span class="x">✕</span></div>
+      </div></div><div class="cap">AI 推荐内容(feed)<small>推荐流,每条可删除</small></div></div>
+      <div class="tile"><div class="canvas tall"><div class="appmini"><div class="disc cover-shinian"></div><div class="mt">十年</div><div class="ma">陈奕迅 · 专辑《十年》</div><div class="ctl"><span>⏮</span><span class="pp">❚❚</span><span>⏭</span></div></div></div><div class="cap">应用内容<small>应用窗口态(示例:音乐小窗)</small></div></div>
+      <div class="tile"><div class="canvas tall"><div class="empty"><div class="orb"></div><div>安静待命</div></div></div><div class="cap">空状态<small>无活跃内容</small></div></div>
+    </div>
+  </div>
+
+  <!-- D -->
+  <div class="modblk" id="m-smartbar">
+    <h2>D · Smart bar(Footerbar 最左) <span style="font-weight:400;color:#8a93a3;font-size:12.5px">(锁宽高)</span></h2>
+    <p class="desc">灵动岛(AI)+ 身份业务(音乐 / 电话 / 小程序)。AI 收起为光球,有内容展开为胶囊;身份业务并排在右、不被遮挡。</p>
+    <div class="states">
+      <div class="tile"><div class="canvas"><div class="orb"></div></div><div class="cap">AI 收起态<small>仅光球(多数时候)</small></div></div>
+      <div class="tile"><div class="canvas"><div class="cap2"><div class="orb sm content"></div><div class="col"><div class="t">查看内容</div><div class="s">天气 · 明天上海有中雨</div></div></div></div><div class="cap">灵动岛 · 内容入口<small>青绿核 + 脉动光环</small></div></div>
+      <div class="tile"><div class="canvas"><div class="cap2"><div class="orb sm feed"></div><div class="col"><div class="t">3 条新推荐</div><div class="s">顺路 Manner 咖啡…</div></div><span class="chip">推荐</span></div></div><div class="cap">灵动岛 · 推荐入口<small>琥珀核 + 脉动光环</small></div></div>
+      <div class="tile"><div class="canvas"><div class="ball">♪</div></div><div class="cap">音乐岛 · 无歌<small>收为球</small></div></div>
+      <div class="tile"><div class="canvas"><div class="mcap"><span class="cov cover-shinian"></span><div class="t">十年 — 陈奕迅</div><span class="pp">❚❚</span></div></div><div class="cap">音乐岛 · 有歌<small>胶囊 · 封面 + 跑马灯 + 控制</small></div></div>
+      <div class="tile"><div class="canvas"><div class="ball green">☎</div></div><div class="cap">电话球<small>通话态身份球</small></div></div>
+      <div class="tile"><div class="canvas"><div class="row"><div class="cap2"><div class="orb sm feed"></div><div class="col"><div class="t">1 条新推荐</div></div></div><div class="ball" style="width:38px;height:38px;font-size:15px">♪</div></div></div><div class="cap">双球并排<small>AI 球 + 身份球(右侧竖直对齐)</small></div></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

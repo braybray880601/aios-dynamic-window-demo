@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mercedes-Benz · Voice Zone · Casual Chat &amp; Quick Commands</title>
+<!--
+  场景：闲聊 / 简单指令 —— 轻量形态
+  系统回复不再上屏：用户 ASR 逐字上屏保留，系统回复完全靠浏览器 TTS（speechSynthesis）播报。
+  复杂多轮知识问答：全程只 TTS 无文字 → 结束后在 feed 里淡入一张「聊天小结」玻璃卡（标题=话题、副标题=概述），点开展开多句总结。
+  思考胶囊「按需折叠/展开」（仅在需要时出现）。个别指令只影响既有 UI（如底部播放器）。
+  例子：① 简单闲聊（短/中/长，只 TTS） ② 复杂多轮（结束生成小结卡） ③ 打开车窗 ④ 播放陈奕迅（底部播放器变《十年》）
+-->
+<style>
+  :root{
+    --sky-top:#d6ecf7;--sky-mid:#c4e3f3;--ground:#cdd1d6;--ground-low:#bfc3c8;
+    --card-bg:rgba(255,255,255,.46);--card-bd:rgba(255,255,255,.55);
+    --ink:#23262b;--ink-soft:rgba(35,38,43,.55);--ink-faint:rgba(35,38,43,.4);--blue:#2f6bff;--vz-w:392px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#0e0f12;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1300px;height:812px;overflow:hidden;transform-origin:center center;border-radius:18px;
+    box-shadow:0 40px 120px rgba(0,0,0,.55);background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 26%,#cdd9dd 46%,var(--ground) 64%,var(--ground-low) 100%)}
+  .hero{position:absolute;left:0;top:150px;width:1300px;height:430px;background:url("flyme-hero.jpg") center/cover no-repeat;
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 16%,#000 80%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 16%,#000 80%,transparent 100%)}
+
+  /* 状态栏：头像→MVA 光球 + 顶栏识别/回复 */
+  .statusbar{position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:55}
+  .sb-left{display:flex;align-items:center;gap:13px;flex:1;min-width:0;height:100%;padding-right:24px}
+  .avatar{width:36px;height:36px;border-radius:50%;flex:none;position:relative;background-image:linear-gradient(135deg,#f3c9b0,#cf9d86);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.7);transition:box-shadow .5s}
+  .avatar::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(1px);opacity:0;transition:opacity .55s;animation:spin 5s linear infinite}
+  .avatar::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6));box-shadow:0 0 14px rgba(255,255,255,.55);opacity:0;transition:opacity .55s}
+  .avatar.awake{box-shadow:none;animation:breathe 3.2s ease-in-out infinite}
+  .avatar.awake::before,.avatar.awake::after{opacity:1}
+  @keyframes spin{to{transform:rotate(360deg)}}@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  .sb-voice{position:relative;display:flex;align-items:center;min-width:0;height:100%}
+  .sv-asr{display:inline-flex;align-items:center;max-width:640px;overflow:hidden;white-space:nowrap;font-size:15.5px;font-weight:600;color:var(--ink);opacity:0;transition:opacity .35s,transform .4s,filter .4s}
+  .sv-asr.show{opacity:1}.sv-asr.done{color:#3a9d54}.sv-asr.gone{opacity:0;transform:translateY(-7px);filter:blur(2px)}
+  .sv-cur{display:inline-block;width:2px;height:16px;background:#3a9d54;margin-left:2px;animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+  /* 系统回复不再上屏（只 TTS 播报），原顶栏回复 / 长回复文字块已移除 */
+  .sb-right{display:flex;align-items:center;gap:16px;flex:none}
+  .sb-clock{font-size:19px;font-weight:500;letter-spacing:.5px}.sb-5g{font-size:10px;font-weight:700;vertical-align:top;margin-right:1px}
+
+  /* 桌面家具 */
+  .map{position:absolute;top:64px;left:40px;width:300px;border-radius:20px;background:rgba(70,78,86,.34);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 8px 30px rgba(40,50,60,.18),inset 0 0 0 1px rgba(255,255,255,.18);overflow:hidden;z-index:25;color:#fff;
+    transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+  /* 胶囊出现→地图卡下移让位；胶囊展开→继续下推（位移由 JS 按胶囊实际高度动态计算）*/
+  .map-top{display:flex;align-items:center;gap:9px;padding:14px 16px}.map-top .t{flex:1;font-size:16px;font-weight:500}
+  .map-quick{display:flex;background:rgba(20,24,28,.28)}.map-quick div{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 0;opacity:.9}.map-quick div+div{box-shadow:inset 1px 0 0 rgba(255,255,255,.1)}
+  .weather{position:absolute;top:60px;right:36px;text-align:right;z-index:25}
+  .weather .temp{font-size:60px;font-weight:200;line-height:.9;letter-spacing:-1px}.weather .temp sup{font-size:20px;font-weight:300;vertical-align:top;margin-left:2px}
+  .weather .loc{font-size:15px;color:var(--ink-soft);margin-top:6px}
+  .cards{position:absolute;left:40px;right:40px;bottom:84px;display:flex;gap:16px;z-index:15}
+  .card{flex:1;height:96px;border-radius:18px;background:var(--card-bg);backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:0 8px 26px rgba(40,50,60,.12),inset 0 0 0 1px var(--card-bd);display:flex;align-items:center;gap:13px;padding:0 18px}
+  .card .ic{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,#fff,#eef1f4);box-shadow:0 2px 6px rgba(0,0,0,.06)}
+  .card .ic.pink{background:linear-gradient(135deg,#ff7a9c,#ff5277);color:#fff}
+  .card .big{font-size:18px;font-weight:600}.card .sub{font-size:12px;color:var(--ink-soft);margin-top:3px}.card .lnk{color:var(--blue);font-weight:600}
+  .card .col2{display:flex;gap:18px;width:100%}
+  .tyre{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-soft);width:100%}.tyre .r{display:flex;justify-content:space-between}.tyre .tcar{align-self:center;width:26px;height:14px;border-radius:5px;background:rgba(35,38,43,.18);margin:1px 0}
+
+  /* Dock + 可更新播放器 */
+  .dock{position:absolute;left:0;right:0;bottom:0;height:72px;z-index:30;display:flex;align-items:center;gap:18px;padding:0 22px;background:rgba(248,250,252,.5);backdrop-filter:blur(26px) saturate(1.3);-webkit-backdrop-filter:blur(26px) saturate(1.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+  .dock .home{width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(35,38,43,.55);flex:none}
+  .np{display:flex;align-items:center;gap:11px;width:248px;border-radius:14px;padding:5px 8px;margin-left:-6px;transition:box-shadow .5s,background .5s}
+  .np.playing{background:rgba(47,107,255,.08);box-shadow:0 0 0 1px rgba(47,107,255,.25)}
+  .np .cov{width:40px;height:40px;border-radius:9px;flex:none;background:linear-gradient(135deg,#ffb37a,#ff7eb0,#9b8cff);transition:background .5s;position:relative;overflow:hidden}
+  .np .cov.flash::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.55);animation:cflash .5s ease-out}
+  @keyframes cflash{from{opacity:1}to{opacity:0}}
+  .np .ti{font-size:14px;font-weight:600;line-height:1.25}.np .ar{font-size:11px;color:var(--ink-soft)}
+  .np .eq{margin-left:auto;display:inline-flex;gap:2.5px;align-items:flex-end;height:15px}
+  .np .eq i{width:3px;background:var(--blue);border-radius:2px;height:5px}
+  .np.playing .eq i{animation:eq 0.9s ease-in-out infinite}
+  .np .eq i:nth-child(2){animation-delay:.2s}.np .eq i:nth-child(3){animation-delay:.4s}.np .eq i:nth-child(4){animation-delay:.6s}
+  @keyframes eq{0%,100%{height:4px}50%{height:15px}}
+  .dock .sep{flex:1}.dock .ctrl{display:flex;align-items:center;gap:24px;color:rgba(35,38,43,.7)}
+  .dock .ctrl .temp{display:flex;align-items:center;gap:9px;font-size:21px;font-weight:600;color:var(--ink)}
+  .dock .ctrl .temp small{font-size:12px;color:var(--ink-soft)}.dock .ctrl .chev{font-size:13px;color:var(--ink-faint)}.dock .ctrl .it{font-size:19px}
+
+  /* 语音区：仅承载「按需」的思考胶囊（轻量，无大块内容卡）*/
+  .voice-zone{position:absolute;left:40px;top:64px;z-index:50;width:var(--vz-w);display:flex;flex-direction:column;gap:10px}
+  .think{display:none;flex-direction:column;gap:10px;width:100%}
+  .think.show{display:flex;animation:thinkin .4s ease}
+  @keyframes thinkin{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .think-pill{display:flex;align-items:center;gap:13px;padding:10px 14px;cursor:pointer;background:rgba(255,255,255,.62);backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);border-radius:18px;box-shadow:0 10px 28px rgba(40,50,60,.16),inset 0 0 0 1px rgba(255,255,255,.7)}
+  .think-pill .spinner{width:20px;height:20px;border-radius:50%;flex:none;background:conic-gradient(from 0deg,rgba(125,140,255,0),#7d8cff,#b58cff,rgba(125,140,255,0));-webkit-mask:radial-gradient(circle 6px at center,transparent 98%,#000);mask:radial-gradient(circle 6px at center,transparent 98%,#000);animation:spin 1s linear infinite}
+  .think-pill .now{flex:1;min-width:0;overflow:hidden}
+  .think-pill .l1{font-size:14px;font-weight:700;color:#1c2330;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .think-pill .l1.roll{animation:roll-up .42s cubic-bezier(.2,.7,.2,1)}
+  @keyframes roll-up{0%{transform:translateY(85%);opacity:0}100%{transform:translateY(0);opacity:1}}
+  .think-pill .l2{font-size:11px;color:rgba(35,38,43,.5);white-space:nowrap;margin-top:1px}
+  .think-pill .chev{font-size:12px;color:rgba(35,38,43,.5);transition:transform .3s;flex:none}
+  .think.expanded .think-pill .chev{transform:rotate(180deg)}
+  .think-panel{max-height:0;opacity:0;overflow:hidden;transition:max-height .4s cubic-bezier(.2,.8,.2,1),opacity .35s;background:rgba(255,255,255,.6);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-radius:16px;box-shadow:0 12px 32px rgba(40,50,60,.16),inset 0 0 0 1px rgba(255,255,255,.7)}
+  .think.expanded .think-panel{max-height:220px;opacity:1}
+
+  /* ── 聊天小结 feed：复杂多轮对话结束后生成的玻璃小卡 ── */
+  .feed{display:flex;flex-direction:column;gap:10px;width:100%}
+  .feed-card{cursor:pointer;width:100%;background:rgba(255,255,255,.6);backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);border-radius:16px;box-shadow:0 12px 30px rgba(40,50,60,.16),inset 0 0 0 1px rgba(255,255,255,.7);overflow:hidden;opacity:0;transform:translateY(8px);transition:opacity .45s ease,transform .45s cubic-bezier(.2,.7,.2,1)}
+  .feed-card.in{opacity:1;transform:none}
+  .fc-head{display:flex;align-items:center;gap:12px;padding:13px 15px}
+  .fc-ic{width:34px;height:34px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(135deg,#7d8cff,#b58cff);color:#fff;box-shadow:0 3px 9px rgba(125,140,255,.4)}
+  .fc-tt{flex:1;min-width:0}
+  .fc-title{font-size:14.5px;font-weight:700;color:#1c2330;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fc-sub{font-size:11.5px;color:rgba(35,38,43,.5);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fc-chev{font-size:12px;color:rgba(35,38,43,.45);flex:none;transition:transform .3s}
+  .feed-card.open .fc-chev{transform:rotate(180deg)}
+  .fc-tag{font-size:10px;font-weight:700;color:#5b6bd6;background:rgba(125,140,255,.16);padding:2px 8px;border-radius:6px;flex:none}
+  .fc-body{max-height:0;opacity:0;overflow:hidden;transition:max-height .4s cubic-bezier(.2,.8,.2,1),opacity .35s}
+  .feed-card.open .fc-body{max-height:260px;opacity:1}
+  .fc-body-inner{padding:0 16px 15px;font-size:13.5px;line-height:1.65;color:#2a2f37;border-top:1px solid rgba(0,0,0,.06)}
+  .fc-body-inner p{margin-top:10px}
+  /* 落到 feed 顶部时的高亮 + 「新」徽标（与其他推荐卡同列）*/
+  .feed-card.fresh{box-shadow:0 16px 34px rgba(125,140,255,.3),inset 0 0 0 1.5px rgba(125,140,255,.55)}
+  .fc-new{display:inline-block;font-size:9.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,#7d8cff,#b58cff);padding:1px 7px;border-radius:6px;margin-left:2px;overflow:hidden;white-space:nowrap;animation:fcnew 4.2s ease forwards}
+  @keyframes fcnew{0%,58%{opacity:1;max-width:40px}100%{opacity:0;max-width:0;padding:0;margin:0}}
+  /* ── 「为你推荐」feed 头 ── */
+  .feed-hd{display:none;align-items:center;gap:8px;padding:2px 4px 0;font-size:12px;font-weight:700;color:rgba(35,38,43,.55);letter-spacing:.04em}
+  .feed-hd.in{display:flex;animation:hdin .4s ease}
+  @keyframes hdin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .feed-hd .dot{width:7px;height:7px;border-radius:50%;background:#34c06a;box-shadow:0 0 8px #34c06a;animation:livedot 1.6s ease-in-out infinite}
+  @keyframes livedot{0%,100%{opacity:.5}50%{opacity:1}}
+  .feed-hd .sp{margin-left:auto;font-weight:600;color:rgba(35,38,43,.4)}
+  /* ── 其他推荐卡（与聊天小结同列；浅色玻璃，与本场景一致）── */
+  .feed-rec{display:flex;align-items:center;gap:12px;width:100%;padding:11px 13px;border-radius:14px;
+    background:rgba(255,255,255,.5);backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);
+    box-shadow:0 10px 26px rgba(40,50,60,.13),inset 0 0 0 1px rgba(255,255,255,.66);
+    opacity:0;transform:translateY(8px);transition:opacity .45s ease,transform .45s cubic-bezier(.2,.7,.2,1)}
+  .feed-rec.in{opacity:1;transform:none}
+  .fr-ic{width:40px;height:40px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:19px;background:linear-gradient(135deg,#fff,#eef1f4);box-shadow:0 2px 6px rgba(0,0,0,.06)}
+  .fr-cov{width:42px;height:42px;border-radius:9px;flex:none;object-fit:cover;box-shadow:0 3px 9px rgba(0,0,0,.18)}
+  .fr-pcov{width:34px;height:46px;border-radius:7px;flex:none;object-fit:cover;box-shadow:0 3px 9px rgba(0,0,0,.2)}
+  .fr-tt{flex:1;min-width:0}
+  .fr-title{font-size:14px;font-weight:700;color:#1c2330;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fr-sub{font-size:11.5px;color:rgba(35,38,43,.5);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fr-tag{font-size:9.5px;font-weight:700;color:#5b6bd6;background:rgba(125,140,255,.16);padding:1px 7px;border-radius:6px;flex:none}
+  .fr-go{margin-left:auto;color:rgba(35,38,43,.4);font-size:13px;flex:none}
+  .tp-head{display:flex;align-items:center;gap:8px;padding:13px 16px 8px;font-size:13px;font-weight:700;color:#1c2330}
+  .tp-orb{width:14px;height:14px;border-radius:50%;background:conic-gradient(from 0deg,#7d8cff,#b58cff,#ff8cd0,#7d8cff);animation:spin 3s linear infinite}
+  .tp-list{padding:0 16px 14px}
+  .tp-row{display:flex;align-items:center;gap:11px;padding:7px 0;font-size:13.5px}
+  .tp-row+.tp-row{border-top:1px solid rgba(0,0,0,.05)}
+  .tp-row .ic{width:17px;height:17px;border-radius:50%;flex:none;position:relative}
+  .tp-row.todo{color:rgba(35,38,43,.4)}.tp-row.todo .ic{box-shadow:inset 0 0 0 1.5px rgba(35,38,43,.25)}
+  .tp-row.active{color:#1c2330;font-weight:600}.tp-row.active .ic{box-shadow:inset 0 0 0 2px #8c8cff}.tp-row.active .ic::after{content:"";position:absolute;inset:4px;border-radius:50%;background:#9c8cff}
+  .tp-row.done{color:rgba(35,38,43,.6)}.tp-row.done .ic{background:#34c06a}.tp-row.done .ic::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+  /* ── 记忆条（金色高亮，区别于普通步骤）── */
+  .tp-row.is-mem.todo{color:rgba(150,110,40,.5)}
+  .tp-row.is-mem.active,.tp-row.is-mem.done{color:#8a5e12;font-weight:700}
+  .tp-row.is-mem .ic{background:linear-gradient(135deg,#ffd58a,#ff9d3c);box-shadow:0 0 9px rgba(255,170,80,.6)}
+  .tp-row.is-mem .ic::after{content:"✦";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#5a3a00}
+  .tp-row .mem-tag{margin-left:auto;font-size:10px;font-weight:700;color:#8a5e12;background:rgba(255,180,90,.22);padding:2px 8px;border-radius:6px}
+  .think-pill.mem .l1{color:#8a5e12}
+  /* ── Avatar 记忆仪式光效（生成 / 调用记忆时）── */
+  .mem-halo{position:absolute;inset:-10px;border-radius:50%;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,213,138,.6),rgba(255,213,138,0) 66%)}
+  .avatar.mem .mem-halo{animation:memglow 1.15s ease-out}
+  .mem-halo::before,.mem-halo::after{content:"";position:absolute;inset:8px;border-radius:50%;border:2px solid rgba(255,210,135,.9);opacity:0}
+  .avatar.mem .mem-halo::before{animation:memring 1.15s ease-out}
+  .avatar.mem .mem-halo::after{animation:memring 1.15s ease-out .32s}
+  @keyframes memglow{0%{opacity:0;transform:scale(.55)}22%{opacity:1}100%{opacity:0;transform:scale(2.3)}}
+  @keyframes memring{0%{transform:scale(.7);opacity:.95}100%{transform:scale(2.5);opacity:0}}
+  /* ── TTS 播报时：avatar 持续光环涟漪（说话结束即消失）── */
+  .tts-wave{position:absolute;inset:-5px;border-radius:50%;pointer-events:none;opacity:0;transition:opacity .25s;
+    background:radial-gradient(circle,rgba(120,150,255,.34),rgba(120,150,255,0) 66%)}
+  .avatar.speaking .tts-wave{opacity:1;animation:ttsglow 1.4s ease-in-out infinite}
+  @keyframes ttsglow{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.16);opacity:.9}}
+  .tts-wave::before,.tts-wave::after{content:"";position:absolute;inset:3px;border-radius:50%;border:2px solid rgba(140,165,255,.9);opacity:0}
+  .avatar.speaking .tts-wave::before{animation:ttsripple 1.5s ease-out infinite}
+  .avatar.speaking .tts-wave::after{animation:ttsripple 1.5s ease-out infinite .75s}
+  @keyframes ttsripple{0%{transform:scale(.8);opacity:.9}70%{opacity:.22}100%{transform:scale(2.2);opacity:0}}
+  .vbtn.mem .k{color:#ffd58a}
+
+  /* 面板 */
+  .panel{position:fixed;top:18px;right:18px;width:250px;z-index:100;background:rgba(20,22,26,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:16px;padding:15px;color:#e8eaee;font-size:12.5px;box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08)}
+  .panel .title{font-size:13.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;margin-bottom:12px}
+  .panel .title i{width:8px;height:8px;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#ff6b9b,#ffab5b,#5b8cff)}
+  .panel h4{font-size:11px;letter-spacing:.1em;color:#9aa0a8;font-weight:700;margin:6px 0 8px}
+  .vbtns{display:flex;flex-direction:column;gap:7px}
+  .vbtn{display:flex;align-items:center;gap:10px;border:0;border-radius:11px;cursor:pointer;font-family:inherit;text-align:left;background:rgba(255,255,255,.07);color:#dfe3e8;padding:11px 13px;transition:.15s}
+  .vbtn:hover{background:rgba(255,255,255,.13)}.vbtn.on{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(47,107,255,.45)}
+  .vbtn .k{font-size:13.5px;font-weight:700}.vbtn .d{font-size:11px;opacity:.72;margin-top:1px}
+  .panel .phase{margin-top:12px;font-size:11px;color:#8b9098;border-top:1px solid rgba(255,255,255,.08);padding-top:10px}.panel .phase b{color:#ffce8a}
+  /* 演示控制台：默认弱化半透明、略缩小，悬停恢复清晰（不抢演示效果） */
+  .panel{opacity:.3;transform:scale(.86);transform-origin:top right;transition:opacity .3s ease,transform .3s ease}
+  .panel:hover{opacity:1;transform:scale(1)}
+
+  /* 全局：底栏 MVA 光球（语音区收起时的最小化态 · 点击唤起；区域展开时淡出）*/
+  .mva-orb{width:38px;height:38px;border-radius:50%;flex:none;border:0;padding:0;cursor:pointer;position:relative;background:radial-gradient(circle at 38% 34%,#2a3340,#11161f);transition:transform .15s,opacity .35s}
+  .mva-orb::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(.6px);animation:mvaspin 6s linear infinite}
+  .mva-orb::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.62));box-shadow:0 0 11px rgba(255,255,255,.5)}
+  .mva-orb:hover{transform:scale(1.06)}.mva-orb:active{transform:scale(.93)}
+  .stage.voice-on .mva-orb{opacity:.4}
+  .mva-orb.busy{opacity:.26 !important;pointer-events:none;filter:saturate(.55)}
+  .stage.zone-hidden .voice-zone{opacity:0 !important;transform:translateY(-10px) scale(.985) !important;pointer-events:none !important;transition:opacity .35s ease,transform .35s ease}
+  .stage.zone-hidden .map{transform:none !important}
+  @keyframes mvaspin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <div class="hero"></div>
+
+    <div class="statusbar">
+      <div class="sb-left">
+        <div class="avatar" id="avatar"><i class="mem-halo"></i><i class="tts-wave"></i></div>
+        <div class="sb-voice">
+          <span class="sv-asr" id="svAsr"><span id="asrText"></span><span class="sv-cur" id="asrCur"></span></span>
+        </div>
+      </div>
+      <div class="sb-right">
+        <svg width="15" height="18" viewBox="0 0 15 18"><path d="M3 5l9 8-4.5 4V1L12 5 3 13" fill="none" stroke="#23262b" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span><sup class="sb-5g">5G</sup>
+          <svg width="22" height="16" viewBox="0 0 22 16" style="vertical-align:middle"><rect x="0" y="11" width="3.4" height="5" rx="1" fill="#23262b"/><rect x="5.2" y="8" width="3.4" height="8" rx="1" fill="#23262b"/><rect x="10.4" y="5" width="3.4" height="11" rx="1" fill="#23262b"/><rect x="15.6" y="2" width="3.4" height="14" rx="1" fill="#23262b"/></svg></span>
+        <span class="sb-clock">13:12</span>
+      </div>
+    </div>
+
+    <div class="map">
+      <div class="map-top"><span>📍</span><span class="t">Map</span>
+        <svg width="18" height="18" viewBox="0 0 18 18"><circle cx="7.5" cy="7.5" r="5.5" fill="none" stroke="#fff" stroke-width="1.6"/><path d="M12 12l4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="map-quick"><div>⌂</div><div>☰</div><div>★</div><div>⚡</div></div>
+    </div>
+    <div class="weather"><div class="temp">18<sup>°C</sup></div><div class="loc">Shanghai · Sunny</div></div>
+
+    <!-- 语音区：仅「按需」思考胶囊 -->
+    <div class="voice-zone" id="vz">
+      <div class="think" id="think">
+        <div class="think-pill" id="thinkPill">
+          <div class="spinner"></div>
+          <div class="now"><div class="l1" id="thinkNow">Thinking...</div><div class="l2" id="thinkNext">Tap to expand</div></div>
+          <div class="chev">⌃</div>
+        </div>
+        <div class="think-panel">
+          <div class="tp-head"><span class="tp-orb"></span>MVA Processing</div>
+          <div class="tp-list" id="tpList"></div>
+        </div>
+      </div>
+      <!-- 「为你推荐」feed 流：复杂多轮结束后展开，聊天小结卡落到顶部、与其他推荐同列 -->
+      <div class="feed-hd" id="feedHd"><span class="dot"></span>For you<span class="sp">Live</span></div>
+      <div class="feed" id="feed"></div>
+    </div>
+
+    <div class="dock">
+      <button class="mva-orb" id="mvaOrb" title="MVA · Open Voice Zone"></button>
+      <div class="np" id="np">
+        <div class="cov" id="npCov"></div>
+        <div><div class="ti" id="npTi">Infinite Passion</div><div class="ar" id="npAr">Suker Wong</div></div>
+        <div class="eq"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="sep"></div>
+      <div class="ctrl"><div class="it">❄</div><div class="temp"><span class="chev">‹</span>23.5<small>°</small><span class="chev">›</span></div>
+        <div class="it">🚘</div><div class="it">⚡</div><div class="it">360</div><div class="it">📞</div><div class="it">▦</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="title"><i></i>Casual Chat / Quick Commands · Lite</div>
+  <h4>Try saying</h4>
+  <div class="vbtns" id="vbtns">
+    <button class="vbtn on" data-v="chat"><div><div class="k">▶ Simple Chat</div><div class="d">TTS only · no on-screen text</div></div></button>
+    <button class="vbtn" data-v="deep"><div><div class="k">▶ Deep Multi-turn</div><div class="d">TTS throughout · summary card at end</div></div></button>
+    <button class="vbtn" data-v="window"><div><div class="k">Open the window</div><div class="d">Command · TTS only</div></div></button>
+    <button class="vbtn" data-v="music"><div><div class="k">Play Eason Chan</div><div class="d">Player switches to "Ten Years"</div></div></button>
+    <button class="vbtn mem" data-v="memgen"><div><div class="k">✦ Remember my taste</div><div class="d">Memory generated mid-conversation</div></div></button>
+    <button class="vbtn mem" data-v="memuse"><div><div class="k">✦ Recommend by preference</div><div class="d">Recalls memory · suggests favorites</div></div></button>
+  </div>
+  <h4>Audio</h4>
+  <div class="vbtns">
+    <button class="vbtn on" id="ttsToggle"><div><div class="k">🔊 TTS On</div><div class="d">Voice playback for replies</div></div></button>
+    <button class="vbtn" id="btnReset"><div><div class="k">↺ Reset</div><div class="d">Clear screen &amp; timers</div></div></button>
+  </div>
+  <div class="phase">Phase: <b id="phlabel">Standby</b></div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1300,innerHeight/812)*0.985})`;}
+addEventListener('resize',fit);fit();
+const $=id=>document.getElementById(id);
+
+// 所有 reply 仅用于 TTS 播报，不再上屏（画面里只保留用户 ASR）
+const EX={
+  // 简单 短/中/长 闲聊：只 TTS、无残留文字
+  chat:{label:'Casual Chat',turns:[
+    {asr:'I\'m so tired today.',reply:'Long day — take a breather and relax.'},
+    {asr:'What\'s your name?',reply:'I\'m Mercedes Virtual Assistant.'},
+  ]},
+  // 复杂多轮知识问答：全程只 TTS 无文字 → 结束后 feed 生成「聊天小结」卡
+  deep:{label:'Deep Multi-turn',turns:[
+    {asr:'Why does EV range drop so much in winter?',reply:'Two main reasons. First, cold temperatures reduce lithium-ion battery activity, shrinking usable capacity. Second, heating — cabin heat, seat warmers — draws a lot of power that comes straight out of your range.'},
+    {asr:'Is there a way to limit that loss?',reply:'A few practical tips: pre-condition the cabin while plugged in before you leave instead of relying on the heater while driving; use seat and steering-wheel heating instead of full-blast A/C; and park in a garage when you can so the battery isn\'t sitting in the cold for hours.'},
+    {asr:'Is it better to heat while charging?',reply:'Exactly — that\'s called plug-in pre-conditioning. You pre-heat both the battery and cabin using charger power rather than the traction battery, so you hit the road without any range penalty. It\'s the most cost-effective winter strategy.'},
+    {asr:'Got it. What charge level should I aim for day-to-day?',reply:'Around 80% for daily commuting is ideal for battery health; top it up to 100% the night before a long trip. Leaving it at full or very low charge for extended periods accelerates cell degradation.'},
+  ],summary:{
+    topic:'EV Winter Range & Battery Care',
+    brief:'Covered why cold kills range, plus tips to save energy and protect the battery',
+    detail:[
+      'Winter range loss comes down to two things: low temperatures shrink usable lithium-ion capacity, and heating loads — cabin heat, seat warmers — eat directly into your range.',
+      'The key fix is plug-in pre-conditioning: heat the battery and cabin from charger power before you drive, not from the traction battery. Also favor seat and steering-wheel heat over high-power A/C, and park in a garage to keep the battery from sitting in the cold.',
+      'Charge to ~80% for daily use to protect the battery; top to 100% only before long trips. Avoid leaving the car at full or very low charge for long stretches to slow cell aging.'
+    ]
+  }},
+  window:{label:'Open Window',turns:[
+    {asr:'Open the driver\'s window halfway.',reply:'Done — driver\'s window is halfway open.'},
+  ]},
+  music:{label:'Play Music',turns:[
+    {asr:'Play some Eason Chan.',reply:'Playing "Ten Years" by Eason Chan.',
+     capsule:[{t:'Matched "Eason Chan"'},{t:'Selecting top track'}],
+     dock:{ti:'Ten Years',ar:'Eason Chan',cov:'url("cover-shinian.jpg") center/cover'}},
+  ]},
+  // ★ 记忆生成：从对话里记住偏好
+  memgen:{label:'Memory Generated',turns:[
+    {asr:'I\'ve been looping Eason Chan non-stop lately — I love his music.',reply:'Got it, I\'ll keep recommending his songs.',
+     capsule:[{t:'Understanding conversation'},{t:'Saved: you love Eason Chan',mem:1}]},
+  ]},
+  // ★ 记忆消费：调用记住的偏好做推荐
+  memuse:{label:'Memory Applied',turns:[
+    {asr:'I\'m a bit bored — just play something.',reply:'You love Eason Chan — here\'s "Ten Years."',
+     capsule:[{t:'Understanding request'},{t:'Recalled: you\'ve been into Eason Chan',mem:1},{t:'Selecting "Ten Years"'}],
+     dock:{ti:'Ten Years',ar:'Eason Chan',cov:'url("cover-shinian.jpg") center/cover'}},
+  ]},
+};
+
+const timers=[];const at=(ms,fn)=>timers.push(setTimeout(fn,ms));
+function clearT(){timers.forEach(clearTimeout);timers.length=0;}
+// resetDOM：只复位画面，不清定时器（用于时间线内部）
+function resetDOM(){
+  $('avatar').classList.remove('awake','mem','speaking');$('thinkPill').classList.remove('mem');
+  $('svAsr').className='sv-asr';$('svAsr').style.display='';$('asrText').textContent='';$('svAsr').scrollLeft=0;$('asrCur').style.display='';
+  $('think').classList.remove('show','expanded');$('tpList').innerHTML='';
+  $('feedHd').classList.remove('in');$('feed').innerHTML='';
+  stage.classList.remove('cap-on','cap-expanded');document.querySelector('.map').style.transform='';   // 复位：地图卡回到原位
+  // 复位播放器
+  $('np').classList.remove('playing');$('npCov').style.background='';$('npTi').textContent='Infinite Passion';$('npAr').textContent='Suker Wong';
+}
+// reset：按钮用——停定时器 + 停 TTS + 复位画面
+function reset(){clearT();ttsStop();resetDOM();}
+
+/* ── TTS：浏览器语音合成（系统回复靠它播报，画面无文字）── */
+let ttsOn=true,bestVoice=null;
+function setSpeaking(on){const a=$('avatar');if(a)a.classList.toggle('speaking',!!on);}
+function ttsStop(){try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}setSpeaking(false);}
+// 挑系统里"最好的"中文嗓音:优先 Siri / 增强(Premium/Enhanced)/ 婷婷 · zh-CN —— 用户装了增强版会自动用上
+function pickVoice(){
+  try{
+    const vs=window.speechSynthesis.getVoices()||[];
+    const zh=vs.filter(v=>/en[-_]?(US|GB|AU|CA)|english/i.test((v.lang||'')+' '+(v.name||'')));
+    if(!zh.length){bestVoice=null;return;}
+    const score=v=>{const n=v.name||'',l=v.lang||'';let s=0;
+      if(v.default)s+=10;                                // 跟随系统「系统声音」所选(用户选了 瀚（高音质）)
+      if(/en[-_]?US/i.test(l))s+=4;                     // US English preferred
+      if(/siri/i.test(n))s+=6;                           // Siri 嗓音最自然
+      if(/premium|enhanced/i.test(n))s+=5;               // 增强版
+      if(/samantha|zoe|daniel|karen/i.test(n))s+=3;      // high-quality bundled voices
+      if(v.localService)s+=1;                            // 本地嗓音(高音质/增强版下载后为本地)
+      return s;};
+    bestVoice=zh.slice().sort((a,b)=>score(b)-score(a))[0]||null;
+  }catch(e){bestVoice=null;}
+}
+function speak(text){
+  if(!ttsOn||!text)return;
+  try{
+    if(!('speechSynthesis' in window))return;
+    if(!bestVoice)pickVoice();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang=(bestVoice&&bestVoice.lang)||'en-US';u.rate=1.1;u.pitch=1.02;   // present：语速更快一点
+    if(bestVoice)u.voice=bestVoice;
+    u.onerror=()=>{};                 // 自动播放被拦截 / 无中文语音 → 静默（光晕改由时间线驱动，不依赖此事件）
+    window.speechSynthesis.cancel();  // 避免叠加排队
+    window.speechSynthesis.speak(u);
+  }catch(e){/* 自动播放被拦截等：静默 */}
+}
+// voices 异步加载 → 加载后重挑一次最佳嗓音
+try{if('speechSynthesis' in window){pickVoice();window.speechSynthesis.onvoiceschanged=pickVoice;}}catch(e){}
+function typeASR(text,dur){const el=$('asrText'),sc=$('svAsr');let i=0;const step=Math.min(28,dur/text.length);
+  (function tick(){el.textContent=text.slice(0,i);sc.scrollLeft=sc.scrollWidth;if(i++<=text.length)timers.push(setTimeout(tick,step));})();}
+// 思考胶囊（步骤为 {t, mem?} 对象）
+function showCapsule(steps){$('think').classList.add('show');stage.classList.add('cap-on');   // 胶囊出现→地图卡下移
+  $('tpList').innerHTML=steps.map((s,i)=>`<div class="tp-row todo${s.mem?' is-mem':''}" id="tpr${i}"><span class="ic"></span><span>${s.t}</span>${s.mem?'<span class="mem-tag">Memory</span>':''}</div>`).join('');
+  syncMapPush();}
+// 按语音区内容（胶囊 / feed 小结卡）实际高度，把地图卡下推到它下方
+function syncMapPush(){const m=document.querySelector('.map');
+  const vzH=$('vz').offsetHeight;
+  if($('think').classList.contains('show')||$('feedHd').classList.contains('in')||$('feed').children.length){
+    m.style.transform='translateY('+(vzH+12)+'px)';
+  }else{m.style.transform='';}}
+// ── 「为你推荐」feed 里已有的其他推荐卡（文案原创；图为真实封面/海报）──
+const REC=[
+  {ic:'🚗',title:'Home in ~38 min',sub:'Clear roads · 6 min faster than usual'},
+  {cov:'cover-shinian.jpg',title:'Evening Drive Radio · Ten Years',sub:'Eason Chan · Picked for you by MVA',tag:'Music'},
+  {pcov:'movies/ama.png',title:'Dear Grandma',sub:'New release · 9.2 rating · Available now',tag:'Movies'},
+];
+function recCardHTML(r){
+  let media;
+  if(r.pcov)media='<img class="fr-pcov" src="'+r.pcov+'" alt="">';
+  else if(r.cov)media='<img class="fr-cov" src="'+r.cov+'" alt="">';
+  else media='<div class="fr-ic">'+r.ic+'</div>';
+  return media+
+    '<div class="fr-tt"><div class="fr-title">'+r.title+(r.tag?'<span class="fr-tag">'+r.tag+'</span>':'')+'</div><div class="fr-sub">'+r.sub+'</div></div>'+
+    '<div class="fr-go">›</div>';
+}
+// 展开「为你推荐」feed 头 + 其他推荐卡（聊天小结将落到它们上方，同列显示）
+function showRecFeed(){
+  $('feedHd').classList.add('in');
+  const fd=$('feed');
+  REC.forEach((r,i)=>{
+    const el=document.createElement('div');el.className='feed-rec';el.innerHTML=recCardHTML(r);
+    fd.appendChild(el);
+    at(120+i*140,()=>{el.classList.add('in');syncMapPush();});
+  });
+  syncMapPush();
+}
+// 聊天小结卡：复杂多轮结束后落到 feed 顶部（与其他推荐同列），点击展开多句总结
+function addSummaryCard(sm){
+  const fd=$('feed');
+  const card=document.createElement('div');
+  card.className='feed-card fresh';
+  card.innerHTML=
+    '<div class="fc-head">'+
+      '<div class="fc-ic">💬</div>'+
+      '<div class="fc-tt"><div class="fc-title">'+sm.topic+'<span class="fc-new">New</span></div><div class="fc-sub">'+sm.brief+'</div></div>'+
+      '<span class="fc-tag">Chat Summary</span>'+
+      '<span class="fc-chev">⌄</span>'+
+    '</div>'+
+    '<div class="fc-body"><div class="fc-body-inner">'+sm.detail.map(p=>'<p>'+p+'</p>').join('')+'</div></div>';
+  card.onclick=()=>{card.classList.toggle('open');requestAnimationFrame(syncMapPush);};
+  fd.insertBefore(card,fd.firstChild);   // 落到 feed 顶部，压在其他推荐之上
+  requestAnimationFrame(()=>{card.classList.add('in');syncMapPush();});
+}
+function setCap(steps,k){const s=steps[k],now=$('thinkNow');
+  now.textContent=(s.mem?'✦ ':'')+s.t;now.classList.remove('roll');void now.offsetWidth;now.classList.add('roll');
+  $('thinkPill').classList.toggle('mem',!!s.mem);
+  $('thinkNext').textContent='Tap to see how it was processed';
+  steps.forEach((x,j)=>{const r=$('tpr'+j);if(r)r.className='tp-row '+(j<k?'done':j===k?'active':'todo')+(x.mem?' is-mem':'');});
+  if(s.mem)memPulse();   // 记忆生成/调用 → avatar 仪式光效
+}
+function capDone(steps){steps.forEach((x,j)=>{const r=$('tpr'+j);if(r)r.className='tp-row done'+(x.mem?' is-mem':'');});
+  $('thinkPill').classList.remove('mem');
+  $('thinkNow').textContent='Done';$('thinkNow').classList.remove('roll');void $('thinkNow').offsetWidth;$('thinkNow').classList.add('roll');$('thinkNext').textContent='Tap to see how it was processed';}
+// avatar 记忆仪式光效
+function memPulse(){const a=$('avatar');a.classList.remove('mem');void a.offsetWidth;a.classList.add('mem');timers.push(setTimeout(()=>a.classList.remove('mem'),1300));}
+// 播放器更新
+function updateDock(d){$('npCov').style.background=d.cov;$('npCov').classList.remove('flash');void $('npCov').offsetWidth;$('npCov').classList.add('flash');
+  $('npTi').textContent=d.ti;$('npAr').textContent=d.ar;$('np').classList.add('playing');}
+
+// 一轮对话；返回结束时间。系统回复只 TTS 播报，不上屏。
+function doTurn(turn,t0){
+  const dur=Math.max(420,turn.asr.length*38);            // present：识别打字更快(加速)
+  at(t0,()=>{
+    $('avatar').classList.add('awake');
+    $('svAsr').className='sv-asr show';$('svAsr').style.display='';$('asrText').textContent='';$('asrCur').style.display='';
+    typeASR(turn.asr,dur);
+    $('phlabel').textContent='Listening · Recognizing';
+  });
+  const t1=t0+dur+150;
+  at(t1,()=>{$('asrCur').style.display='none';$('svAsr').classList.add('done');});
+  at(t1+250,()=>$('svAsr').classList.add('gone'));
+  let replyAt=t1+340;
+  if(turn.capsule){
+    const cs=t1+300,steps=turn.capsule;
+    at(cs,()=>{showCapsule(steps);$('phlabel').textContent='Thinking (tap to expand)';});
+    steps.forEach((s,k)=>at(cs+k*520,()=>setCap(steps,k)));   // 思考步骤更快
+    replyAt=cs+steps.length*520+120;
+    at(replyAt,()=>capDone(steps));
+  }
+  // 回复窗口时长（轮间间隔）—— present 收紧
+  const speakDur=Math.min(2100,Math.max(900,turn.reply.length*58));
+  // 回复时机：收起 ASR、播 TTS，并在整个回复窗口点亮 avatar 光晕（不依赖 TTS 是否被浏览器拦截）
+  at(replyAt,()=>{
+    $('svAsr').style.display='none';
+    speak(turn.reply);
+    if(ttsOn)setSpeaking(true);
+    $('phlabel').textContent='Replying · Voice playback (TTS)';
+  });
+  at(replyAt+speakDur,()=>setSpeaking(false));            // 回复结束 → 光晕消失
+  if(turn.dock)at(replyAt+200,()=>{updateDock(turn.dock);$('phlabel').textContent='Player updated';});
+  return replyAt+speakDur+200;
+}
+function play(key){
+  reset();const ex=EX[key];
+  [...$('vbtns').children].forEach(b=>{if(b.dataset.v)b.classList.toggle('on',b.dataset.v===key);});
+  let t=600;ex.turns.forEach(turn=>{t=doTurn(turn,t);});
+  // 复杂多轮：对话结束 → 展开「为你推荐」feed → 聊天小结卡落到顶部，与其他推荐同列
+  if(ex.summary){
+    at(t,()=>{showRecFeed();$('phlabel').textContent='Opening "For you" feed...';});
+    at(t+780,()=>{addSummaryCard(ex.summary);$('phlabel').textContent='Chat summary added to feed · alongside other recommendations';});
+    t+=1600;
+  }
+}
+$('vbtns').addEventListener('click',e=>{const b=e.target.closest('.vbtn[data-v]');if(b)play(b.dataset.v);});
+$('thinkPill').onclick=()=>{const ex=$('think').classList.toggle('expanded');stage.classList.toggle('cap-expanded',ex);syncMapPush();};  // 展开→地图卡继续下推
+// 🔊 TTS 开关（默认开）
+$('ttsToggle').onclick=()=>{ttsOn=!ttsOn;const b=$('ttsToggle');b.classList.toggle('on',ttsOn);b.querySelector('.k').textContent=ttsOn?'🔊 TTS On':'🔇 TTS Off';if(!ttsOn)ttsStop();};
+// ↺ 复位
+$('btnReset').onclick=()=>{reset();[...$('vbtns').children].forEach(b=>{if(b.dataset.v)b.classList.remove('on');});$('phlabel').textContent='Standby';};
+setTimeout(()=>play('chat'),600);
+</script>
+
+<script>
+(function(){
+  var orb=document.getElementById('mvaOrb');if(!orb)return;
+  var stage=document.querySelector('.stage');
+  var watch=[document.querySelector('.voice-zone'),document.querySelector('.statusbar')].filter(Boolean);
+  var busy=true,settleT=null;
+  function en(on){orb.classList.toggle('busy',!on);}
+  function settle(){busy=false;en(true);}
+  function bump(){busy=true;en(false);clearTimeout(settleT);settleT=setTimeout(settle,1200);}
+  try{var obs=new MutationObserver(bump);watch.forEach(function(n){obs.observe(n,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','style']});});}catch(e){}
+  bump();
+  orb.onclick=function(){if(busy)return;stage.classList.toggle('zone-hidden');};
+})();
+</script>
+</body>
+</html>

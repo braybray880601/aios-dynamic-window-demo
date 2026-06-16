@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AIOS Dynamic Window — Start</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.4);--accent:#7fc8ff;--green:#46e08b}
+  html,body{height:100%;background:#05070c;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue","PingFang SC",system-ui,sans-serif;overflow:hidden}
+  #stage{position:absolute;left:50%;top:50%;width:1300px;height:812px;transform-origin:center;
+    background:
+      radial-gradient(120% 90% at 30% 8%, rgba(46,160,124,.16), rgba(46,160,124,0) 46%),
+      radial-gradient(120% 110% at 84% 96%, rgba(91,140,255,.16), rgba(91,140,255,0) 50%),
+      linear-gradient(158deg,#0a0f17 0%,#06090f 60%,#04060a 100%);
+    overflow:hidden;color:var(--ink)}
+  /* 顶栏 */
+  .top{position:absolute;top:30px;left:46px;right:46px;display:flex;align-items:center;font-size:13px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
+  .top .r{margin-left:auto;font-weight:600;color:rgba(238,241,244,.5)}
+  /* 主体 */
+  .hero{position:absolute;left:96px;top:0;bottom:0;width:560px;display:flex;flex-direction:column;justify-content:center;gap:0}
+  .orb{width:88px;height:88px;border-radius:50%;position:relative;margin-bottom:34px;opacity:0;transform:scale(.6);animation:orbIn 1s cubic-bezier(.2,.9,.3,1) .25s forwards}
+  .orb::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(1px);animation:spin 7s linear infinite;box-shadow:0 0 50px 6px rgba(120,160,255,.4)}
+  .orb::after{content:"";position:absolute;inset:9px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6));box-shadow:0 0 16px rgba(255,255,255,.5)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes orbIn{to{opacity:1;transform:scale(1)}}
+  .eyebrow{font-size:13.5px;font-weight:700;letter-spacing:.18em;color:var(--green);text-transform:uppercase;opacity:0;transform:translateY(10px);animation:up .7s ease .7s forwards}
+  h1{font-size:58px;font-weight:300;line-height:1.04;letter-spacing:-1.5px;margin:13px 0 0;opacity:0;transform:translateY(14px);animation:up .8s cubic-bezier(.2,.8,.3,1) .9s forwards}
+  h1 b{font-weight:600}
+  .sub{font-size:20px;color:var(--soft);margin-top:16px;font-weight:400;opacity:0;transform:translateY(12px);animation:up .8s ease 1.15s forwards}
+  .sub .cn{display:block;font-size:14.5px;color:var(--faint);margin-top:7px}
+  @keyframes up{to{opacity:1;transform:none}}
+  /* 右侧 6 条能力依次点亮 */
+  .caps{position:absolute;right:90px;top:0;bottom:0;width:520px;display:flex;flex-direction:column;justify-content:center;gap:13px}
+  .cap{display:flex;align-items:center;gap:15px;padding:14px 17px;border-radius:15px;
+    background:linear-gradient(158deg,rgba(28,40,54,.5),rgba(13,19,28,.45));
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);opacity:0;transform:translateX(22px);
+    transition:box-shadow .4s,background .4s}
+  .cap.in{animation:capIn .55s cubic-bezier(.2,.85,.3,1) forwards}
+  .cap.lit{background:linear-gradient(158deg,rgba(38,54,72,.72),rgba(15,22,32,.6));box-shadow:inset 0 0 0 1px rgba(127,200,255,.34),0 0 26px -6px rgba(91,140,255,.4)}
+  @keyframes capIn{to{opacity:1;transform:none}}
+  .cap .n{width:26px;height:26px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--faint);background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);transition:.4s}
+  .cap.lit .n{color:#06140b;background:var(--green);box-shadow:0 0 14px rgba(70,224,140,.55)}
+  .cap .tx{min-width:0}
+  .cap .t{font-size:15px;font-weight:650;color:var(--ink);line-height:1.25}
+  .cap .c{font-size:11.5px;color:var(--faint);margin-top:2px}
+  .cap.lit .t{color:#fff}
+  /* 底部进度 */
+  .foot{position:absolute;left:96px;right:90px;bottom:46px;display:flex;align-items:center;gap:14px;opacity:0;animation:up .8s ease 1.5s forwards}
+  .foot .play{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:var(--soft);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+  .foot .play .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 9px var(--green);animation:blink 1.5s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:.45}50%{opacity:1}}
+  .foot .bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+  .foot .bar i{display:block;height:100%;width:0;border-radius:2px;background:linear-gradient(90deg,var(--green),var(--accent));animation:prog 4.2s linear 1.6s forwards}
+  @keyframes prog{to{width:100%}}
+  .foot .t{font-size:12px;color:var(--faint);font-weight:600}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="top"><span>Mercedes-Benz · MVA</span><span class="r">AI Operating System · Concept Demo</span></div>
+
+  <div class="hero">
+    <div class="orb"></div>
+    <div class="eyebrow">AIOS</div>
+    <h1>AIOS <b>Dynamic Window</b></h1>
+    <div class="sub">Mercedes' first AI-native surface.</div>
+  </div>
+
+  <div class="caps" id="caps">
+    <div class="cap"><span class="n">1</span><div class="tx"><div class="t">Live widgets</div><div class="c">Your whole car, glanceable on one canvas</div></div></div>
+    <div class="cap"><span class="n">2</span><div class="tx"><div class="t">Ambient AI</div><div class="c">The island nudges, never nags</div></div></div>
+    <div class="cap"><span class="n">3</span><div class="tx"><div class="t">A window that grows with the scenario</div><div class="c">From voice-only to immersive</div></div></div>
+    <div class="cap"><span class="n">4</span><div class="tx"><div class="t">Generative UI</div><div class="c">The next-step control, the moment you ask</div></div></div>
+    <div class="cap"><span class="n">5</span><div class="tx"><div class="t">See the AI think</div><div class="c">Reasoning made visible, then it just works</div></div></div>
+    <div class="cap"><span class="n">6</span><div class="tx"><div class="t">One window, every service</div><div class="c">Music, calls, mini-apps</div></div></div>
+  </div>
+
+  <div class="foot">
+    <span class="play"><span class="dot"></span>Auto-playing</span>
+    <span class="bar"><i></i></span>
+    <span class="t">60-second overview</span>
+  </div>
+</div>
+<script>
+  const stage=document.getElementById('stage');
+  function fit(){stage.style.transform=`translate(-50%,-50%) scale(${Math.min(innerWidth/1300,innerHeight/812)*0.985})`;}
+  addEventListener('resize',fit);fit();
+  // 6 条能力依次入场 + 依次点亮(快速 overview)
+  const caps=[...document.querySelectorAll('#caps .cap')];
+  caps.forEach((c,i)=>setTimeout(()=>c.classList.add('in'),1500+i*230));
+  let li=0;
+  function lite(){caps.forEach(c=>c.classList.remove('lit'));caps[li%caps.length].classList.add('lit');li++;}
+  setTimeout(()=>{lite();setInterval(lite,650);},3100);
+</script>
+</body>
+</html>

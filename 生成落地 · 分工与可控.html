@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>奔驰 语音区 · 生成落地(分工 × 有限词表 × 可控)</title>
+<style>
+  :root{--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.34);--gold:#ffcf6a;--violet:#9b8bff;--blue:#6fa0ff;--green:#34d06a;--red:#ff7d7d;--card:rgba(22,28,40,.56);--bd:rgba(255,255,255,.09)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1600px;height:900px;overflow:hidden;transform-origin:center center;border-radius:22px;
+    background:radial-gradient(130% 120% at 18% 0%,#16203040 0%,transparent 55%),radial-gradient(120% 120% at 100% 100%,#1a1f2e 0%,#0e1420 45%,#080b12 100%);box-shadow:0 50px 140px rgba(0,0,0,.7)}
+  .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.12;pointer-events:none}
+  .glow.g1{width:520px;height:520px;top:-160px;right:-120px;background:#ffcf6a}
+  .glow.g2{width:560px;height:560px;bottom:-220px;left:-160px;background:#9b8bff}
+
+  .wrap{position:absolute;inset:0;padding:34px 50px 26px;display:flex;flex-direction:column}
+  header{margin-bottom:13px}
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:.28em;color:var(--gold);text-transform:uppercase;margin-bottom:8px}
+  h1{font-size:32px;font-weight:800;letter-spacing:.01em;line-height:1.1}
+  h1 b{background:linear-gradient(100deg,#fff,#ffcf6a 130%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .lede{margin-top:8px;font-size:13.5px;color:var(--soft);line-height:1.5}
+
+  .sec{font-size:12.5px;font-weight:800;letter-spacing:.02em;color:var(--soft);margin:0 0 9px;display:flex;align-items:center;gap:8px}
+  .sec .ix{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:#0b1018;background:var(--gold)}
+
+  /* 责任分工 */
+  .roles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:15px}
+  .role{position:relative;background:var(--card);backdrop-filter:blur(18px);border-radius:15px;box-shadow:inset 0 0 0 1px var(--bd);padding:13px 16px;overflow:hidden}
+  .role::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac);opacity:.9}
+  .role .rh{display:flex;align-items:baseline;gap:9px;margin-bottom:8px}
+  .role .ri{font-size:18px}.role .rt{font-size:16px;font-weight:800;color:var(--ac)}.role .rs{margin-left:auto;font-size:11px;color:var(--soft)}
+  .role .li{display:flex;gap:8px;font-size:12px;color:rgba(238,241,244,.85);line-height:1.4;padding:2px 0}
+  .role .li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--ac);flex:none;margin-top:7px}
+  .role .rn{margin-top:7px;font-size:11px;color:var(--faint);border-top:1px solid rgba(255,255,255,.07);padding-top:7px}
+
+  /* 生成契约 pipeline */
+  .pipe-wrap{margin-bottom:15px}
+  .pipe{display:flex;align-items:stretch;gap:0}
+  .node{flex:1;position:relative;background:rgba(255,255,255,.04);border-radius:11px;box-shadow:inset 0 0 0 1px var(--bd);padding:9px 12px;display:flex;flex-direction:column;justify-content:center;min-height:54px}
+  .node .nt{font-size:12.5px;font-weight:700;line-height:1.25}
+  .node .nd{font-size:10px;color:var(--soft);margin-top:2px}
+  .node.ai{box-shadow:inset 0 0 0 1px rgba(255,207,106,.5);background:rgba(255,207,106,.07)}.node.ai .nt{color:var(--gold)}
+  .node.spec{box-shadow:inset 0 0 0 1px rgba(255,207,106,.5);background:rgba(255,207,106,.07)}.node.spec .nt{color:var(--gold)}
+  .node.chk{box-shadow:inset 0 0 0 1px rgba(52,208,106,.45)}.node.chk .nt{color:#5fe08c}
+  .arr{flex:none;width:30px;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:15px}
+  .pipe-foot{display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--soft)}
+  .pipe-foot .fb{color:#ffb0b0}.pipe-foot b{color:var(--ink);font-weight:600}
+
+  /* 底部两列 */
+  .bottom{flex:1;display:flex;gap:14px;min-height:0}
+  .panel{background:var(--card);backdrop-filter:blur(18px);border-radius:16px;box-shadow:inset 0 0 0 1px var(--bd);padding:14px 18px;display:flex;flex-direction:column;min-height:0}
+  .panel.vocab{flex:0 0 56%}.panel.ctrl{flex:1}
+
+  .vrow{display:flex;gap:11px;align-items:flex-start;padding:6px 0}
+  .vrow+.vrow{border-top:1px solid rgba(255,255,255,.06)}
+  .vrow .vk{flex:none;width:104px}
+  .vrow .vk .kn{font-size:12.5px;font-weight:700}.vrow .vk .kw{font-size:9.5px;color:var(--faint);margin-top:1px}
+  .vrow .vchips{flex:1;display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11px;color:var(--soft);background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--bd);padding:3px 9px;border-radius:14px;white-space:nowrap}
+  .vocab .closed{margin-top:auto;padding-top:9px;font-size:11px;color:var(--violet)}
+
+  .guard{display:flex;gap:10px;align-items:flex-start;padding:7px 0}
+  .guard+.guard{border-top:1px solid rgba(255,255,255,.06)}
+  .guard .gi{font-size:15px;flex:none;margin-top:1px}
+  .guard .gt{font-size:13px;font-weight:700;color:#9fe7b8}
+  .guard .gd{font-size:11px;color:var(--soft);margin-top:2px;line-height:1.4}
+  .redrow{margin-top:9px;display:flex;gap:9px;align-items:flex-start;background:rgba(255,107,107,.09);border-radius:10px;box-shadow:inset 0 0 0 1px rgba(255,125,125,.24);padding:8px 12px}
+  .redrow b{color:var(--red);font-weight:800;font-size:11.5px;flex:none}.redrow span{font-size:11px;color:var(--soft);line-height:1.4}
+  .verdict{margin-top:9px;background:linear-gradient(100deg,rgba(255,207,106,.14),rgba(155,139,255,.12));border-radius:11px;box-shadow:inset 0 0 0 1px rgba(255,207,106,.3);padding:10px 14px;font-size:12.5px;font-weight:700;color:#fff;line-height:1.45}
+  .verdict b{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <div class="wrap">
+      <header>
+        <div class="eyebrow">奔驰 · 语音区 · 给设计师 &amp; 研发</div>
+        <h1>AI 生成怎么落地 —— <b>谁做什么 · 有限词表 · 可控</b></h1>
+        <div class="lede">站在实现角度看清三件事:① 设计师 / 研发 / AI 各负责哪部分;② AI 能生成的范围是个<b style="color:#cfc6ff">有限词表</b>;③ 靠什么把它<b style="color:#9fe7b8">框成可控</b>。</div>
+      </header>
+
+      <div class="sec"><span class="ix">1</span>谁做什么 · 责任分工</div>
+      <div class="roles" id="roles"></div>
+
+      <div class="pipe-wrap">
+        <div class="sec"><span class="ix">2</span>生成契约 · AI 只产出"受约束的 Spec",不发像素</div>
+        <div class="pipe">
+          <div class="node"><div class="nt">用户意图 ＋ 真实数据</div><div class="nd">数据只读,不臆造</div></div>
+          <div class="arr">→</div>
+          <div class="node ai"><div class="nt">AI · 在词表内选</div><div class="nd">组件/原子/token/图表/主题</div></div>
+          <div class="arr">→</div>
+          <div class="node spec"><div class="nt">结构化 Spec</div><div class="nd">JSON · 非像素/HTML</div></div>
+          <div class="arr">→</div>
+          <div class="node chk"><div class="nt">校验器</div><div class="nd">schema + 规范</div></div>
+          <div class="arr">→</div>
+          <div class="node"><div class="nt">渲染器</div><div class="nd">Spec → UI</div></div>
+          <div class="arr">→</div>
+          <div class="node"><div class="nt">UI</div><div class="nd">spec-valid by construction</div></div>
+        </div>
+        <div class="pipe-foot"><span><b>关键</b>:AI 全程只发结构化 Spec,渲染交给受控渲染器——画不出规范外的东西。</span><span class="fb">↳ 不合规 Spec → 校验拦截 → 兜底回退卡</span></div>
+      </div>
+
+      <div class="bottom">
+        <div class="panel vocab">
+          <div class="sec"><span class="ix" style="background:var(--violet)">3</span>有限词表 · AI 只能从这些闭集里"选与拼"</div>
+          <div id="vocab"></div>
+          <div class="closed">▣ 每一类都是<b style="color:#cfc6ff">闭集</b>:AI 从中选用,不新增、不发明 —— 这就是"有限集"的来源。</div>
+        </div>
+        <div class="panel ctrl">
+          <div class="sec"><span class="ix" style="background:var(--green)">4</span>可控护栏 + 结论</div>
+          <div id="guards"></div>
+          <div class="redrow"><b>🚫 永不生成</b><span>车控数值 · 真实数据(电量/胎压/ETA/比分) · 地图与路线几何 · 支付/账户 · 身份判定</span></div>
+          <div class="verdict">场景是<b>开放</b>的,但生成<b>词表有限</b>、每个产出经校验 <b>by construction 合规</b> —— 所以 AI 生成是<b>有限集、且可控</b>。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1600,innerHeight/900)*0.985})`;}
+addEventListener('resize',fit);fit();
+
+const ROLES=[
+  {ac:'#9b8bff',ic:'🎨',role:'设计师',sub:'定「词表的样子」',items:['Design tokens(色/字/距/圆角)','原子视觉 & 卡片语法','美术方向 · 动效库'],note:'决定 AI 能用哪些积木、长什么样'},
+  {ac:'#6fa0ff',ic:'🔧',role:'研发',sub:'建「管道与护栏」',items:['组件实现(可被调用)','渲染器 Spec→UI · 真实数据绑定','校验器 + schema · 失败回退'],note:'决定 Spec 怎么变界面、怎么被拦住'},
+  {ac:'#ffcf6a',ic:'✨',role:'AI',sub:'在框里「选与拼」',items:['理解意图','选 组件/原子/token/图表/主题','产出结构化 Spec(非像素)'],note:'只在词表内组合,不发明新积木'},
+];
+document.getElementById('roles').innerHTML=ROLES.map(r=>`<div class="role" style="--ac:${r.ac}">
+  <div class="rh"><span class="ri">${r.ic}</span><span class="rt">${r.role}</span><span class="rs">${r.sub}</span></div>
+  ${r.items.map(i=>`<div class="li">${i}</div>`).join('')}
+  <div class="rn">${r.note}</div></div>`).join('');
+
+const VOCAB=[
+  {k:'可调用组件',w:'研发',items:['车控','媒体','导航','播放器','车况','身份']},
+  {k:'可组合原子',w:'设计师',items:['标题','缩略图','标签','列表行','进度条','按钮','图表','头像']},
+  {k:'卡片槽位',w:'设计师',items:['主图','标题','关键信息','列表','操作']},
+  {k:'token 取值',w:'设计师',items:['色板 N 色','字阶 N 级','间距 ×8','圆角 N 档']},
+  {k:'图表类型',w:'闭集',items:['趋势线','对比条','占比环','进度']},
+  {k:'主题参数',w:'闭集',items:['主/辅/强调(品牌色域)','亮度/呼吸区间']},
+];
+document.getElementById('vocab').innerHTML=VOCAB.map(v=>`<div class="vrow">
+  <div class="vk"><div class="kn">${v.k}</div><div class="kw">${v.w}</div></div>
+  <div class="vchips">${v.items.map(i=>`<span class="chip">${i}</span>`).join('')}</div></div>`).join('');
+
+const GUARD=[
+  {ic:'🛡️',t:'只发 Spec,不发像素',d:'产出是结构化数据,渲染交给受控渲染器 → 画不出规范外的东西'},
+  {ic:'🛡️',t:'数据只读真实源',d:'数值 / 几何来自遥测 / 服务,AI 不臆造 → 没有假数据'},
+  {ic:'🛡️',t:'schema + 规范校验,失败回退',d:'不合规的 Spec 被拦,退到通用兜底卡'},
+];
+document.getElementById('guards').innerHTML=GUARD.map(g=>`<div class="guard"><span class="gi">${g.ic}</span><div><div class="gt">${g.t}</div><div class="gd">${g.d}</div></div></div>`).join('');
+</script>
+</body>
+</html>

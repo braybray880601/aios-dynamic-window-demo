@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AIOS Dynamic Window — Demo Console</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.4);--green:#46e08b;--blue:#7fc8ff}
+  html,body{height:100%;background:#04060a;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue","PingFang SC",system-ui,sans-serif;overflow:hidden;color:var(--ink)}
+  /* 整体: 左侧车机舞台 + 右侧控制台 */
+  #runner{position:fixed;inset:0;display:flex;flex-direction:row;background:radial-gradient(120% 90% at 40% -10%,rgba(46,160,124,.08),transparent 50%),#04060a}
+  .stagecol{flex:1;min-width:0;display:flex;flex-direction:column}
+  /* 顶部:产品名 */
+  .top{flex:none;height:46px;display:flex;align-items:center;padding:0 26px;gap:12px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .top .b{font-weight:700;color:rgba(238,241,244,.75)}
+  .top .now{margin-left:auto;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:none;color:var(--soft)}
+  /* 车机屏 iframe */
+  .screen{flex:1;position:relative;min-height:0}
+  .screen iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#05070c}
+  .screen .empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:var(--faint);text-align:center}
+  .screen .empty .o{width:74px;height:74px;border-radius:50%;position:relative}
+  .screen .empty .o::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(1px);animation:spin 7s linear infinite;box-shadow:0 0 44px 4px rgba(120,160,255,.34)}
+  .screen .empty .o::after{content:"";position:absolute;inset:9px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6))}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .screen .empty h1{font-size:30px;font-weight:300;letter-spacing:-.5px;color:var(--ink)}.screen .empty h1 b{font-weight:600}
+  .screen .empty p{font-size:14px}
+  .screen.live .empty{display:none}
+  /* 底部亮点菜单栏: 顶部一行字幕 */
+  .hl{flex:none;display:flex;align-items:flex-start;gap:12px;padding:15px 30px 17px;
+    background:linear-gradient(180deg,rgba(8,11,17,0),rgba(8,11,17,.7) 40%,rgba(6,9,14,.96))}
+  .hl .n{width:25px;height:25px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#06140b;background:linear-gradient(150deg,var(--green),#22c878);box-shadow:0 6px 15px rgba(46,200,124,.4)}
+  .hl .en{font-size:19px;font-weight:600;letter-spacing:-.2px;line-height:1.32;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+  /* ── 右侧控制台 ── */
+  .console{flex:none;width:236px;display:flex;flex-direction:column;background:rgba(9,12,18,.92);box-shadow:inset 1px 0 0 rgba(255,255,255,.06)}
+  .console .chd{padding:16px 16px 12px;box-shadow:inset 0 -1px 0 rgba(255,255,255,.06)}
+  .console .chd .o{width:26px;height:26px;border-radius:50%;position:relative;display:inline-block;vertical-align:-7px;margin-right:9px}
+  .console .chd .o::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(.5px)}
+  .console .chd .o::after{content:"";position:absolute;inset:6px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6))}
+  .console .chd .t{font-size:14px;font-weight:700}
+  .console .chd .s{font-size:11px;color:var(--faint);margin-top:6px;letter-spacing:.02em}
+  .console .list{flex:1;overflow-y:auto;padding:10px}
+  .console .grp{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:11px 8px 6px}
+  .scene{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:11px;cursor:pointer;transition:background .18s,box-shadow .18s;margin-bottom:3px}
+  .scene:hover{background:rgba(255,255,255,.05)}
+  .scene.active{background:linear-gradient(158deg,rgba(38,54,72,.85),rgba(15,22,32,.7));box-shadow:inset 0 0 0 1px rgba(127,200,255,.34),0 6px 18px -6px rgba(91,140,255,.5)}
+  .scene .nm{width:24px;height:24px;flex:none;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;color:var(--faint);background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:.18s}
+  .scene.active .nm{color:#06140b;background:linear-gradient(150deg,var(--green),#22c878);box-shadow:0 0 12px rgba(70,224,140,.5)}
+  .scene .tx{min-width:0}
+  .scene .tt{font-size:12.5px;font-weight:600;line-height:1.2;color:var(--ink)}
+  .scene .ss{font-size:10.5px;color:var(--faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .scene .rp{margin-left:auto;flex:none;opacity:0;font-size:13px;color:var(--soft);transition:opacity .18s}
+  .scene.active .rp{opacity:.9}
+  .console .cft{padding:11px 16px;font-size:10.5px;color:var(--faint);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);letter-spacing:.04em}
+</style>
+</head>
+<body>
+<div id="runner">
+  <div class="stagecol">
+    <div class="top"><span class="b">AIOS Dynamic Window</span><span>· Mercedes-Benz MVA · Concept</span><span class="now" id="now">Pick a scene →</span></div>
+    <div class="screen" id="screen">
+      <iframe id="frame" allow="autoplay"></iframe>
+      <div class="empty">
+        <div class="o"></div>
+        <h1>AIOS <b>Dynamic Window</b></h1>
+        <p>Click a scene on the right to play it.</p>
+      </div>
+    </div>
+    <div class="hl">
+      <div class="n" id="hlN">·</div>
+      <div class="en" id="hlEN">Mercedes' first AI-native surface</div>
+    </div>
+  </div>
+
+  <div class="console">
+    <div class="chd"><span class="o"></span><span class="t">Demo console</span><div class="s">Click a scene to play · click again to replay</div></div>
+    <div class="list" id="list"></div>
+    <div class="cft">Mercedes-Benz · MVA</div>
+  </div>
+</div>
+
+<script>
+const enc=s=>encodeURIComponent(s);
+const FEED='奔驰 语音区 · 负一屏(车控媒体+Feed).html';
+
+// ── 场景:每一项 = 一个你已经做好、能自己播放的现成页(页面自带完整交互,不靠外部伸手)──
+const SCENES=[
+  {grp:'Intro', label:'Overview', sub:'six capabilities', page:'AIOS Demo · 00 起始页.html', n:'·', hl:"AIOS Dynamic Window — Mercedes' first AI-native surface"},
+
+  // 1 Live widgets → 负一屏 方案B(推荐在上·组件在下);demo=widget: 添加组件 + 点选聚焦
+  {grp:'1 · Live widgets', label:'Live widgets', sub:'add a widget · focus live data', page:'奔驰 语音区 · 负一屏 方案B(推荐上·组件下).html', q:'demo=widget', n:'1',
+   hl:'Live widgets — your whole car, glanceable on one canvas.'},
+
+  // 2 Ambient AI → 同一个 方案B 页面(布局统一: 推荐在上·组件在下);demo=notif: 通知到达 → 沉入顶部推荐流
+  {grp:'2 · Ambient AI', label:'Ambient AI', sub:'notification → sinks into feed', page:'奔驰 语音区 · 负一屏 方案B(推荐上·组件下).html', q:'demo=notif', n:'2',
+   hl:'Ambient AI — the island nudges, never nags.'},
+
+  // 3 Window grows → 你点名的三个现成场景:闲聊 / 天气 / 赛事
+  {grp:'3 · Window grows', label:'Window grows · chat', sub:'casual chat → quick reply', page:'奔驰 语音区 · 闲聊与简单指令.html', n:'3',
+   hl:'A window that grows with the scenario — from voice-only to immersive.'},
+  {grp:'3 · Window grows', label:'Window grows · weather', sub:'weather → full view', page:'奔驰 语音区 · 下雨天气.html', n:'3',
+   hl:'A window that grows with the scenario — from voice-only to immersive.'},
+  {grp:'3 · Window grows', label:'Window grows · match', sub:'live match → adaptive card', page:'奔驰 语音区 · 世界杯赛事.html', n:'3',
+   hl:'A window that grows with the scenario — from voice-only to immersive.'},
+
+  {grp:'4 · Generative UI', label:'Generative UI', sub:'ask → control appears', page:'奔驰 语音区 · 氛围灯.html', n:'4',
+   hl:'Generative UI — next step control, the moment you ask.'},   // 页面默认即「文字上屏(ASR)」→ 指令上屏 → 生成调光控件 → 回复
+
+  {grp:'5 · See AI think', label:'See AI think', sub:'multi-stop plan, reasoning visible', page:'奔驰 语音区 · 导航规划与音乐卡片切换.html', n:'5',
+   hl:'See the AI think — reasoning made visible, then it just works.'},
+
+  {grp:'6 · Every service', label:'Service · music', sub:'play song → expand window', page:'奔驰 语音区 · 音乐小窗.html', n:'6',
+   hl:'One window, every service — music, calls, mini-apps.',
+   drive:function(D,W){setTimeout(function(){try{var dk=D.getElementById('dock');if(dk&&!dk.classList.contains('playing')&&W.startDock)W.startDock();if(W.showMusic)W.showMusic(true);else{var np=D.getElementById('np');if(np)np.click();}}catch(e){}},5000);}},  // 歌曲起播后展开音乐小窗
+  {grp:'6 · Every service', label:'Service · phone', sub:'call a contact', page:'奔驰 语音区 · 电话.html', n:'6',
+   hl:'One window, every service — music, calls, mini-apps.'}
+];
+
+// ── DOM ──
+const frame=document.getElementById('frame'), screenEl=document.getElementById('screen');
+const hlN=document.getElementById('hlN'), hlEN=document.getElementById('hlEN'), nowEl=document.getElementById('now');
+const listEl=document.getElementById('list');
+
+// ── 构建控制台清单(按 grp 分组) ──
+let lastGrp=null;
+const btns=[];
+SCENES.forEach((s,i)=>{
+  if(s.grp!==lastGrp){const g=document.createElement('div');g.className='grp';g.textContent=s.grp;listEl.appendChild(g);lastGrp=s.grp;}
+  const b=document.createElement('div');b.className='scene';
+  b.innerHTML='<div class="nm">'+s.n+'</div><div class="tx"><div class="tt">'+s.label+'</div><div class="ss">'+(s.sub||'')+'</div></div><div class="rp">↻</div>';
+  b.addEventListener('click',()=>play(i));
+  listEl.appendChild(b);btns.push(b);
+});
+
+// ── iframe 载入后(同源): 只藏开发面板, 不动场景;再驱动当段编排 ──
+let curDrive=null,_pc=0,audioUnlocked=false;
+function cleanFrame(){try{var d=frame.contentDocument;if(!d)return;
+  d.querySelectorAll('.panel').forEach(e=>e.style.display='none');   // 仅藏右上角「开发演示」面板
+}catch(e){}}
+frame.addEventListener('load',function(){cleanFrame();const dv=curDrive;if(dv)setTimeout(function(){try{dv(frame.contentDocument,frame.contentWindow);}catch(e){}},90);});
+
+// ── 播放某场景(手动,无自动切换) ──
+function play(i){
+  const s=SCENES[i];
+  if(!audioUnlocked){try{var u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}catch(e){}audioUnlocked=true;}  // 首次点击=手势,解锁声音
+  curDrive=s.drive||null;
+  screenEl.classList.add('live');
+  frame.src=enc(s.page)+'?_='+(++_pc)+(s.q?'&'+s.q:'');     // 缓存戳(同页也强制重载→重播) + 每段 demo 参数
+  btns.forEach((b,k)=>b.classList.toggle('active',k===i));
+  hlN.textContent=s.n; hlEN.textContent=s.hl;
+  nowEl.textContent='▶ '+s.label;
+}
+</script>
+</body>
+</html>

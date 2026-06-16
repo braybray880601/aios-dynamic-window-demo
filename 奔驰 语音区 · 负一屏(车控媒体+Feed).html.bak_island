@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mercedes-Benz · Voice Zone · MVA Nebula (Memory / Media + Feed)</title>
+<!--
+  负一屏式语音区:除了通知/推荐 feed,还把车控(空调/氛围灯/快捷开关/续航/胎压)和媒体播放组件,
+  与 feed 消息【有机混排】在同一栏里 —— 类似 iOS 手机的负一屏小组件页。组件可交互(温度±、开关、播放)。
+  专辑为真实元数据、无版权正文;车辆数值为占位演示。
+-->
+<style>
+  :root{--card:rgba(22,28,40,.72);--card-bd:rgba(255,255,255,.1);--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.4);--gold:#ffcf6a;--green:#34d06a;--vz-w:432px;--tc:#c9785a}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1300px;height:812px;overflow:hidden;transform-origin:center center;border-radius:18px;box-shadow:0 40px 120px rgba(0,0,0,.65);background:radial-gradient(135% 115% at 50% 8%,#141c2a 0%,#0e1420 46%,#080b12 100%)}
+  .mapbg{position:absolute;inset:0;z-index:0}.mapbg svg{position:absolute;inset:0;width:100%;height:100%}
+  .mapbg-scrim{position:absolute;inset:0;background:radial-gradient(125% 105% at 50% 40%,rgba(8,11,18,.5),rgba(6,9,15,.76))}
+
+  .statusbar{position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:55}
+  .sb-left{display:flex;align-items:center;gap:13px;flex:1;min-width:0;height:100%;padding-right:24px}
+  .avatar{width:36px;height:36px;border-radius:50%;flex:none;position:relative;background-image:linear-gradient(135deg,#f3c9b0,#cf9d86);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4)}
+  .avatar::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6));box-shadow:0 0 14px rgba(255,255,255,.55)}
+  .sb-voice{display:flex;align-items:center;font-size:14px;color:var(--soft)}
+  .sb-right{display:flex;align-items:center;gap:16px;color:#dfe3e8;flex:none}.sb-clock{font-size:19px;font-weight:500}.sb-5g{font-size:10px;font-weight:700;vertical-align:top}
+
+  .map{position:absolute;top:64px;left:40px;width:300px;border-radius:20px;background:rgba(44,52,64,.5);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 8px 30px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.12);overflow:hidden;z-index:25;color:#fff;transition:transform .42s cubic-bezier(.2,.7,.2,1)}
+  .stage.voice-on .map{transform:translateX(calc(var(--vz-w) + 16px))}
+  .map-top{display:flex;align-items:center;gap:9px;padding:14px 16px}.map-top .t{flex:1;font-size:16px;font-weight:500}
+  .map-quick{display:flex;background:rgba(10,14,20,.4)}.map-quick div{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 0;opacity:.85}.map-quick div+div{box-shadow:inset 1px 0 0 rgba(255,255,255,.08)}
+  .weather{position:absolute;top:60px;right:36px;text-align:right;z-index:25}
+  .weather .temp{font-size:60px;font-weight:200;line-height:.9;letter-spacing:-1px;color:#fff}.weather .temp sup{font-size:20px;font-weight:300;vertical-align:top;margin-left:2px}.weather .loc{font-size:15px;color:var(--soft);margin-top:6px}
+  .cards{position:absolute;left:40px;right:40px;bottom:84px;display:flex;gap:16px;z-index:15}
+  .card{flex:1;height:96px;border-radius:18px;background:rgba(24,30,40,.6);backdrop-filter:blur(20px) saturate(1.2);box-shadow:0 8px 26px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.1);display:flex;align-items:center;gap:13px;padding:0 18px;color:#eef1f4}
+  .card .ic{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.08)}
+  .card .big{font-size:18px;font-weight:600}.card .sub{font-size:12px;color:var(--soft);margin-top:3px}.card .lnk{color:#7fa8ff;font-weight:600}
+  .card .col2{display:flex;gap:18px;width:100%}.tyre{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--soft);width:100%}.tyre .r{display:flex;justify-content:space-between}.tyre .tcar{align-self:center;width:26px;height:14px;border-radius:5px;background:rgba(255,255,255,.16);margin:1px 0}
+
+  /* ── 负一屏:car-control / media widgets + feed 混排 ── */
+  /* 高度限定在底部卡片行/底栏之上:超出部分裁掉并淡出,绝不遮住下面的内容 */
+  .voice-zone{position:absolute;left:40px;top:58px;bottom:196px;width:var(--vz-w);overflow-y:auto;z-index:50;padding-right:4px;-webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent)}
+  .voice-zone::-webkit-scrollbar{width:5px}.voice-zone::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:3px}
+  .nm-hd{display:flex;align-items:center;gap:8px;padding:2px 4px 11px;font-size:12.5px;font-weight:700;color:var(--soft);letter-spacing:.04em}
+  .nm-hd .nb{color:var(--ink);letter-spacing:.12em;font-size:13px}
+  .nm-hd .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:livedot 1.6s ease-in-out infinite}
+  @keyframes livedot{0%,100%{opacity:.5}50%{opacity:1}}
+  .nm-hd .sp{margin-left:auto;font-weight:600;color:var(--faint)}
+  .nm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .span2{grid-column:span 2}
+  .w,.fcard{animation:rise .5s both}
+  @keyframes rise{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+
+  .w{position:relative;border-radius:17px;background:var(--card);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);box-shadow:inset 0 0 0 1px var(--card-bd);padding:13px 14px;overflow:hidden;color:#fff}
+  .w-hd{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--soft)}
+  .w-hd .pill{margin-left:auto;font-size:9px;font-weight:800;padding:1px 6px;border-radius:6px}
+  .w-on{color:#0b0a14;background:var(--green)}.w-off{color:var(--soft);background:rgba(255,255,255,.08)}
+
+  /* 媒体播放器 widget */
+  .w-media{padding:0;color:#fff}
+  .w-media .mb{position:absolute;inset:0;background:center/cover no-repeat;filter:blur(34px) saturate(1.5);transform:scale(1.4);opacity:.5}
+  .w-media .ms{position:absolute;inset:0;background:linear-gradient(120deg,rgba(12,15,22,.55),rgba(10,13,19,.78)),radial-gradient(120% 120% at 12% 30%,color-mix(in srgb,var(--tc) 40%,transparent),transparent 70%)}
+  .w-media .mi{position:relative;padding:13px 15px}
+  .w-media .mrow{display:flex;align-items:center;gap:12px}
+  .w-media .mcov{width:50px;height:50px;border-radius:11px;flex:none;object-fit:cover;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+  .w-media .mtt{flex:1;min-width:0}
+  .w-media .mtitle{font-size:16px;font-weight:800}.w-media .martist{font-size:11.5px;color:rgba(255,255,255,.7);margin-top:2px}
+  .w-media .mctrl{display:flex;align-items:center;gap:14px;font-size:16px;color:#fff}
+  .w-media .mplay{width:38px;height:38px;border-radius:50%;background:var(--tc);color:#0a0a0a;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer}
+  .w-media .mbar{height:3px;border-radius:2px;background:rgba(255,255,255,.2);margin-top:11px;position:relative}
+  .w-media .mbar i{position:absolute;left:0;top:0;bottom:0;width:34%;border-radius:2px;background:var(--tc)}
+
+  /* 记忆 widget(记住了什么)*/
+  .w-mem{background:linear-gradient(135deg,rgba(255,207,106,.1),rgba(22,28,40,.74));box-shadow:inset 0 0 0 1px rgba(255,207,106,.24)}
+  .w-mem .w-hd{color:var(--gold)}.w-mem .memstar{filter:drop-shadow(0 0 5px rgba(255,207,106,.8))}
+  .mem-list{display:flex;flex-direction:column;gap:10px;margin-top:11px}
+  .mem-item{display:flex;align-items:flex-start;gap:9px;font-size:13px;line-height:1.4;color:var(--ink)}
+  .mem-item .star{color:var(--gold);font-size:11px;margin-top:2px;flex:none;filter:drop-shadow(0 0 4px rgba(255,207,106,.7))}
+  .mem-item b{font-weight:700}
+  .mem-item .mtime{margin-left:auto;font-size:10px;font-weight:700;color:var(--faint);background:rgba(255,255,255,.06);padding:1px 7px;border-radius:7px;flex:none}
+  /* 续航 / 电量状态 widget */
+  .w-range .rg-row{display:flex;align-items:center;gap:13px}
+  .w-range .rg-ic{font-size:24px;flex:none}
+  .w-range .rg-main{flex:1;min-width:0}
+  .w-range .rg-top{font-size:13.5px;color:var(--ink)}.w-range .rg-top b{font-weight:800}
+  .w-range .rbar{height:7px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:8px}.w-range .rbar i{display:block;height:100%;width:62%;background:linear-gradient(90deg,#34d06a,#7fe0a4);border-radius:4px}
+  .w-range .rg-side{font-size:11.5px;color:var(--soft);flex:none;text-align:right;line-height:1.3}
+
+  /* ── 固定区(pin) + iOS 风格组件 + 生成动画 ── */
+  .pin-asr{display:none;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--ink);background:rgba(255,255,255,.08);border-radius:13px;padding:9px 13px;margin-bottom:12px}
+  .pin-asr.show{display:inline-flex;animation:rise .35s both}
+  .pin-zone{display:none;margin-bottom:15px}
+  .pin-zone.has{display:block}
+  .pin-hd{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--gold);letter-spacing:.04em;padding:0 2px 9px}
+  .pin-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .pw{position:relative;border-radius:18px;background:var(--card);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);box-shadow:inset 0 0 0 1px var(--card-bd);padding:13px 14px;min-height:104px;color:#fff;overflow:hidden;animation:pwpop .5s both}
+  @keyframes pwpop{from{opacity:0;transform:scale(.92) translateY(8px)}to{opacity:1;transform:none}}
+  .pw.fresh{box-shadow:inset 0 0 0 1.4px rgba(255,207,106,.5),0 10px 26px rgba(255,200,90,.2)}
+  .pw-hd{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--soft);margin-bottom:9px}
+  .pw-ic{font-size:13px}
+  .pw-unpin{margin-left:auto;cursor:pointer;color:var(--faint);font-size:12px;line-height:1}
+  .pw-unpin:hover{color:#fff}
+  .pw-big{font-size:32px;font-weight:300;letter-spacing:-1px;line-height:1}
+  .pw-big2{font-size:24px;font-weight:800;line-height:1.05;letter-spacing:-.5px}.pw-big2 span{font-size:12px;font-weight:600;color:var(--soft);margin-left:3px}
+  .pw-lead{font-size:10.5px;color:var(--faint);margin-bottom:3px}
+  .pw-sub{font-size:11.5px;color:var(--soft);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pw-row{font-size:10.5px;color:var(--faint);margin-top:6px}
+  .pw-mrow{display:flex;align-items:center;gap:9px}.pw-cov{width:40px;height:40px;border-radius:9px;object-fit:cover;flex:none}
+  .pw-mt{font-size:15px;font-weight:700}
+  .pw.gen{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:var(--soft)}
+  .pw-spin{width:22px;height:22px;border-radius:50%;border:2.5px solid rgba(255,255,255,.16);border-top-color:var(--gold);animation:pwspin .8s linear infinite}
+  @keyframes pwspin{to{transform:rotate(360deg)}}
+  .pw-gent{font-size:11px;color:var(--soft)}
+  .pw.gen::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 25%,rgba(255,255,255,.08) 50%,transparent 75%);background-size:220% 100%;animation:pwshim 1.3s linear infinite;pointer-events:none}
+  @keyframes pwshim{from{background-position:160% 0}to{background-position:-160% 0}}
+
+  /* feed 卡(通知/推荐) */
+  .fcard{position:relative;background:var(--card);backdrop-filter:blur(18px) saturate(1.2);border-radius:15px;box-shadow:inset 0 0 0 1px var(--card-bd);padding:11px 13px 11px 16px;display:flex;align-items:center;gap:12px;overflow:hidden}
+  .fcard .stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .fcard .fic{width:40px;height:40px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:19px;background:rgba(255,255,255,.07)}
+  .fcard .fmain{flex:1;min-width:0}
+  .fcard .ft{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .fcard .fs{font-size:11px;color:var(--soft);margin-top:2px;line-height:1.35}
+  .fcard .ftag{font-size:9px;font-weight:800;padding:1px 6px;border-radius:6px}
+  .fcard .fgo{margin-left:auto;color:var(--faint);font-size:14px}
+
+  .dock{position:absolute;left:0;right:0;bottom:0;height:64px;z-index:30;display:flex;align-items:center;gap:18px;padding:0 22px;background:rgba(12,16,24,.6);backdrop-filter:blur(26px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  .dock .home{width:32px;height:32px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5);flex:none}
+  .dock .tt{font-size:13px;color:var(--soft)}.dock .sep{flex:1}.dock .ctrl{display:flex;align-items:center;gap:24px;color:rgba(238,241,244,.7);font-size:18px}
+
+  .panel{position:fixed;top:18px;right:18px;width:240px;z-index:100;background:rgba(20,22,26,.9);backdrop-filter:blur(20px);border-radius:16px;padding:15px;color:#e8eaee;font-size:12.5px;box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08)}
+  .panel .title{font-size:13.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;margin-bottom:11px}.panel .title i{width:8px;height:8px;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#ff6b9b,#ffab5b,#5b8cff)}
+  .panel button{width:100%;border:0;border-radius:11px;cursor:pointer;font-family:inherit;font-weight:600;font-size:13px;padding:10px;color:#fff;margin-top:8px;text-align:left;background:rgba(255,255,255,.08);transition:.15s}
+  .panel button:hover{background:rgba(255,255,255,.16)}.panel button.main{background:linear-gradient(135deg,#3b78ff,#2f6bff)}
+  .panel .note{margin-top:11px;font-size:11px;color:#8b9098;border-top:1px solid rgba(255,255,255,.08);padding-top:9px;line-height:1.5}
+  .panel{opacity:.3;transform:scale(.86);transform-origin:top right;transition:opacity .3s ease,transform .3s ease}.panel:hover{opacity:1;transform:scale(1)}
+
+  /* 全局：底栏 MVA 光球（语音区收起时的最小化态 · 点击唤起；区域展开时淡出）*/
+  .mva-orb{width:38px;height:38px;border-radius:50%;flex:none;border:0;padding:0;cursor:pointer;position:relative;background:radial-gradient(circle at 38% 34%,#2a3340,#11161f);transition:transform .15s,opacity .35s}
+  .mva-orb::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(.6px);animation:mvaspin 6s linear infinite}
+  .mva-orb::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.62));box-shadow:0 0 11px rgba(255,255,255,.5)}
+  .mva-orb:hover{transform:scale(1.06)}.mva-orb:active{transform:scale(.93)}
+  .stage.voice-on .mva-orb{opacity:.4}
+  .mva-orb.busy{opacity:.26 !important;pointer-events:none;filter:saturate(.55)}
+  .stage.zone-hidden .voice-zone{opacity:0 !important;transform:translateY(-10px) scale(.985) !important;pointer-events:none !important;transition:opacity .35s ease,transform .35s ease}
+  .stage.zone-hidden .map{transform:none !important}
+  @keyframes mvaspin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage voice-on" id="stage">
+    <div class="mapbg">
+      <svg viewBox="0 0 1300 812" preserveAspectRatio="xMidYMid slice">
+        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c2533"/><stop offset="1" stop-color="#151b25"/></linearGradient></defs>
+        <rect width="1300" height="812" fill="url(#bg)"/>
+        <path d="M-20 612 C 120 588 210 640 250 720 C 270 766 250 812 250 812 L -20 812 Z" fill="#1d3144"/>
+        <path d="M 1010 70 C 1110 60 1190 110 1180 200 C 1172 280 1080 300 1020 250 C 970 210 950 110 1010 70 Z" fill="#21362b"/>
+        <g stroke="#222b39" stroke-width="15" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/></g>
+        <g stroke="#4b5566" stroke-width="9" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/></g>
+        <g fill="#9aa3b0" font-size="15"><text x="430" y="470">Moganshan</text><text x="800" y="210">Daixi</text></g>
+      </svg>
+      <div class="mapbg-scrim"></div>
+    </div>
+
+    <div class="statusbar">
+      <div class="sb-left"><div class="avatar"></div><div class="sb-voice">Good afternoon — a look before you go 👋</div></div>
+      <div class="sb-right"><span><sup class="sb-5g">5G</sup> ▮▮▮</span><span class="sb-clock">21:36</span></div>
+    </div>
+
+    <div class="map">
+      <div class="map-top"><span>📍</span><span class="t">Map</span><svg width="18" height="18" viewBox="0 0 18 18"><circle cx="7.5" cy="7.5" r="5.5" fill="none" stroke="#fff" stroke-width="1.6"/><path d="M12 12l4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="map-quick"><div>⌂</div><div>☰</div><div>★</div><div>⚡</div></div>
+    </div>
+    <div class="weather"><div class="temp">14<sup>°C</sup></div><div class="loc">Shanghai　Clear night</div></div>
+
+    <!-- 负一屏:车控/媒体组件 + feed 混排 -->
+    <div class="voice-zone" id="vz">
+      <div class="nm-hd"><span class="dot"></span><span class="nb">MVA Nebula</span><span class="sp">Memory · Media</span></div>
+      <div class="nm-grid" id="grid"></div>
+    </div>
+
+    <div class="dock"><button class="mva-orb" id="mvaOrb" title="MVA · Open voice zone"></button><div class="tt">🏠 Home · MVA Nebula</div><div class="sep"></div><div class="ctrl"><span>❄</span><span>🚘</span><span>360</span><span>📞</span><span>▦</span></div></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="title"><i></i>MVA Nebula · Memory / Media + Feed</div>
+  <div class="note">This page is connected to the <b>global Dynamic Island feed</b>: defaults to the For You recommendation stream.<br>· Swipe right on the feed area → widget library, pin 1 large + 2 small blue glass tiles to the top<br>· Tap ✕ on any card to dismiss<br>· Tap the orb (bottom left) to switch between Content (Memory / Media) and the recommendation stream<br>Content view retains MVA Memory + Media + Range; vehicle controls remain in the pull-down / dock.</div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1300,innerHeight/812)*0.985})`;}
+addEventListener('resize',fit);fit();
+const $=id=>document.getElementById(id);
+const COVER='cover-shinian.jpg';
+
+function themeFromCover(src){
+  const img=new Image();img.crossOrigin='anonymous';
+  img.onload=()=>{try{
+    const c=document.createElement('canvas');c.width=c.height=24;const x=c.getContext('2d');x.drawImage(img,0,0,24,24);
+    const d=x.getImageData(0,0,24,24).data;let r=0,g=0,b=0,n=0;
+    for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];n++;}
+    r/=n*255;g/=n*255;b/=n*255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h=0,s=0,l=(mx+mn)/2;
+    if(mx!==mn){const dd=mx-mn;s=l>.5?dd/(2-mx-mn):dd/(mx+mn);if(mx===r)h=(g-b)/dd+(g<b?6:0);else if(mx===g)h=(b-r)/dd+2;else h=(r-g)/dd+4;h/=6;}
+    s=Math.min(.92,Math.max(.52,s*1.6));l=Math.min(.63,Math.max(.5,l));
+    const h2=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<.5)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
+    const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q;
+    document.documentElement.style.setProperty('--tc',`rgb(${Math.round(h2(p,q,h+1/3)*255)},${Math.round(h2(p,q,h)*255)},${Math.round(h2(p,q,h-1/3)*255)})`);
+  }catch(e){}};
+  img.src=src;
+}
+themeFromCover(COVER);
+
+// ── 组件 / feed 片段(用 key 标识,便于"混排") ──
+const W={
+  mem:()=>`<div class="w w-mem span2"><div class="w-hd"><span class="memstar">✦</span> MVA Remembers · About You<span class="pill" style="color:#0b0a14;background:var(--gold)">4 items</span></div>
+    <div class="mem-list">
+      <div class="mem-item"><span class="star">✦</span><div>Frequent stop: <b>Manner Coffee</b> · 5 visits this month</div><span class="mtime">Preference</span></div>
+      <div class="mem-item"><span class="star">✦</span><div>Prefers <b>avoiding elevated roads</b> on the way home — takes the riverside route</div><span class="mtime">Route</span></div>
+      <div class="mem-item"><span class="star">✦</span><div>Likes <b>warm-amber Cabin Light + 26 °C</b> on boarding</div><span class="mtime">Cabin</span></div>
+      <div class="mem-item"><span class="star">✦</span><div>Currently listening to <b>Eason Chan</b></div><span class="mtime">Music</span></div>
+    </div></div>`,
+  media:()=>`<div class="w w-media span2"><div class="mb" style="background-image:url('${COVER}')"></div><div class="ms"></div>
+    <div class="mi"><div class="mrow"><img class="mcov" src="${COVER}" alt="">
+      <div class="mtt"><div class="mtitle">Ten Years</div><div class="martist">Eason Chan · Album "Ten Years"</div></div>
+      <div class="mctrl"><span>⏮</span><span class="mplay" data-play>⏸</span><span>⏭</span></div></div>
+      <div class="mbar"><i></i></div></div></div>`,
+  range:()=>`<div class="w w-range span2"><div class="rg-row"><div class="rg-ic">🔋</div>
+      <div class="rg-main"><div class="rg-top"><b>62%</b> · Range approx. <b>310 km</b></div><div class="rbar"><i></i></div></div>
+      <div class="rg-side">⚡ On your route<br>3 fast chargers</div></div></div>`,
+  fcoffee:()=>fcard('☕','#ffcf6a','For you','On your way · Manner Coffee (frequent stop)','1.2 km ahead · 2 visits this week'),
+  ftrip:()=>fcard('🚗','#7fd0ff','For you','Home in approx. 38 minutes','Clear all the way · 6 min faster than usual'),
+  fmaint:()=>fcard('🔧','#ffab5b','Vehicle','Engine oil life at 8%','Book a service this week · 3 nearby dealers'),
+  fsys:()=>fcard('🔔','#9aa6b8','System','The maps app updated to v12.3','Just now · Bundled'),
+};
+function fcard(ic,tc,tag,t,s){return `<div class="fcard span2"><div class="stripe" style="background:${tc}"></div><div class="fic">${ic}</div>
+  <div class="fmain"><div class="ft">${t}<span class="ftag" style="color:${tc};background:${tc}26">${tag}</span></div><div class="fs">${s}</div></div><div class="fgo">›</div></div>`;}
+
+// 内容视图(content) = MVA 记忆 + 媒体 + 续航; AI 推荐/通知改由全局灵动岛 feed 承载
+const ORDER=['mem','media','range'];
+const ORDER2=ORDER;
+window.NEBULA_FEED_DEFAULT=1;   // 本页默认进入全局 feed 视图(灵动岛)
+
+function render(order){
+  $('grid').innerHTML=order.map(k=>W[k]()).join('');
+  // 逐个浮现的 stagger
+  [...$('grid').children].forEach((el,i)=>{el.style.animationDelay=(i*60)+'ms';});
+  bind();
+}
+function bind(){
+  // 媒体播放/暂停(车控类已在下拉/底栏,这里不放)
+  const pl=$('grid').querySelector('[data-play]');if(pl)pl.onclick=()=>pl.textContent=pl.textContent==='⏸'?'▶':'⏸';
+}
+
+let cur=ORDER;
+render(cur);
+// 固定/推荐改由全局灵动岛 feed 接管(右滑组件库 + 蓝色玻璃磁贴 + 删除按钮)
+</script>
+
+<script>
+(function(){
+  var orb=document.getElementById('mvaOrb');if(!orb)return;
+  var stage=document.querySelector('.stage');
+  var watch=[document.querySelector('.voice-zone'),document.querySelector('.statusbar')].filter(Boolean);
+  var busy=true,settleT=null;
+  function en(on){orb.classList.toggle('busy',!on);}
+  function settle(){busy=false;en(true);}
+  function bump(){busy=true;en(false);clearTimeout(settleT);settleT=setTimeout(settle,1200);}
+  try{var obs=new MutationObserver(bump);watch.forEach(function(n){obs.observe(n,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','style']});});}catch(e){}
+  bump();
+  orb.onclick=function(){if(busy)return;stage.classList.toggle('zone-hidden');};
+})();
+</script>
+</body>
+</html>

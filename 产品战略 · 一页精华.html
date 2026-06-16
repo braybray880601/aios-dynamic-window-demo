@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>产品战略 · 一页精华</title>
+<style>
+  :root{--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.34);--gold:#ffcf6a;--card:rgba(22,28,40,.6);--bd:rgba(255,255,255,.09)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1600px;height:900px;overflow:hidden;transform-origin:center center;border-radius:22px;
+    background:radial-gradient(130% 120% at 18% 0%,#16203040 0%,transparent 55%),radial-gradient(120% 120% at 100% 100%,#1a1f2e 0%,#0e1420 45%,#080b12 100%);
+    box-shadow:0 50px 140px rgba(0,0,0,.7)}
+  .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.16;pointer-events:none}
+  .glow.g1{width:520px;height:520px;top:-160px;right:-120px;background:#ffcf6a;animation:breath 9s ease-in-out infinite}
+  .glow.g2{width:560px;height:560px;bottom:-220px;left:-140px;background:#5b8cff;animation:breath 11s ease-in-out infinite 1s}
+  @keyframes breath{0%,100%{opacity:.12;transform:scale(1)}50%{opacity:.22;transform:scale(1.08)}}
+
+  .wrap{position:absolute;inset:0;padding:48px 56px 40px;display:flex;flex-direction:column}
+  /* 头部 */
+  header{display:flex;align-items:flex-start;gap:22px;margin-bottom:20px}
+  .orb{width:60px;height:60px;border-radius:50%;flex:none;position:relative;margin-top:2px;
+    background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);animation:spin 7s linear infinite;box-shadow:0 0 34px rgba(120,120,255,.4)}
+  .orb::after{content:"";position:absolute;inset:13px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.55));box-shadow:0 0 16px rgba(255,255,255,.5)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .htext{flex:1;min-width:0}
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:.3em;color:var(--gold);text-transform:uppercase;margin-bottom:10px}
+  h1{font-size:40px;font-weight:800;letter-spacing:.01em;line-height:1.12}
+  h1 b{background:linear-gradient(100deg,#fff 0%,#ffcf6a 120%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .lede{margin-top:11px;font-size:14.5px;color:var(--soft);line-height:1.6;max-width:1180px}
+  .lede b{color:var(--ink);font-weight:600}
+  .stamp{margin-left:auto;flex:none;align-self:center;text-align:center;border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:14px 20px}
+  .stamp .n{font-size:30px;font-weight:800;line-height:1;background:linear-gradient(180deg,#fff,#9aa6c0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .stamp .l{font-size:10.5px;color:var(--faint);letter-spacing:.22em;margin-top:7px}
+
+  /* 本体论 hero band */
+  .hero{display:flex;align-items:stretch;gap:14px;margin-bottom:14px}
+  .onto{flex:1;background:linear-gradient(100deg,rgba(255,207,106,.08),rgba(91,140,255,.06));border-radius:16px;box-shadow:inset 0 0 0 1px var(--bd);padding:15px 22px;display:flex;flex-direction:column;justify-content:center}
+  .onto .k{font-size:11px;font-weight:700;letter-spacing:.2em;color:var(--gold);margin-bottom:7px}
+  .onto .t{font-size:16.5px;line-height:1.5;color:var(--ink);font-weight:600}
+  .onto .t s{text-decoration:none;color:var(--soft);font-weight:500}
+  .bets{display:flex;flex-direction:column;gap:10px;width:430px;flex:none}
+  .bet{flex:1;background:var(--card);border-radius:14px;box-shadow:inset 0 0 0 1px var(--bd);padding:11px 16px;display:flex;align-items:center;gap:14px}
+  .bet .q{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--soft);width:96px;flex:none;line-height:1.4}
+  .bet .v{font-size:15px;font-weight:800;color:var(--ink)}
+  .bet .v span{display:block;font-size:11px;font-weight:500;color:var(--faint);margin-top:3px;letter-spacing:.01em}
+  .bet.a{border-left:3px solid #5b8cff}.bet.b{border-left:3px solid #ff7eb0}
+
+  /* 四块基石 */
+  .sec-h{font-size:11px;font-weight:700;letter-spacing:.2em;color:var(--faint);margin:4px 2px 9px;text-transform:uppercase}
+  .stones{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .stone{position:relative;background:var(--card);backdrop-filter:blur(18px);border-radius:16px;box-shadow:inset 0 0 0 1px var(--bd);padding:15px 16px 14px;overflow:hidden}
+  .stone::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac);opacity:.9}
+  .stone .top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .stone .bn{font-size:22px;font-weight:800;color:var(--ac);line-height:1}
+  .stone .bt{font-size:17px;font-weight:800}
+  .stone .ben{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--faint)}
+  .stone .bd{font-size:12.5px;color:var(--soft);line-height:1.55}
+  .stone .bd b{color:var(--ink);font-weight:600}
+
+  /* Avatar 聚散谱系 */
+  .spectrum{position:relative;background:rgba(10,14,22,.5);border-radius:16px;box-shadow:inset 0 0 0 1px var(--bd);padding:16px 26px 18px;margin-bottom:13px}
+  .spectrum .sh{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+  .spectrum .sh .t{font-size:15px;font-weight:800}
+  .spectrum .sh .e{font-size:10.5px;font-weight:700;letter-spacing:.16em;color:var(--faint)}
+  .spectrum .sh .note{margin-left:auto;font-size:11.5px;color:var(--soft)}
+  .rail{position:relative;display:flex;align-items:flex-end;justify-content:space-between;padding:18px 30px 0}
+  .rail::before{content:"";position:absolute;left:34px;right:34px;bottom:54px;height:2px;
+    background:linear-gradient(90deg,rgba(238,241,244,.12),rgba(91,140,255,.55),rgba(155,107,255,.75),rgba(255,207,106,.9))}
+  .node{position:relative;display:flex;flex-direction:column;align-items:center;width:23%;text-align:center}
+  .node .dot{border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,var(--nc));box-shadow:0 0 18px var(--nc);margin-bottom:14px}
+  .node .nt{font-size:14px;font-weight:800;color:var(--ink)}
+  .node .ne{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--faint);margin:3px 0 5px}
+  .node .nd{font-size:11.5px;color:var(--soft);line-height:1.45}
+
+  /* 贯穿法则 footer */
+  .laws{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+  .law{background:rgba(255,255,255,.035);border-radius:13px;box-shadow:inset 0 0 0 1px var(--bd);padding:11px 15px}
+  .law .lt{font-size:13.5px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:7px}
+  .law .lt i{width:7px;height:7px;border-radius:50%;background:var(--lc);box-shadow:0 0 9px var(--lc);font-style:normal;flex:none}
+  .law .ld{font-size:11px;color:var(--soft);line-height:1.45;margin-top:5px}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <div class="wrap">
+      <header>
+        <div class="orb"></div>
+        <div class="htext">
+          <div class="eyebrow">产品战略 · 完整愿景 · NORTH-STAR VISION</div>
+          <h1>以光为身体的 <b>数字生命体</b></h1>
+          <div class="lede">这不是一份功能清单,而是一套<b>取舍框架</b>——回答"我们在赌什么、不赌什么"。下面是把整套 strategy 收拢成一页的骨架:它是谁、由哪四块基石支撑、以何种形态显现、被哪些法则约束。</div>
+        </div>
+        <div class="stamp"><div class="n">v0.6</div><div class="l">STRATEGY</div></div>
+      </header>
+
+      <!-- 本体论 + 两大赌注 -->
+      <div class="hero">
+        <div class="onto">
+          <div class="k">本体论 · 一句话</div>
+          <div class="t">它<s>不是</s>语音助手的 UI,<s>也不是</s>一束光效——而是一个有人格、有记忆、<b>以光为身体的数字生命体</b>。光的聚散明灭,就是它的情绪与意图。</div>
+        </div>
+        <div class="bets" id="bets"></div>
+      </div>
+
+      <!-- 四块基石 -->
+      <div class="sec-h">四块基石 · FOUR PILLARS</div>
+      <div class="stones" id="stones"></div>
+
+      <!-- 聚散谱系 -->
+      <div class="spectrum">
+        <div class="sh"><span class="t">Avatar 形态模型 · 聚散谱系</span><span class="e">SCATTER ↔ GATHER SPECTRUM</span><span class="note">同一套星辉粒子,在不同分量下呈现不同密度——wave 是铺开,母体是放大化开</span></div>
+        <div class="rail" id="rail"></div>
+      </div>
+
+      <!-- 贯穿法则 -->
+      <div class="laws" id="laws"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1600,innerHeight/900)*0.985})`;}
+addEventListener('resize',fit);fit();
+
+const BETS=[
+  {cls:'a',q:'问题 A · AI 如何在场?',v:'显隐有度 · 先显现再融入',note:'Avatar 只在关键时刻显形,其余靠内容 / 服务 / 微动效证明存在'},
+  {cls:'b',q:'问题 B · AI 多自主?',v:'务实 B · 高把握门槛',note:'主动开口要比"被问"更有把握——做对加一点,做错减很多'},
+];
+document.getElementById('bets').innerHTML=BETS.map(b=>`<div class="bet ${b.cls}">
+  <div class="q">${b.q}</div><div class="v">${b.v}<span>${b.note}</span></div></div>`).join('');
+
+const STONES=[
+  {n:'A',t:'架构',en:'ARCHITECTURE',ac:'#5b8cff',d:'<b>原子能力 → Agentic 中间层 → GenUI 表达层</b>。导航/媒体/车控被打碎成原子能力,按意图实时组合。'},
+  {n:'B',t:'语言',en:'LANGUAGE',ac:'#b58cff',d:'<b>Avatar 形态模型 + 在场语言</b>。Avatar 不显形时,灯光/声音/微动效/GenUI 替它"在场"。'},
+  {n:'C',t:'画布',en:'CANVAS',ac:'#5bd6ff',d:'长联屏 = 一块<b>连续画布</b>。容器随内容呼吸伸缩、按重心漂移;母体"绽放"、普通容器"点亮"。'},
+  {n:'D',t:'叙事',en:'NARRATIVE',ac:'#ffcf6a',d:'让位/拒绝/隐私/延迟等<b>系统约束,全由角色演成"它的选择"</b>,而非冷冰冰的系统提示。'},
+];
+document.getElementById('stones').innerHTML=STONES.map(s=>`<div class="stone" style="--ac:${s.ac}">
+  <div class="top"><div class="bn">${s.n}</div><div class="bt">${s.t}</div><div class="ben">${s.en}</div></div>
+  <div class="bd">${s.d}</div></div>`).join('');
+
+const NODES=[
+  {t:'完全隐身',en:'ABSENT',nc:'#7e8aa6',sz:14,d:'不显形,仍以在场语言在场<br>halo · 涟漪 · 扎点 等'},
+  {t:'应答态 · wave',en:'RESPONSIVE',nc:'#5b8cff',sz:26,d:'最高频:听 / 想 / 说<br>光从说话人方位泛起'},
+  {t:'轻量态',en:'LIGHTWEIGHT',nc:'#9b6bff',sz:40,d:'露面帮你做事的星辉,多种用途<br>署名 · 记忆触发 · 任务状态 · 情感反馈'},
+  {t:'完全体 · 母体',en:'MOTHER BLOOM',nc:'#ffcf6a',sz:60,d:'被召唤时星辉化开<br>成大容器,内容填入'},
+];
+document.getElementById('rail').innerHTML=NODES.map(n=>`<div class="node" style="--nc:${n.nc}">
+  <div class="dot" style="width:${n.sz}px;height:${n.sz}px"></div>
+  <div class="nt">${n.t}</div><div class="ne">${n.en}</div><div class="nd">${n.d}</div></div>`).join('');
+
+const LAWS=[
+  {lc:'#62b8ff',t:'光物理 · 视觉母语',d:'遇水 / 折射 / 丁达尔 / 聚散 / 余晖——动效先问"真实的光会怎么动"'},
+  {lc:'#9fe0c0',t:'免解释原则',d:'需要 PM 解释"这代表什么"的动效就是失败的,重做'},
+  {lc:'#ffcf6a',t:'语汇与组合二分',d:'设计/研发预定义语汇库,AI 只在库内生成,绝不超出'},
+  {lc:'#ff8a8a',t:'状态分级 L1/L2/L3',d:'座位×驾驶状态强度过滤,安全优先级高于一切体验'},
+];
+document.getElementById('laws').innerHTML=LAWS.map(l=>`<div class="law" style="--lc:${l.lc}">
+  <div class="lt"><i></i>${l.t}</div><div class="ld">${l.d}</div></div>`).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mercedes-Benz · Voice Zone · Phone</title>
+<!--
+  电话场景:语音"打电话给XX" → 语音区出联系人选择(picklist)→ 确认 → 拨出 → 呼叫/通话界面。
+  用这个动态区替代原有全屏电话界面。号码为脱敏占位、联系人为虚构。
+-->
+<style>
+  :root{--card:rgba(20,26,38,.7);--card-bd:rgba(255,255,255,.1);--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.4);--gold:#ffcf6a;--green:#34d06a;--red:#ff4452;--vz-w:404px}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1300px;height:812px;overflow:hidden;transform-origin:center center;border-radius:18px;box-shadow:0 40px 120px rgba(0,0,0,.65);background:radial-gradient(135% 115% at 50% 8%,#141c2a 0%,#0e1420 46%,#080b12 100%)}
+  .mapbg{position:absolute;inset:0;z-index:0}.mapbg svg{position:absolute;inset:0;width:100%;height:100%}
+  .mapbg-scrim{position:absolute;inset:0;background:radial-gradient(125% 105% at 50% 40%,rgba(8,11,18,.5),rgba(6,9,15,.76))}
+
+  .statusbar{position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:55}
+  .sb-left{display:flex;align-items:center;gap:13px;flex:1;min-width:0;height:100%;padding-right:24px}
+  .avatar{width:36px;height:36px;border-radius:50%;flex:none;position:relative;background-image:linear-gradient(135deg,#f3c9b0,#cf9d86);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4);transition:box-shadow .5s}
+  .avatar::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(1px);opacity:0;transition:opacity .55s;animation:spin 5s linear infinite}
+  .avatar::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6));box-shadow:0 0 14px rgba(255,255,255,.55);opacity:0;transition:opacity .55s}
+  .avatar.awake{box-shadow:none;animation:breathe 3.2s ease-in-out infinite}.avatar.awake::before,.avatar.awake::after{opacity:1}
+  @keyframes spin{to{transform:rotate(360deg)}}@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  .sb-voice{position:relative;display:flex;align-items:center;min-width:0;height:100%}
+  .sv-asr{display:inline-flex;align-items:center;max-width:640px;overflow:hidden;white-space:nowrap;font-size:15.5px;font-weight:600;color:var(--ink);opacity:0;transition:opacity .35s,transform .4s,filter .4s}
+  .sv-asr.show{opacity:1}.sv-asr.done{color:#62e08c}.sv-asr.gone{opacity:0;transform:translateY(-7px);filter:blur(2px)}
+  .sv-cur{display:inline-block;width:2px;height:16px;background:#62e08c;margin-left:2px;animation:blink 1s step-end infinite}@keyframes blink{50%{opacity:0}}
+  .sv-reply{font-size:15.5px;font-weight:600;color:#fff;white-space:nowrap;opacity:0;transform:translateY(4px);transition:opacity .45s,transform .45s;text-shadow:0 1px 12px rgba(0,0,0,.5)}.sv-reply.show{opacity:1;transform:none}
+  .sb-right{display:flex;align-items:center;gap:16px;color:#dfe3e8;flex:none}.sb-clock{font-size:19px;font-weight:500}.sb-5g{font-size:10px;font-weight:700;vertical-align:top}
+
+  .map{position:absolute;top:64px;left:40px;width:300px;border-radius:20px;background:rgba(44,52,64,.5);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 8px 30px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.12);overflow:hidden;z-index:25;color:#fff;transition:transform .42s cubic-bezier(.2,.7,.2,1)}
+  .stage.voice-on .map{transform:translateX(calc(var(--vz-w) + 16px))}
+  .map-top{display:flex;align-items:center;gap:9px;padding:14px 16px}.map-top .t{flex:1;font-size:16px;font-weight:500}
+  .map-quick{display:flex;background:rgba(10,14,20,.4)}.map-quick div{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 0;opacity:.85}.map-quick div+div{box-shadow:inset 1px 0 0 rgba(255,255,255,.08)}
+  .weather{position:absolute;top:60px;right:36px;text-align:right;z-index:25}
+  .weather .temp{font-size:60px;font-weight:200;line-height:.9;letter-spacing:-1px;color:#fff}.weather .temp sup{font-size:20px;font-weight:300;vertical-align:top;margin-left:2px}.weather .loc{font-size:15px;color:var(--soft);margin-top:6px}
+  .cards{position:absolute;left:40px;right:40px;bottom:84px;display:flex;gap:16px;z-index:15}
+  .card{flex:1;height:96px;border-radius:18px;background:rgba(24,30,40,.6);backdrop-filter:blur(20px) saturate(1.2);box-shadow:0 8px 26px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.1);display:flex;align-items:center;gap:13px;padding:0 18px;color:#eef1f4}
+  .card .ic{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.08)}
+  .card .big{font-size:18px;font-weight:600}.card .sub{font-size:12px;color:var(--soft);margin-top:3px}.card .lnk{color:#7fa8ff;font-weight:600}
+  .card .col2{display:flex;gap:18px;width:100%}.tyre{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--soft);width:100%}.tyre .r{display:flex;justify-content:space-between}.tyre .tcar{align-self:center;width:26px;height:14px;border-radius:5px;background:rgba(255,255,255,.16);margin:1px 0}
+
+  /* ── 语音区:电话小窗 ── */
+  .voice-zone{position:absolute;left:40px;top:64px;z-index:50;width:var(--vz-w);display:flex;flex-direction:column;gap:12px}
+  /* 推荐流（可与电话用圆圈按钮切换）*/
+  .feed{display:none;flex-direction:column;gap:10px}
+  .feed.show{display:flex;animation:grow .42s cubic-bezier(.2,.7,.2,1)}
+  .fhd{display:flex;align-items:center;gap:8px;padding:0 4px;font-size:12.5px;font-weight:700;color:var(--soft);letter-spacing:.03em}
+  .fhd .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .fcard{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:rgba(20,26,38,.62);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 10px 26px rgba(0,0,0,.32);color:#fff}
+  .fcard .fi{width:44px;height:44px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.08);background-size:cover;background-position:center}
+  .fcard .ftt{flex:1;min-width:0}
+  .fcard .ft{font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fcard .fs{font-size:11.5px;color:var(--soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fcard .fgo{margin-left:auto;color:var(--faint);font-size:14px}
+  .vswitch{display:none;flex-direction:column;align-items:center;gap:5px;align-self:center;margin-top:3px;cursor:pointer;user-select:none}
+  .vswitch.show{display:flex;animation:grow .35s ease}
+  .vswitch .ring{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(255,255,255,.1);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 22px rgba(0,0,0,.42),inset 0 0 0 1px rgba(255,255,255,.2);transition:background .18s,transform .2s}
+  .vswitch:hover .ring{background:rgba(255,255,255,.18)}
+  .vswitch:active .ring{transform:scale(.93)}
+  .vswitch .ring svg{width:21px;height:21px}
+  .vswitch .vcap{font-size:10.5px;font-weight:600;color:var(--soft)}
+  .phone{display:none;position:relative;border-radius:22px;overflow:hidden;background:var(--card);backdrop-filter:blur(24px) saturate(1.2);-webkit-backdrop-filter:blur(24px) saturate(1.2);box-shadow:0 18px 50px rgba(0,0,0,.5),inset 0 0 0 1px var(--card-bd);color:#fff}
+  .phone.show{display:block;animation:grow .45s cubic-bezier(.2,.7,.2,1)}
+  @keyframes grow{from{opacity:0;transform:translateY(-12px) scale(.97)}to{opacity:1;transform:none}}
+  .phone.collapsing{animation:collapseOut .4s cubic-bezier(.4,.05,.3,1) forwards}
+  @keyframes collapseOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-14px) scale(.95)}}
+  .ph-in{padding:15px 18px 18px}
+  .ph-top{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--soft);margin-bottom:11px}
+  .ph-top .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .ph-top .cl{margin-left:auto;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(255,255,255,.1);font-size:14px}
+
+  /* 联系人选择 */
+  .pick{display:block}.phone.incall .pick{display:none}
+  .pl-hint{font-size:12px;color:var(--soft);margin-bottom:11px}.pl-hint b{color:var(--ink)}
+  .ct{display:flex;align-items:center;gap:12px;padding:10px 11px;border-radius:14px;cursor:pointer;transition:background .2s,opacity .2s,box-shadow .2s}
+  .ct+.ct{margin-top:8px}
+  .ct:hover{background:rgba(255,255,255,.05)}
+  .ct.sel{background:rgba(52,208,106,.14);box-shadow:inset 0 0 0 1.5px rgba(52,208,106,.5)}
+  .ct.dim{opacity:.38}
+  .cav{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex:none}
+  .ct .cmid{flex:1;min-width:0}
+  .cnm{font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .crec{font-size:9px;font-weight:700;color:#0b0a14;background:var(--gold);padding:1px 6px;border-radius:6px}
+  .clb{font-size:11.5px;color:var(--soft);margin-top:2px}
+  .cnum{font-size:12px;color:var(--soft);font-variant-numeric:tabular-nums;flex:none;margin-right:2px}
+  .ct .cgo{width:34px;height:34px;border-radius:50%;background:var(--green);color:#06140b;display:flex;align-items:center;justify-content:center;flex:none}
+  .ct .cgo svg{width:17px;height:17px}
+
+  /* 呼叫/通话界面 */
+  .call{display:none;text-align:center}.phone.incall .call{display:block}
+  .call-av{position:relative;width:96px;height:96px;margin:6px auto 14px}
+  .call-av .av{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;color:#fff}
+  .call-av .ring{position:absolute;inset:0;border-radius:50%}
+  .phone.calling .call-av .ring{animation:ringpulse 1.6s ease-out infinite}
+  @keyframes ringpulse{0%{box-shadow:0 0 0 0 rgba(52,208,106,.45)}100%{box-shadow:0 0 0 24px rgba(52,208,106,0)}}
+  .call-nm{font-size:23px;font-weight:800}
+  .call-sub{font-size:12.5px;color:var(--soft);margin-top:4px;font-variant-numeric:tabular-nums}
+  .call-status{font-size:13.5px;color:#9fd9ff;margin-top:11px;font-variant-numeric:tabular-nums;font-weight:600}
+  .call-ctrl{display:flex;justify-content:center;gap:26px;margin:18px 0 15px}
+  .cbtn{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--soft);cursor:pointer}
+  .cbtn .ci{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff}
+  .cbtn .ci svg{width:21px;height:21px}
+  .cbtn.on .ci{background:#fff;color:#111}.cbtn.on{color:#fff}
+  .hangup{width:100%;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:15px;color:#fff;background:var(--red);padding:13px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 8px 20px rgba(255,68,82,.4)}
+  .hangup svg{width:19px;height:19px;transform:rotate(135deg)}
+
+  .dock{position:absolute;left:0;right:0;bottom:0;height:64px;z-index:30;display:flex;align-items:center;gap:18px;padding:0 22px;background:rgba(12,16,24,.6);backdrop-filter:blur(26px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  .dock .home{width:32px;height:32px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5);flex:none}
+  /* 底栏两个并排按钮：推荐流(贴合 avatar 光球) · 通话(绿色通话样式) */
+  .dockfabs{display:flex;align-items:center;gap:10px;flex:none}
+  .fab{width:38px;height:38px;border-radius:50%;flex:none;border:0;padding:0;cursor:pointer;position:relative;background:none;opacity:.5;filter:saturate(.85);transition:opacity .2s,transform .2s,box-shadow .25s,filter .2s}
+  .fab:hover{opacity:.82}
+  .fab.active{opacity:1;filter:none;transform:scale(1.05)}
+  .fab:active{transform:scale(.93)}
+  .fab.disabled{opacity:.25;pointer-events:none;filter:grayscale(.5)}
+  .fab-stream{background:radial-gradient(circle at 38% 34%,#2a3340,#11161f)}
+  .fab-stream::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(.6px);animation:spin 6s linear infinite}
+  .fab-stream::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.62));box-shadow:0 0 11px rgba(255,255,255,.5)}
+  .fab-stream.active{box-shadow:0 0 16px rgba(140,150,255,.55)}
+  .fab-call{background:linear-gradient(135deg,#34d06a,#1f9e52);display:flex;align-items:center;justify-content:center;color:#06140b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+  .fab-call svg{width:18px;height:18px}
+  .fab-call.active{box-shadow:0 0 0 1.5px rgba(255,255,255,.45),0 0 15px rgba(52,208,106,.6)}
+  .fab-call.ring::before{content:"";position:absolute;inset:0;border-radius:50%;animation:ringpulse 1.6s ease-out infinite}
+  .dock .tt{font-size:13px;color:var(--soft)}.dock .sep{flex:1}.dock .ctrl{display:flex;align-items:center;gap:24px;color:rgba(238,241,244,.7);font-size:18px}
+
+  .panel{position:fixed;top:18px;right:18px;width:240px;z-index:100;background:rgba(20,22,26,.9);backdrop-filter:blur(20px);border-radius:16px;padding:15px;color:#e8eaee;font-size:12.5px;box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08)}
+  .panel .title{font-size:13.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;margin-bottom:11px}.panel .title i{width:8px;height:8px;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#ff6b9b,#ffab5b,#5b8cff)}
+  .panel button{width:100%;border:0;border-radius:11px;cursor:pointer;font-family:inherit;font-weight:600;font-size:13px;padding:10px;color:#fff;margin-top:8px;text-align:left;background:rgba(255,255,255,.08);transition:.15s}
+  .panel button:hover{background:rgba(255,255,255,.16)}.panel button.main{background:linear-gradient(135deg,#3b78ff,#2f6bff)}
+  .panel .phase{margin-top:11px;font-size:11px;color:#8b9098;border-top:1px solid rgba(255,255,255,.08);padding-top:9px}.panel .phase b{color:#ffce8a}
+  .panel{opacity:.3;transform:scale(.86);transform-origin:top right;transition:opacity .3s ease,transform .3s ease}
+  .panel:hover{opacity:1;transform:scale(1)}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <div class="mapbg">
+      <svg viewBox="0 0 1300 812" preserveAspectRatio="xMidYMid slice">
+        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c2533"/><stop offset="1" stop-color="#151b25"/></linearGradient></defs>
+        <rect width="1300" height="812" fill="url(#bg)"/>
+        <path d="M-20 612 C 120 588 210 640 250 720 C 270 766 250 812 250 812 L -20 812 Z" fill="#1d3144"/>
+        <path d="M 1010 70 C 1110 60 1190 110 1180 200 C 1172 280 1080 300 1020 250 C 970 210 950 110 1010 70 Z" fill="#21362b"/>
+        <g stroke="#222b39" stroke-width="15" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/></g>
+        <g stroke="#4b5566" stroke-width="9" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/></g>
+        <g fill="#9aa3b0" font-size="15"><text x="430" y="470">Mogan Mountain</text><text x="800" y="210">Daixi Town</text></g>
+      </svg>
+      <div class="mapbg-scrim"></div>
+    </div>
+
+    <div class="statusbar">
+      <div class="sb-left">
+        <div class="avatar" id="avatar"></div>
+        <div class="sb-voice"><span class="sv-asr" id="svAsr"><span id="asrText"></span><span class="sv-cur" id="asrCur"></span></span><span class="sv-reply" id="svReply"></span></div>
+      </div>
+      <div class="sb-right"><span><sup class="sb-5g">5G</sup> ▮▮▮</span><span class="sb-clock">21:36</span></div>
+    </div>
+
+    <div class="map">
+      <div class="map-top"><span>📍</span><span class="t">Map</span><svg width="18" height="18" viewBox="0 0 18 18"><circle cx="7.5" cy="7.5" r="5.5" fill="none" stroke="#fff" stroke-width="1.6"/><path d="M12 12l4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="map-quick"><div>⌂</div><div>☰</div><div>★</div><div>⚡</div></div>
+    </div>
+    <div class="weather"><div class="temp">14<sup>°C</sup></div><div class="loc">Shanghai &nbsp; Clear Night</div></div>
+
+    <!-- 语音区:电话小窗 -->
+    <div class="voice-zone">
+      <div class="phone" id="phone">
+        <div class="ph-in">
+          <!-- 联系人选择 -->
+          <div class="pick">
+            <div class="ph-top"><span class="dot"></span>Select Contact<span class="cl" id="clPick">⌄</span></div>
+            <div class="pl-hint">Found 2 contacts for "<b>Wei Zhang</b>" — select one or say "first" / "second"</div>
+            <div id="contacts"></div>
+          </div>
+          <!-- 呼叫 / 通话 -->
+          <div class="call">
+            <div class="ph-top"><span class="dot"></span><span id="callTag">Dialing</span><span class="cl" id="clCall">⌄</span></div>
+            <div class="call-av"><div class="ring"></div><div class="av" id="callAv">W</div></div>
+            <div class="call-nm" id="callNm">Wei Zhang</div>
+            <div class="call-sub" id="callSub">Mobile · 138 **** 5678</div>
+            <div class="call-status" id="callStatus">Calling...</div>
+            <div class="call-ctrl">
+              <div class="cbtn" id="btnMute"><div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></div>Mute</div>
+              <div class="cbtn" id="btnSpk"><div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 9a3 3 0 0 1 0 6M19 7a6 6 0 0 1 0 10"/></svg></div>Speaker</div>
+              <div class="cbtn" id="btnKey"><div class="ci"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg></div>Keypad</div>
+            </div>
+            <button class="hangup" id="hangup"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Hang Up</button>
+          </div>
+        </div>
+      </div>
+      <!-- 推荐流（与电话用下方圆圈按钮切换）-->
+      <div class="feed" id="feed">
+        <div class="fhd"><span class="dot"></span>Suggested for You</div>
+        <div class="fcard"><div class="fi">🚗</div><div class="ftt"><div class="ft">~38 min to home</div><div class="fs">Clear roads · 6 min faster than usual</div></div><div class="fgo">›</div></div>
+        <div class="fcard"><div class="fi">📅</div><div class="ftt"><div class="ft">7:30 PM Video call with Zhang</div><div class="fs">Reminder before you arrive · Synced to calendar</div></div><div class="fgo">›</div></div>
+        <div class="fcard"><div class="fi">🔋</div><div class="ftt"><div class="ft">Battery 62% · Est. range 310 km</div><div class="fs">3 fast-charge stations on the way home</div></div><div class="fgo">›</div></div>
+      </div>
+    </div>
+
+    <div class="dock"><div class="dockfabs"><button class="fab fab-stream" id="fabStream" title="Suggestions"></button><button class="fab fab-call" id="fabCall" title="Call"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></button></div><div class="tt" id="dockTt">🏠 Home · Phone</div><div class="sep"></div><div class="ctrl"><span>❄</span><span>🚘</span><span>360</span><span>📞</span><span>▦</span></div></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="title"><i></i>Phone · Voice Zone</div>
+  <button class="main" id="bAll">▶ Full Demo</button>
+  <button id="bCall">🎤 "Call Wei Zhang"</button>
+  <button id="bHang">📵 Hang Up / Dismiss</button>
+  <button id="bIdle">↺ Reset</button>
+  <div class="phase">Status: <b id="phlabel">Standby</b></div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1300,innerHeight/812)*0.985})`;}
+addEventListener('resize',fit);fit();
+const $=id=>document.getElementById(id);
+
+const CONTACTS=[
+  {nm:'Wei Zhang',label:'Mobile · Recent',num:'138 **** 5678',av:'W',c:'linear-gradient(135deg,#5b8cff,#2f6bff)',rec:true},
+  {nm:'Wayne Zhang',label:'Mobile · Colleague',num:'139 **** 4321',av:'W',c:'linear-gradient(135deg,#34d06a,#1f9e52)'},
+];
+const PHONE_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>';
+$('contacts').innerHTML=CONTACTS.map((c,i)=>`<div class="ct" id="ct${i}" data-i="${i}">
+  <div class="cav" style="background:${c.c}">${c.av}</div>
+  <div class="cmid"><div class="cnm">${c.nm}${c.rec?'<span class="crec">Frequent</span>':''}</div><div class="clb">${c.label}</div></div>
+  <div class="cnum">${c.num}</div><div class="cgo">${PHONE_SVG}</div></div>`).join('');
+
+const timers=[];let collapseT=null,callT=null;
+const at=(ms,fn)=>timers.push(setTimeout(fn,ms));
+function clearT(){timers.forEach(clearTimeout);timers.length=0;if(collapseT){clearTimeout(collapseT);collapseT=null;}if(callT){clearInterval(callT);callT=null;}}
+function typeASR(t,dur){const el=$('asrText'),sc=$('svAsr');let i=0;const step=Math.min(28,dur/t.length);(function tick(){el.textContent=t.slice(0,i);sc.scrollLeft=sc.scrollWidth;if(i++<=t.length)timers.push(setTimeout(tick,step));})();}
+function reply(t){$('svReply').textContent=t;$('svReply').className='sv-reply show';}
+
+// ── 底栏两个并排按钮：推荐流(MVA 光球) / 通话(绿色通话样式)；保留通话状态 ──
+let view='phone', savedPhoneCls='phone';
+function setPhoneState(cls){savedPhoneCls=cls;if(view==='phone')$('phone').className=cls;updateFabs();}   // feed 视图时只记状态、不显示
+function updateFabs(){const on=stage.classList.contains('voice-on'),hasCall=savedPhoneCls.indexOf('show')>=0;
+  $('fabStream').classList.toggle('active',on&&view==='feed');
+  $('fabCall').classList.toggle('active',on&&view==='phone'&&hasCall);
+  $('fabCall').classList.toggle('ring',hasCall&&savedPhoneCls.indexOf('calling')>=0);
+  $('fabCall').classList.toggle('disabled',!hasCall);}
+function setView(v){
+  view=v;
+  if(v==='phone'){$('phone').className=savedPhoneCls;$('feed').className='feed';}
+  else{$('phone').className='phone';$('feed').className='feed show';}
+  updateFabs();
+}
+function openView(v){stage.classList.add('voice-on');setView(v);$('phlabel').textContent=v==='feed'?'Suggestions':'On Call';}
+function collapseZone(){$('feed').className='feed';$('phone').className='phone';stage.classList.remove('voice-on');updateFabs();$('phlabel').textContent='Minimized';}  // 不结束通话,仅最小化
+$('fabStream').onclick=()=>{ if(stage.classList.contains('voice-on')&&view==='feed')collapseZone(); else openView('feed'); };
+$('fabCall').onclick=()=>{ if(savedPhoneCls.indexOf('show')<0)return; if(stage.classList.contains('voice-on')&&view==='phone')collapseZone(); else openView('phone'); };
+updateFabs();
+
+// 软复位:只复位画面,不清定时器
+function resetDOM(){
+  if(callT){clearInterval(callT);callT=null;}
+  $('avatar').classList.remove('awake');stage.classList.remove('voice-on');
+  $('svAsr').className='sv-asr';$('svAsr').style.display='';$('asrText').textContent='';$('svAsr').scrollLeft=0;$('asrCur').style.display='';
+  $('svReply').className='sv-reply';$('svReply').textContent='';
+  $('phone').className='phone';document.querySelectorAll('.ct').forEach(e=>e.classList.remove('sel','dim'));
+  $('feed').className='feed';view='phone';savedPhoneCls='phone';updateFabs();
+  $('dockTt').textContent='🏠 Home · Phone';$('phlabel').textContent='Standby';
+}
+function reset(){clearT();resetDOM();}
+
+function showPick(){savedPhoneCls='phone show';stage.classList.add('voice-on');setView('phone');$('phlabel').textContent='Select Contact';}
+function selectContact(i){
+  if($('phone').classList.contains('incall'))return;
+  document.querySelectorAll('.ct').forEach((el,j)=>{el.classList.toggle('sel',j===i);el.classList.toggle('dim',j!==i);el.onclick=null;});
+  const c=CONTACTS[i];reply('Calling '+c.nm+'...');$('phlabel').textContent='Confirmed · Dialing';
+  at(850,()=>showCall(c));
+}
+function showCall(c){
+  $('callAv').textContent=c.av;$('callAv').style.background=c.c;
+  $('callNm').textContent=c.nm;$('callSub').textContent='Mobile · '+c.num;
+  $('callTag').textContent='Dialing';$('callStatus').textContent='Calling...';$('callStatus').style.color='#9fd9ff';
+  setPhoneState('phone show incall calling');$('dockTt').textContent='📞 Calling · '+c.nm;$('phlabel').textContent='Calling';
+  at(2300,()=>connect(c));
+}
+function connect(c){
+  setPhoneState('phone show incall');$('callTag').textContent='On Call';$('callStatus').style.color='#5fe08c';
+  $('dockTt').textContent='📞 On Call · '+c.nm;$('phlabel').textContent='On Call';reply('Connected · On Call 📞');
+  let s=0;const tick=()=>{const mm=String(Math.floor(s/60)).padStart(2,'0'),ss=String(s%60).padStart(2,'0');$('callStatus').textContent='On Call '+mm+':'+ss;};tick();
+  callT=setInterval(()=>{s++;tick();},1000);
+}
+function endCall(){
+  if(callT){clearInterval(callT);callT=null;}
+  if(!stage.classList.contains('voice-on'))return;
+  $('feed').className='feed';
+  const p=$('phone'),inPhone=p.classList.contains('show');
+  if(inPhone)p.classList.add('collapsing');
+  $('phlabel').textContent='Ending call...';$('dockTt').textContent='🏠 Home · Phone';
+  if(collapseT)clearTimeout(collapseT);
+  collapseT=setTimeout(()=>{p.className='phone';savedPhoneCls='phone';view='phone';stage.classList.remove('voice-on');updateFabs();$('phlabel').textContent='Hung up · Call ended';reply('Call ended');collapseT=null;},400);
+}
+
+// 交互
+$('hangup').onclick=endCall;$('clPick').onclick=endCall;$('clCall').onclick=endCall;
+[['btnMute'],['btnSpk'],['btnKey']].forEach(([id])=>$(id).onclick=()=>$(id).classList.toggle('on'));
+
+// 时间线:说"打电话给张伟" → 出联系人选择 → 推地图
+function speakCall(t0){
+  at(t0,()=>{resetDOM();$('avatar').classList.add('awake');$('svAsr').classList.add('show');typeASR('Call Wei Zhang',1900);$('phlabel').textContent='Listening...';});
+  at(t0+2200,()=>{$('asrCur').style.display='none';$('svAsr').classList.add('done');});
+  at(t0+2700,()=>$('svAsr').classList.add('gone'));
+  at(t0+3100,()=>{$('svAsr').style.display='none';reply('2 contacts found, please select one');showPick();
+    CONTACTS.forEach((c,i)=>$('ct'+i).onclick=()=>selectContact(i));});
+  return t0+3300;
+}
+function playAll(){
+  clearT();
+  const t=speakCall(0);
+  at(t+1700,()=>selectContact(0));  // 确认联系人 → 拨出 → 呼叫 → 接通
+  at(t+9000,endCall);               // 通话几秒后自动挂断 → 收起 + 地图推回
+}
+$('bAll').onclick=playAll;
+$('bCall').onclick=()=>{clearT();const t=speakCall(0);CONTACTS.forEach((c,i)=>at(t,()=>$('ct'+i).onclick=()=>selectContact(i)));};
+$('bHang').onclick=endCall;
+$('bIdle').onclick=reset;
+setTimeout(playAll,700);
+</script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>奔驰 · 语音区 · 多人飞花令（语音区版）</title>
+<!--
+  多人飞花令（古诗词接龙，令字「月」），全部装进固定宽度、可动态生长的语音区。
+  发起 → 图文规则卡 → 游戏板（令字条 + 四个座位卡竖排）；地图卡推右让位。
+  轮流作答用「座位 + 声纹名」标识，MVA 判定对/错并计分，卡壳即淘汰。诗句为唐宋古诗（公共领域）。
+-->
+<style>
+  :root{--card:rgba(22,28,40,.66);--card-bd:rgba(255,255,255,.1);--ink:#eef1f4;--ink-soft:rgba(238,241,244,.6);--ink-faint:rgba(238,241,244,.38);--gold:#ffcf6a;--green:#34d06a;--red:#ff6b6b;--blue:#3b78ff;--vz-w:424px}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1300px;height:812px;overflow:hidden;transform-origin:center center;border-radius:18px;box-shadow:0 40px 120px rgba(0,0,0,.65);background:radial-gradient(135% 115% at 50% 8%,#141c2a 0%,#0e1420 46%,#080b12 100%)}
+  .mapbg{position:absolute;inset:0;z-index:0}.mapbg svg{position:absolute;inset:0;width:100%;height:100%}
+  .mapbg-scrim{position:absolute;inset:0;background:radial-gradient(125% 105% at 50% 40%,rgba(8,11,18,.48),rgba(6,9,15,.74))}
+
+  .statusbar{position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:55}
+  .sb-left{display:flex;align-items:center;gap:13px;flex:1;min-width:0;height:100%;padding-right:24px}
+  .avatar{width:36px;height:36px;border-radius:50%;flex:none;position:relative;background-image:linear-gradient(135deg,#f3c9b0,#cf9d86);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4);transition:box-shadow .5s}
+  .avatar::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(1px);opacity:0;transition:opacity .55s;animation:spin 5s linear infinite}
+  .avatar::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6));box-shadow:0 0 14px rgba(255,255,255,.55);opacity:0;transition:opacity .55s}
+  .avatar.awake{box-shadow:none;animation:breathe 3.2s ease-in-out infinite}.avatar.awake::before,.avatar.awake::after{opacity:1}
+  @keyframes spin{to{transform:rotate(360deg)}}@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  .sb-voice{position:relative;display:flex;align-items:center;min-width:0;height:100%}
+  .sv-asr{display:inline-flex;align-items:center;max-width:640px;overflow:hidden;white-space:nowrap;font-size:15.5px;font-weight:600;color:var(--ink);opacity:0;transition:opacity .35s,transform .4s,filter .4s}
+  .sv-asr.show{opacity:1}.sv-asr.done{color:#62e08c}.sv-asr.gone{opacity:0;transform:translateY(-7px);filter:blur(2px)}
+  .sv-cur{display:inline-block;width:2px;height:16px;background:#62e08c;margin-left:2px;animation:blink 1s step-end infinite}@keyframes blink{50%{opacity:0}}
+  .sv-reply{font-size:15.5px;font-weight:600;color:#fff;white-space:nowrap;opacity:0;transform:translateY(4px);transition:opacity .45s,transform .45s;text-shadow:0 1px 12px rgba(0,0,0,.5)}.sv-reply.show{opacity:1;transform:none}
+  .sb-right{display:flex;align-items:center;gap:16px;color:#dfe3e8;flex:none}.sb-clock{font-size:19px;font-weight:500}.sb-5g{font-size:10px;font-weight:700;vertical-align:top}
+
+  /* 桌面家具 */
+  .map{position:absolute;top:64px;left:40px;width:300px;border-radius:20px;background:rgba(44,52,64,.5);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 8px 30px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.12);overflow:hidden;z-index:25;color:#fff;transition:transform .42s cubic-bezier(.2,.7,.2,1)}
+  .stage.voice-on .map{transform:translateX(calc(var(--vz-w) + 16px))}
+  .map-top{display:flex;align-items:center;gap:9px;padding:14px 16px}.map-top .t{flex:1;font-size:16px;font-weight:500}
+  .map-quick{display:flex;background:rgba(10,14,20,.4)}.map-quick div{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 0;opacity:.85}.map-quick div+div{box-shadow:inset 1px 0 0 rgba(255,255,255,.08)}
+  .weather{position:absolute;top:60px;right:36px;text-align:right;z-index:25}
+  .weather .temp{font-size:60px;font-weight:200;line-height:.9;letter-spacing:-1px;color:#fff}.weather .temp sup{font-size:20px;font-weight:300;vertical-align:top;margin-left:2px}.weather .loc{font-size:15px;color:var(--ink-soft);margin-top:6px}
+  .cards{position:absolute;left:40px;right:40px;bottom:84px;display:flex;gap:16px;z-index:15}
+  .card{flex:1;height:96px;border-radius:18px;background:rgba(24,30,40,.6);backdrop-filter:blur(20px) saturate(1.2);box-shadow:0 8px 26px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.1);display:flex;align-items:center;gap:13px;padding:0 18px;color:#eef1f4}
+  .card .ic{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.08)}
+  .card .ic.pink{background:linear-gradient(135deg,#ff7a9c,#ff5277)}.card .big{font-size:18px;font-weight:600}.card .sub{font-size:12px;color:var(--ink-soft);margin-top:3px}.card .lnk{color:#7fa8ff;font-weight:600}
+  .card .col2{display:flex;gap:18px;width:100%}.tyre{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-soft);width:100%}.tyre .r{display:flex;justify-content:space-between}.tyre .tcar{align-self:center;width:26px;height:14px;border-radius:5px;background:rgba(255,255,255,.16);margin:1px 0}
+
+  /* ── 语音区：固定宽、动态长高 ── */
+  .voice-zone{position:absolute;left:40px;top:64px;z-index:50;width:var(--vz-w);display:flex;flex-direction:column;gap:12px}
+
+  /* 图文规则卡 */
+  .rules{display:none;flex-direction:column;background:var(--card);backdrop-filter:blur(24px) saturate(1.2);-webkit-backdrop-filter:blur(24px) saturate(1.2);border-radius:20px;box-shadow:0 16px 44px rgba(0,0,0,.42),inset 0 0 0 1px rgba(255,255,255,.12);padding:18px 18px 16px}
+  .rules.show{display:flex;animation:grow .4s ease}
+  @keyframes grow{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .rules .rh{display:flex;align-items:center;gap:11px;margin-bottom:4px}
+  .rules .rh .em{font-size:26px}.rules .rh .t{font-size:20px;font-weight:800;letter-spacing:.05em}.rules .rh .tag{margin-left:auto;font-size:11px;font-weight:700;color:#0b0a14;background:var(--gold);padding:3px 10px;border-radius:14px}
+  .rules .rd{font-size:13px;color:var(--ink-soft);margin:4px 0 12px;line-height:1.5}
+  .rules .rr{display:flex;align-items:flex-start;gap:11px;padding:8px 0}.rules .rr+.rr{border-top:1px solid rgba(255,255,255,.07)}
+  .rules .rr .n{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;background:rgba(255,207,106,.18);color:var(--gold)}
+  .rules .rr .rt{font-size:14px;font-weight:600}.rules .rr .rs{font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+
+  /* 游戏板 */
+  .board{display:none;flex-direction:column;gap:10px}
+  .board.show{display:flex}
+  .ghead{display:flex;align-items:center;gap:10px;background:var(--card);backdrop-filter:blur(22px);border-radius:16px;box-shadow:inset 0 0 0 1px var(--card-bd);padding:10px 14px}
+  .ghead .em{font-size:18px}.ghead .gt{font-size:14.5px;font-weight:700}
+  .ghead .ling{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;background:linear-gradient(160deg,#7a5cff,#c44ad0);box-shadow:0 4px 14px rgba(150,80,230,.4)}
+  .ghead .round{margin-left:auto;font-size:12px;color:var(--ink-soft)}
+  .seats{display:flex;flex-direction:column;gap:9px}
+  .srow{opacity:0;transform:translateX(-10px);transition:opacity .4s,transform .4s,box-shadow .3s;background:var(--card);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);border-radius:15px;box-shadow:inset 0 0 0 1px var(--card-bd);padding:11px 13px}
+  .srow.in{opacity:1;transform:none}
+  .srow .top{display:flex;align-items:center;gap:10px}
+  .srow .av{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff}
+  .srow .nm{font-size:15px;font-weight:700}.srow .sl{font-size:11px;color:var(--ink-soft);margin-top:1px;display:flex;align-items:center;gap:5px}
+  .srow .vp{font-size:9px;font-weight:700;color:#7fd0ff;background:rgba(90,180,255,.16);padding:1px 5px;border-radius:5px}
+  .srow .sc{margin-left:auto;text-align:right;font-size:11px;color:var(--ink-soft)}.srow .sc b{display:block;font-size:16px;font-weight:800;color:var(--gold)}
+  .srow .ln{margin-top:8px;min-height:22px;font-size:14px;color:var(--ink-faint);display:flex;align-items:center;gap:8px}
+  .srow .ln .poem{font-family:"STKaiti","KaiTi","PingFang SC",serif;font-size:16px;font-weight:600;color:#fff}
+  .srow .ln .jg{font-weight:800}.srow .ln .jg.ok{color:var(--green)}.srow .ln .jg.bad{color:var(--red)}
+  .srow .ln .dots{display:inline-flex;gap:3px}.srow .ln .dots i{width:4px;height:4px;border-radius:50%;background:#b9a4ff;animation:dot 1s ease-in-out infinite}.srow .ln .dots i:nth-child(2){animation-delay:.2s}.srow .ln .dots i:nth-child(3){animation-delay:.4s}
+  @keyframes dot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+  .srow.active{box-shadow:0 12px 30px rgba(120,90,255,.32),inset 0 0 0 2px rgba(150,120,255,.7)}
+  .srow.ok{box-shadow:inset 0 0 0 1px rgba(52,208,106,.4)}
+  .srow.fail{opacity:.5;box-shadow:inset 0 0 0 1px rgba(255,107,107,.5)}
+  /* 结果条 */
+  .result{display:none;align-items:center;gap:10px;background:rgba(255,207,106,.14);border-radius:15px;box-shadow:inset 0 0 0 1px rgba(255,207,106,.3);padding:12px 15px}
+  .result.show{display:flex;animation:grow .4s ease}
+  .result .em{font-size:20px}.result .rt{font-size:14px;font-weight:700;color:#ffe0a0}.result .rs{font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+
+  .dock{position:absolute;left:0;right:0;bottom:0;height:64px;z-index:30;display:flex;align-items:center;gap:18px;padding:0 22px;background:rgba(12,16,24,.6);backdrop-filter:blur(26px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  .dock .home{width:32px;height:32px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5);flex:none}
+  .dock .tt{font-size:13px;color:var(--ink-soft)}.dock .sep{flex:1}.dock .ctrl{display:flex;align-items:center;gap:24px;color:rgba(238,241,244,.7);font-size:18px}
+
+  .panel{position:fixed;top:18px;right:18px;width:236px;z-index:100;background:rgba(20,22,26,.9);backdrop-filter:blur(20px);border-radius:16px;padding:15px;color:#e8eaee;font-size:12.5px;box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08)}
+  .panel .title{font-size:13.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;margin-bottom:12px}.panel .title i{width:8px;height:8px;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#ff6b9b,#ffab5b,#5b8cff)}
+  .ask{width:100%;border:0;border-radius:12px;cursor:pointer;font-family:inherit;font-weight:600;font-size:13.5px;padding:13px;color:#fff;background:linear-gradient(135deg,#3b78ff,#2f6bff);box-shadow:0 6px 18px rgba(47,107,255,.45);transition:.15s}
+  .ask:hover{filter:brightness(1.08)}.panel .phase{margin-top:12px;font-size:11px;color:#8b9098;border-top:1px solid rgba(255,255,255,.08);padding-top:10px}.panel .phase b{color:#ffce8a}
+  /* 演示控制台：默认弱化半透明、略缩小，悬停恢复清晰（不抢演示效果） */
+  .panel{opacity:.3;transform:scale(.86);transform-origin:top right;transition:opacity .3s ease,transform .3s ease}
+  .panel:hover{opacity:1;transform:scale(1)}
+
+  /* 全局：底栏 MVA 光球（语音区收起时的最小化态 · 点击唤起；区域展开时淡出）*/
+  .mva-orb{width:38px;height:38px;border-radius:50%;flex:none;border:0;padding:0;cursor:pointer;position:relative;background:radial-gradient(circle at 38% 34%,#2a3340,#11161f);transition:transform .15s,opacity .35s}
+  .mva-orb::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(.6px);animation:mvaspin 6s linear infinite}
+  .mva-orb::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.62));box-shadow:0 0 11px rgba(255,255,255,.5)}
+  .mva-orb:hover{transform:scale(1.06)}.mva-orb:active{transform:scale(.93)}
+  .stage.voice-on .mva-orb{opacity:.4}
+  .mva-orb.busy{opacity:.26 !important;pointer-events:none;filter:saturate(.55)}
+  .stage.zone-hidden .voice-zone{opacity:0 !important;transform:translateY(-10px) scale(.985) !important;pointer-events:none !important;transition:opacity .35s ease,transform .35s ease}
+  .stage.zone-hidden .map{transform:none !important}
+  @keyframes mvaspin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <div class="mapbg">
+      <svg viewBox="0 0 1300 812" preserveAspectRatio="xMidYMid slice">
+        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c2533"/><stop offset="1" stop-color="#151b25"/></linearGradient></defs>
+        <rect width="1300" height="812" fill="url(#bg)"/>
+        <path d="M-20 612 C 120 588 210 640 250 720 C 270 766 250 812 250 812 L -20 812 Z" fill="#1d3144"/>
+        <path d="M 1010 70 C 1110 60 1190 110 1180 200 C 1172 280 1080 300 1020 250 C 970 210 950 110 1010 70 Z" fill="#21362b"/>
+        <g stroke="#222b39" stroke-width="15" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/><path d="M 1330 150 C 1150 210 1050 330 1010 470 C 980 640 1010 760 1030 840"/></g>
+        <g stroke="#4b5566" stroke-width="9" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/><path d="M 1330 150 C 1150 210 1050 330 1010 470 C 980 640 1010 760 1030 840"/></g>
+        <g fill="#9aa3b0" font-size="15"><text x="430" y="470">莫干山镇</text><text x="800" y="210">埭溪镇</text><text x="1110" y="150">东林镇</text></g>
+      </svg>
+      <div class="mapbg-scrim"></div>
+    </div>
+
+    <div class="statusbar">
+      <div class="sb-left">
+        <div class="avatar" id="avatar"></div>
+        <div class="sb-voice"><span class="sv-asr" id="svAsr"><span id="asrText"></span><span class="sv-cur" id="asrCur"></span></span><span class="sv-reply" id="svReply"></span></div>
+      </div>
+      <div class="sb-right"><span><sup class="sb-5g">5G</sup> ▮▮▮</span><span class="sb-clock">21:36</span></div>
+    </div>
+
+    <div class="map">
+      <div class="map-top"><span>📍</span><span class="t">地图</span><svg width="18" height="18" viewBox="0 0 18 18"><circle cx="7.5" cy="7.5" r="5.5" fill="none" stroke="#fff" stroke-width="1.6"/><path d="M12 12l4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="map-quick"><div>⌂</div><div>☰</div><div>★</div><div>⚡</div></div>
+    </div>
+    <div class="weather"><div class="temp">14<sup>°C</sup></div><div class="loc">上海市　夜间晴</div></div>
+
+    <!-- 语音区：规则卡 + 游戏板 -->
+    <div class="voice-zone" id="vz">
+      <div class="rules" id="rules">
+        <div class="rh"><span class="em">🎴</span><span class="t">飞花令</span><span class="tag">多人 · 4 人在座</span></div>
+        <div class="rd">轮流说出含「月」字的古诗词，接不上 / 重复即淘汰，最后留下者获胜。</div>
+        <div class="rr"><span class="n">1</span><div><div class="rt">本轮令字「月」</div><div class="rs">每句必须含「月」字</div></div></div>
+        <div class="rr"><span class="n">2</span><div><div class="rt">按座位轮流作答</div><div class="rs">主驾 → 副驾 → 后排左 → 后排右 · 声纹识别是谁</div></div></div>
+        <div class="rr"><span class="n">3</span><div><div class="rt">10 秒内接上</div><div class="rs">接不上即淘汰</div></div></div>
+      </div>
+
+      <div class="board" id="board">
+        <div class="ghead"><div class="ling">月</div><div><div class="gt">飞花令 · 令字「月」</div></div><div class="round" id="round">第 1 轮</div></div>
+        <div class="seats" id="seats"></div>
+        <div class="result" id="result"><span class="em">🏆</span><div><div class="rt" id="resultT"></div><div class="rs" id="resultS"></div></div></div>
+      </div>
+    </div>
+
+    <div class="dock"><button class="mva-orb" id="mvaOrb" title="MVA · 唤起语音区"></button><div class="tt">🎮 飞花令 · 多人游戏中</div><div class="sep"></div><div class="ctrl"><span>❄</span><span>🚘</span><span>360</span><span>📞</span><span>▦</span></div></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="title"><i></i>多人飞花令 · 语音区版</div>
+  <button class="ask" id="ask">🎤 “大家来玩飞花令吧”</button>
+  <div class="phase">阶段：<b id="phlabel">待机</b></div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1300,innerHeight/812)*0.985})`;}
+addEventListener('resize',fit);fit();
+const $=id=>document.getElementById(id);
+
+const SEATS=[
+  {seat:'主驾',name:'李建',av:'李',c:'linear-gradient(135deg,#5b8cff,#2f6bff)'},
+  {seat:'副驾',name:'陈宛如',av:'陈',c:'linear-gradient(135deg,#ff7eb0,#ff5277)'},
+  {seat:'后排左',name:'凌辰',av:'凌',c:'linear-gradient(135deg,#34d06a,#1f9e52)'},
+  {seat:'后排右',name:'Ella',av:'E',c:'linear-gradient(135deg,#ffb86b,#ff8a3c)'},
+];
+const TURNS=[
+  {s:0,line:'床前明月光'},{s:1,line:'海上生明月'},{s:2,line:'举头望明月'},{s:3,line:'月落乌啼霜满天'},
+  {s:0,line:'明月几时有'},{s:1,line:'月涌大江流'},{s:2,fail:true},
+];
+const score=[0,0,0,0];
+
+$('seats').innerHTML=SEATS.map((s,i)=>`<div class="srow" id="srow${i}">
+  <div class="top"><div class="av" style="background:${s.c}">${s.av}</div>
+    <div><div class="nm">${s.name}</div><div class="sl">${s.seat} <span class="vp">声纹</span></div></div>
+    <div class="sc"><b id="sc${i}">0</b>句</div></div>
+  <div class="ln" id="ln${i}"><span>等待作答…</span></div>
+</div>`).join('');
+
+const timers=[];const at=(ms,fn)=>timers.push(setTimeout(fn,ms));
+function reset(){
+  timers.forEach(clearTimeout);timers.length=0;
+  $('avatar').classList.remove('awake');stage.classList.remove('voice-on');
+  $('svAsr').className='sv-asr';$('svAsr').style.display='';$('asrText').textContent='';$('svAsr').scrollLeft=0;$('asrCur').style.display='';
+  $('svReply').className='sv-reply';$('svReply').textContent='';
+  $('rules').className='rules';$('board').className='board';$('result').className='result';$('round').textContent='第 1 轮';
+  SEATS.forEach((s,i)=>{score[i]=0;$('srow'+i).className='srow';$('sc'+i).textContent='0';$('ln'+i).innerHTML='<span>等待作答…</span>';});
+}
+function typeASR(text,dur){const el=$('asrText'),sc=$('svAsr');let i=0;const step=dur/text.length;
+  (function tick(){el.textContent=text.slice(0,i);sc.scrollLeft=sc.scrollWidth;if(i++<=text.length)timers.push(setTimeout(tick,step));})();}
+
+function runTurn(t,t0,round){
+  const i=t.s,s=SEATS[i];
+  at(t0,()=>{
+    [...document.querySelectorAll('.srow')].forEach(e=>e.classList.remove('active'));
+    $('srow'+i).classList.add('active');
+    $('ln'+i).innerHTML='<span style="color:#b9a4ff">作答中</span><span class="dots"><i></i><i></i><i></i></span>';
+    $('phlabel').textContent=`第${round}轮 · ${s.seat}（${s.name}）作答`;
+  });
+  if(t.fail){
+    at(t0+1200,()=>{$('ln'+i).innerHTML='<span style="color:var(--red)">…接不上了</span>';});
+    at(t0+1850,()=>{$('srow'+i).classList.remove('active');$('srow'+i).classList.add('fail');
+      $('ln'+i).innerHTML='<span style="color:var(--red)">没接上</span><span class="jg bad">✗ 淘汰</span>';});
+  }else{
+    at(t0+750,()=>{$('ln'+i).innerHTML=`<span class="poem">「${t.line}」</span>`;});
+    at(t0+1450,()=>{$('srow'+i).classList.remove('active');$('srow'+i).classList.add('ok');
+      $('ln'+i).innerHTML=`<span class="poem">「${t.line}」</span><span class="jg ok">✓</span>`;
+      score[i]++;$('sc'+i).textContent=score[i];});
+    at(t0+1900,()=>$('srow'+i).classList.remove('ok'));
+  }
+}
+function play(){
+  reset();
+  $('phlabel').textContent='聆听 · 识别中';
+  $('avatar').classList.add('awake');$('svAsr').classList.add('show');
+  typeASR('大家一起来玩飞花令吧',2300);
+  at(2600,()=>{$('asrCur').style.display='none';$('svAsr').classList.add('done');});
+  at(3100,()=>$('svAsr').classList.add('gone'));
+  at(3500,()=>{$('svAsr').style.display='none';$('svReply').textContent='好嘞！飞花令开始 🌸 本轮令字「月」';$('svReply').classList.add('show');stage.classList.add('voice-on');$('phlabel').textContent='讲解规则';});
+  // 图文规则 → 游戏板
+  at(3900,()=>$('rules').classList.add('show'));
+  at(6500,()=>$('rules').classList.remove('show'));
+  at(6900,()=>{$('board').classList.add('show');$('svReply').textContent='从主驾开始，轮流说带「月」的诗句~';$('phlabel').textContent='游戏开始';
+    SEATS.forEach((s,i)=>at(i*150,()=>$('srow'+i).classList.add('in')));});
+  // 轮流作答
+  const base=7900,gap=2000;
+  TURNS.forEach((t,k)=>{const round=k<4?1:2;
+    at(base+k*gap,()=>{if(k===4)$('round').textContent='第 2 轮';runTurn(t,0,round);});});
+  const END=base+TURNS.length*gap+200;
+  at(END,()=>{$('result').classList.add('show');$('resultT').textContent='凌辰 没接上，淘汰！';$('resultS').textContent='李建 · 陈宛如 · Ella 晋级下一轮 🎉';
+    $('svReply').textContent='这轮凌辰卡住啦，其余三位晋级~';$('phlabel').textContent='本轮结束';});
+}
+$('ask').onclick=play;
+setTimeout(play,600);
+</script>
+
+<script>
+(function(){
+  var orb=document.getElementById('mvaOrb');if(!orb)return;
+  var stage=document.querySelector('.stage');
+  var watch=[document.querySelector('.voice-zone'),document.querySelector('.statusbar')].filter(Boolean);
+  var busy=true,settleT=null;
+  function en(on){orb.classList.toggle('busy',!on);}
+  function settle(){busy=false;en(true);}
+  function bump(){busy=true;en(false);clearTimeout(settleT);settleT=setTimeout(settle,1200);}
+  try{var obs=new MutationObserver(bump);watch.forEach(function(n){obs.observe(n,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','style']});});}catch(e){}
+  bump();
+  orb.onclick=function(){if(busy)return;stage.classList.toggle('zone-hidden');};
+})();
+</script>
+</body>
+</html>

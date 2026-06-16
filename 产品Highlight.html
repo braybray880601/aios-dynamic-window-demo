@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>奔驰 语音交互区 · 产品 Highlight(三个角度)</title>
+<style>
+  :root{--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.34);--gold:#ffcf6a;--blue:#6fa0ff;--violet:#9b8bff;--card:rgba(22,28,40,.58);--bd:rgba(255,255,255,.09)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1600px;height:900px;overflow:hidden;transform-origin:center center;border-radius:22px;
+    background:radial-gradient(130% 120% at 18% 0%,#16203040 0%,transparent 55%),radial-gradient(120% 120% at 100% 100%,#1a1f2e 0%,#0e1420 45%,#080b12 100%);
+    box-shadow:0 50px 140px rgba(0,0,0,.7)}
+  /* 背景微弱氛围光 */
+  .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.16;pointer-events:none}
+  .glow.g1{width:520px;height:520px;top:-160px;right:-120px;background:#ffcf6a;animation:breath 9s ease-in-out infinite}
+  .glow.g2{width:560px;height:560px;bottom:-220px;left:-140px;background:#5b8cff;animation:breath 11s ease-in-out infinite 1s}
+  @keyframes breath{0%,100%{opacity:.12;transform:scale(1)}50%{opacity:.22;transform:scale(1.08)}}
+
+  .wrap{position:absolute;inset:0;padding:46px 56px 38px;display:flex;flex-direction:column}
+  /* 头部 */
+  header{display:flex;align-items:flex-start;gap:22px;margin-bottom:20px}
+  .orb{width:58px;height:58px;border-radius:50%;flex:none;position:relative;margin-top:3px;
+    background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);animation:spin 7s linear infinite;box-shadow:0 0 34px rgba(120,120,255,.4)}
+  .orb::after{content:"";position:absolute;inset:12px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.55));box-shadow:0 0 16px rgba(255,255,255,.5)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .htext{flex:1;min-width:0}
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:.32em;color:var(--gold);text-transform:uppercase;margin-bottom:11px}
+  h1{font-size:40px;font-weight:800;letter-spacing:.01em;line-height:1.12}
+  h1 b{background:linear-gradient(100deg,#fff 0%,#ffcf6a 120%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .lede{margin-top:11px;font-size:14.5px;color:var(--soft);line-height:1.55;max-width:1180px}
+  .lede b{color:var(--ink);font-weight:600}
+  .ask{margin-left:auto;flex:none;align-self:center;text-align:right;max-width:230px}
+  .ask .q{font-size:12.5px;color:var(--soft);line-height:1.5}
+  .ask .q b{color:var(--gold);font-weight:700}
+
+  /* 三栏 */
+  .cols{flex:1;display:flex;gap:18px;min-height:0}
+  .col{flex:1;position:relative;background:var(--card);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);
+    border-radius:20px;box-shadow:inset 0 0 0 1px var(--bd);padding:22px 24px 20px;display:flex;flex-direction:column;overflow:hidden;
+    transition:transform .2s,box-shadow .2s}
+  .col::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac);opacity:.95}
+  .col:hover{transform:translateY(-4px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 24px 50px rgba(0,0,0,.5)}
+  /* 角度头 */
+  .chead{display:flex;align-items:center;gap:12px;margin-bottom:3px}
+  .chead .ix{font-size:13px;font-weight:800;letter-spacing:.06em;color:var(--ac);background:rgba(255,255,255,.06);padding:3px 11px;border-radius:20px;filter:brightness(1.12)}
+  .chead .em{font-size:24px;margin-left:auto}
+  .ctitle{font-size:24px;font-weight:800;letter-spacing:.01em;margin-top:9px;color:#fff}
+  .csub{font-size:12.5px;color:var(--soft);margin-top:5px;line-height:1.5}
+
+  /* 「做什么样的产品」段 */
+  .block{margin-top:16px}
+  .blabel{font-size:10.5px;font-weight:800;letter-spacing:.18em;color:var(--faint);text-transform:uppercase;margin-bottom:7px}
+  .what{font-size:13px;color:var(--ink);line-height:1.55}
+  .what b{color:var(--ac);font-weight:700;filter:brightness(1.1)}
+
+  /* 差异化段 —— 高亮块 */
+  .diff{margin-top:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border-radius:14px;box-shadow:inset 0 0 0 1px var(--bd);padding:13px 15px;position:relative}
+  .diff .dl{font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--ac);text-transform:uppercase;margin-bottom:8px;filter:brightness(1.15)}
+  .diff .dh{font-size:15.5px;font-weight:800;color:#fff;line-height:1.35;margin-bottom:8px}
+  .diff .dh em{font-style:normal;color:var(--ac);filter:brightness(1.12)}
+  .diff .dd{font-size:12px;color:var(--soft);line-height:1.55}
+
+  /* AIOS 四步链 */
+  .chain{display:flex;align-items:center;gap:5px;margin:9px 0 2px;flex-wrap:wrap}
+  .chain .st{font-size:11.5px;font-weight:800;color:#06121f;background:var(--ac);padding:4px 10px;border-radius:9px;filter:brightness(1.05)}
+  .chain .ar{color:var(--faint);font-size:12px}
+  /* 氛围示意条(座舱) */
+  .ambient{margin:10px 0 2px;height:30px;border-radius:9px;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px var(--bd);
+    background:linear-gradient(90deg,rgba(90,160,255,.0),rgba(90,160,255,.28),rgba(155,139,255,.22),rgba(90,160,255,.0))}
+  .ambient::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(105deg,rgba(255,255,255,.12) 0 1px,transparent 1px 9px);opacity:.5;animation:rain 1.4s linear infinite}
+  @keyframes rain{to{background-position:34px 0}}
+  /* 光效示意点(品牌) */
+  .lumin{display:flex;align-items:center;gap:14px;margin:11px 0 2px}
+  .lumin .ball{width:38px;height:38px;border-radius:50%;flex:none;background:radial-gradient(circle at 38% 34%,#fff,#ffe0a8 40%,#ff9b5b 72%,rgba(255,155,91,0));box-shadow:0 0 26px 4px rgba(255,180,110,.5);animation:pulse 3.2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(.92);filter:brightness(.95)}50%{transform:scale(1.06);filter:brightness(1.15)}}
+  .lumin .trail{flex:1;height:8px;border-radius:6px;background:linear-gradient(90deg,rgba(255,180,110,.55),rgba(255,180,110,0))}
+
+  /* 区别于 */
+  .vs{margin-top:auto;padding-top:13px;display:flex;align-items:flex-start;gap:9px}
+  .vs .x{color:var(--faint);font-size:13px;flex:none;line-height:1.4}
+  .vs .vt{font-size:11.5px;color:var(--faint);line-height:1.5}
+  .vs .vt b{color:var(--soft);font-weight:600}
+
+  footer{display:flex;align-items:center;gap:10px;margin-top:16px;color:var(--faint);font-size:12px;letter-spacing:.04em}
+  footer .dot{width:6px;height:6px;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#ff6b9b,#ffab5b,#5b8cff)}
+  footer b{color:var(--soft);font-weight:600}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <div class="wrap">
+      <header>
+        <div class="orb"></div>
+        <div class="htext">
+          <div class="eyebrow">奔驰 · 语音交互区 · 产品 Highlight</div>
+          <h1>我们要做<b>什么样的产品</b> —— 三个角度,一条差异化主线</h1>
+          <div class="lede">从 <b>行业 · 座舱 · 品牌</b> 三个角度回答同一组问题:<b>我们要做什么样的产品?差异化在哪里?</b> 三者收束为一条主线 —— 不是在固定 App 上堆语音,而是一套<b>会理解、能生成、有质感</b>的车机 AI 体验。</div>
+        </div>
+        <div class="ask">
+          <div class="q">同一组问题,<b>问三遍</b>:<br>做什么样的产品?<br>差异化在哪?</div>
+        </div>
+      </header>
+
+      <div class="cols" id="cols"></div>
+
+      <footer><span class="dot"></span>三个角度,一条主线:<b>会思考规划</b> 让它聪明,<b>极简自然</b> 让座舱适应你,<b>沉浸质感</b> 让它成为奔驰。</footer>
+    </div>
+  </div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1600,innerHeight/900)*0.985})`;}
+addEventListener('resize',fit);fit();
+
+const COLS=[
+  {
+    ac:'#6fa0ff',ix:'① 行业角度',em:'🧠',
+    title:'会思考规划的系统',
+    sub:'不是「带语音的车机」,是会理解意图、自己组装界面的 AIOS。',
+    what:'做一个能<b>听懂意图</b>、把导航 / 媒体 / 车控打散成<b>原子能力</b>、按需调度并组合、再<b>即时生成 UI</b> 的 AI 操作系统。用户说一句话,系统自己决定调什么、怎么拼、长成什么样。',
+    diffLabel:'差异化',
+    diffHead:'AIOS:<em>理解 · 调度 · 组合 · 生成</em>',
+    chain:['理解','调度','组合','生成'],
+    diffDesc:'<b>理解</b>意图 → 把功能<b>调度</b>成原子能力 → 按场景<b>组合</b> → 即时<b>生成</b>恰当的界面。一套以意图驱动、自己长出界面的操作系统。',
+    vs:'区别于 <b>「在固定 App 上堆语音」</b> —— 不是给每个写死的功能页加个语音入口,而是让 AI 临场决定呈现什么。',
+    extra:'chain'
+  },
+  {
+    ac:'#5bd6ff',ix:'② 座舱角度',em:'🌊',
+    title:'动态生长的交互空间',
+    sub:'为座舱而生的语音区:无边框、随内容生长,只在需要时出现,点到为止。',
+    what:'做一块<b>无边框、随内容动态生长</b>的语音区:简单的事一行答完,复杂规划才长成多卡,说完即退场,<b>不抢屏、不打断驾驶</b>。',
+    diffLabel:'差异化',
+    diffHead:'用<em>极简自然交互</em>,翻译奔驰的豪华',
+    diffDesc:'豪华的本质是省心:一句话说完,座舱自己听懂、自己呈现,省掉菜单与层级,也替用户省下时间。<b>座舱在适应人,而不是人去适应座舱</b>,这正是奔驰式豪华在数字座舱里的表达。',
+    vs:'区别于 <b>「把手机 App 和多级菜单搬上车」</b>:豪华不靠堆功能,而是替用户省掉每一次多余的操作。',
+    extra:'ambient'
+  },
+  {
+    ac:'#ffcf6a',ix:'③ 品牌角度',em:'✨',
+    title:'以光为语言的品牌表达',
+    sub:'光是 MVA 的表达语言:用沉浸的氛围与考究的质感,延续奔驰座舱的高级感。',
+    what:'做一套<b>沉浸且精致</b>的动效语言:思考、记忆、氛围皆<b>以光传达</b>,动效带惯性与余晖,MVA 光球被<b>人格化</b>呈现,每一次出现与消失都考究。',
+    diffLabel:'差异化',
+    diffHead:'用<em>沉浸与质感</em>,接着奔驰座舱往下说',
+    diffDesc:'奔驰座舱<b>本就自带沉浸感</b>:灯光、用料、声学早已是品牌语言。MVA 顺着这套语言生长,让 AI 不是被「加」进座舱,而是<b>长在奔驰的质感里</b>,一眼认得出。',
+    vs:'区别于 <b>「廉价生硬的过场」</b>:沉浸与质感不是装饰,而是品牌识别本身。',
+    extra:'lumin'
+  },
+];
+
+function extraHTML(c){
+  if(c.extra==='chain'){
+    const parts=c.chain.map(s=>`<span class="st">${s}</span>`).join('<span class="ar">→</span>');
+    return `<div class="chain">${parts}</div>`;
+  }
+  if(c.extra==='ambient') return `<div class="ambient"></div>`;
+  if(c.extra==='lumin') return `<div class="lumin"><span class="ball"></span><span class="trail"></span></div>`;
+  return '';
+}
+
+document.getElementById('cols').innerHTML=COLS.map(c=>`<div class="col" style="--ac:${c.ac}">
+  <div class="chead"><span class="ix">${c.ix}</span><span class="em">${c.em}</span></div>
+  <div class="ctitle">${c.title}</div>
+  <div class="csub">${c.sub}</div>
+  <div class="block">
+    <div class="blabel">做什么样的产品</div>
+    <div class="what">${c.what}</div>
+  </div>
+  <div class="diff">
+    <div class="dl">${c.diffLabel} · 差异化在哪</div>
+    <div class="dh">${c.diffHead}</div>
+    ${extraHTML(c)}
+    <div class="dd">${c.diffDesc}</div>
+  </div>
+  <div class="vs"><span class="x">✕</span><span class="vt">${c.vs}</span></div>
+</div>`).join('');
+</script>
+</body>
+</html>

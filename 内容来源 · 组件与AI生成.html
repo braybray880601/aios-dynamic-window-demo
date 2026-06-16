@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>奔驰 语音区 · 内容来源 overview(组合 × 设计 × AI 生成)</title>
+<style>
+  :root{--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.34);--gold:#ffcf6a;--blue:#6fa0ff;--violet:#9b8bff;--red:#ff7d7d;--card:rgba(22,28,40,.58);--bd:rgba(255,255,255,.09)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1600px;height:900px;overflow:hidden;transform-origin:center center;border-radius:22px;
+    background:radial-gradient(130% 120% at 18% 0%,#16203040 0%,transparent 55%),radial-gradient(120% 120% at 100% 100%,#1a1f2e 0%,#0e1420 45%,#080b12 100%);
+    box-shadow:0 50px 140px rgba(0,0,0,.7)}
+  .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.12;pointer-events:none}
+  .glow.g1{width:520px;height:520px;top:-160px;right:-120px;background:#ffcf6a}
+  .glow.g2{width:560px;height:560px;bottom:-220px;left:-160px;background:#6fa0ff}
+
+  .wrap{position:absolute;inset:0;padding:40px 56px 32px;display:flex;flex-direction:column}
+  header{margin-bottom:15px}
+  .eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.3em;color:var(--gold);text-transform:uppercase;margin-bottom:9px}
+  h1{font-size:35px;font-weight:800;letter-spacing:.01em;line-height:1.1}
+  h1 b{background:linear-gradient(100deg,#fff,#ffcf6a 130%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .lede{margin-top:9px;font-size:13.5px;color:var(--soft);line-height:1.5;max-width:1240px}
+  .lede .c1{color:var(--blue);font-weight:600}.lede .c2{color:var(--violet);font-weight:600}.lede .c3{color:var(--gold);font-weight:600}
+
+  .cols{flex:1;display:flex;gap:16px;min-height:0}
+  .panel{background:var(--card);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);border-radius:18px;box-shadow:inset 0 0 0 1px var(--bd);padding:17px 20px;display:flex;flex-direction:column;overflow:hidden;position:relative}
+  .panel::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;opacity:.9}
+  .panel.combo{flex:0 0 338px}.panel.combo::before{background:var(--blue)}
+  .panel.ai{flex:1}.panel.ai::before{background:var(--gold)}
+  .ph{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+  .ph .pt{font-size:17px;font-weight:800}
+  .combo .ph .pt{color:var(--blue)}.ai .ph .pt{color:var(--gold)}
+  .ph .ps{margin-left:auto;font-size:11px;color:var(--faint)}
+  .pnote{font-size:11.5px;color:var(--faint);margin-bottom:12px;line-height:1.45}
+  .pnote b{color:var(--soft);font-weight:600}
+
+  /* 组合列 */
+  .crow{display:flex;gap:12px;align-items:flex-start;padding:13px 0}
+  .crow+.crow{border-top:1px solid rgba(255,255,255,.06)}
+  .crow .ce{font-size:20px;line-height:1.2;flex:none;width:24px;text-align:center}
+  .crow .ck{font-size:15px;font-weight:700;flex:none;width:66px}
+  .crow .cv{font-size:12.5px;color:var(--soft);line-height:1.5;flex:1}
+  .combo .pend{margin-top:auto;padding-top:14px}
+  .combo .foot{font-size:11.5px;color:var(--faint);line-height:1.5}
+  .combo .foot b{color:var(--blue);font-weight:600}
+  .combo .todo{margin-top:9px;font-size:11px;color:var(--faint);background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--bd);border-radius:9px;padding:8px 11px}
+
+  /* AI 列 */
+  .exgrid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;min-height:0}
+  .ex{position:relative;background:rgba(255,255,255,.028);border-radius:14px;box-shadow:inset 0 0 0 1px var(--bd);padding:13px 16px;overflow:hidden;display:flex;flex-direction:column}
+  .ex::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac);opacity:.85}
+  .exhead{display:flex;align-items:baseline;gap:9px;margin-bottom:11px;flex:none}
+  .extag{font-size:9.5px;font-weight:700;letter-spacing:.05em;color:var(--ac);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px;filter:brightness(1.12)}
+  .exname{font-size:13.5px;font-weight:800}
+  .exbody{flex:1;min-height:0;display:flex}
+
+  /* 例1 油耗趋势 */
+  .fuel{flex-direction:column;justify-content:center;gap:5px}
+  .fuel .bignum{font-size:27px;font-weight:300;color:#fff;line-height:1}.fuel .bignum span{font-size:12px;color:var(--soft);margin-left:3px}.fuel .bignum i{font-size:13px;font-weight:700;color:#34d06a;font-style:normal;margin-left:7px}
+  .fuel svg{width:100%;height:44px;margin-top:2px}
+  .fuel .xaxis{display:flex;justify-content:space-between;font-size:9px;color:var(--faint)}
+
+  /* 例2 氛围主题 */
+  .theme{align-items:center;gap:11px}
+  .theme .cover{width:52px;height:52px;border-radius:9px;flex:none;background:conic-gradient(from 35deg,#ff8a5b,#ffcf6a,#ff6b9b,#9b6bff,#ff8a5b);box-shadow:0 3px 10px rgba(0,0,0,.4)}
+  .theme .arrow{color:var(--faint);font-size:15px;flex:none}
+  .theme .pal{display:flex;flex-direction:column;gap:4px;flex:none}
+  .theme .pal .sw{display:flex;align-items:center;gap:6px;font-size:9.5px;color:var(--faint)}
+  .theme .pal .sw i{width:30px;height:11px;border-radius:3px;display:block}
+  .theme .cabin{margin-left:auto;flex:none;width:78px;height:50px;border-radius:9px;background:#10141d;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),inset 0 0 16px 3px rgba(255,150,90,.55);position:relative}
+  .theme .cabin::after{content:"座舱";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(255,200,170,.8)}
+
+  /* 例3 庆祝卡 */
+  .cele{align-items:center;gap:13px}
+  .cele .tro{font-size:32px;flex:none;filter:drop-shadow(0 2px 6px rgba(255,200,90,.4))}
+  .cele .ct{font-size:16px;font-weight:800}
+  .cele .cs{font-size:11px;color:var(--soft);margin-top:3px;line-height:1.4}
+  .cele .cbtn{margin-left:auto;flex:none;align-self:center;border:0;font-family:inherit;font-weight:700;font-size:12px;color:#06140b;background:#34d06a;padding:8px 13px;border-radius:9px}
+
+  /* 例4 航班状态卡 */
+  .flight{flex-direction:column;justify-content:center;gap:9px}
+  .flight .frow{display:flex;align-items:center;gap:9px}
+  .flight .frow b{font-size:16px;font-weight:800;letter-spacing:.02em}
+  .flight .fstatus{margin-left:auto;font-size:10px;font-weight:700;color:#bdb2ff;background:rgba(155,139,255,.18);padding:2px 9px;border-radius:9px}
+  .flight .froute{display:flex;align-items:center;gap:12px}
+  .flight .fcode{font-size:21px;font-weight:300;color:#fff;line-height:1}
+  .flight .fsub{font-size:10px;color:var(--soft);margin-top:2px}
+  .flight .fline{flex:1;position:relative;text-align:center;color:var(--soft);font-size:13px}
+  .flight .fline::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px dashed rgba(255,255,255,.22)}
+  .flight .fline span{position:relative;padding:0 7px}
+  .flight .fmeta{font-size:11px;color:var(--soft)}
+  /* 每个实例的说明:生成了什么 · 基于什么规范 */
+  .exfoot{flex:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:3px}
+  .exfoot .efr{display:flex;gap:8px;font-size:10.5px;line-height:1.38}
+  .exfoot .efk{flex:none;width:26px;font-weight:800;color:var(--ac);filter:brightness(1.12)}
+  .exfoot .efv{flex:1;color:var(--soft)}
+
+  .redline{margin-top:11px;display:flex;align-items:center;gap:10px;background:rgba(255,107,107,.09);border-radius:11px;box-shadow:inset 0 0 0 1px rgba(255,125,125,.24);padding:8px 14px;flex:none}
+  .redline b{color:var(--red);font-weight:800;font-size:12px;flex:none}
+  .redline span{font-size:11px;color:var(--soft);line-height:1.4}.redline span b{color:#ffd0d0;font-weight:600}
+
+  /* 设计规范地基带 */
+  .base{margin-top:13px;background:linear-gradient(180deg,rgba(155,139,255,.1),rgba(155,139,255,.05));border-radius:16px;box-shadow:inset 0 0 0 1px rgba(155,139,255,.26);padding:12px 20px;position:relative}
+  .base::before{content:"↑ 组合 与 AI 生成,都建立在这层之上";position:absolute;top:-9px;left:24px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--violet);background:#0c1019;padding:0 8px}
+  .base .bh{font-size:13px;font-weight:800;color:var(--violet);display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .base .bchips{display:flex;flex-wrap:wrap;gap:7px}
+  .base .bchip{font-size:11.5px;color:#d8d2ff;background:rgba(155,139,255,.12);box-shadow:inset 0 0 0 1px rgba(155,139,255,.26);padding:3px 11px;border-radius:20px}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <div class="wrap">
+      <header>
+        <div class="eyebrow">奔驰 · 语音区 · 内容来源 Overview</div>
+        <h1>内容从哪来 —— <b>组合 × 设计 × AI 生成</b></h1>
+        <div class="lede">语音区里"生长"出来的每一块,都来自三者之一:<span class="c1">🔧 组合调用现成组件</span> · <span class="c2">🎨 设计定义的规范层</span> · <span class="c3">✨ AI 在规范内生成</span>(右侧为生成实例)。设计规范是地基,组合与生成都长在它之上。</div>
+      </header>
+
+      <div class="cols">
+        <div class="panel combo">
+          <div class="ph"><span class="pt">🔧 组合调用</span><span class="ps">现成组件</span></div>
+          <div class="pnote">系统/工程预制、<b>行为确定</b>,AI 只决定"何时调用、怎么拼",不改其内部。</div>
+          <div class="crow"><span class="ce">🌡️</span><span class="ck">车控座舱</span><span class="cv">空调 · 氛围灯 · 车窗 · 座椅 · 后视镜 · 360 影像 · 座舱模式 …全部车控组件</span></div>
+          <div class="crow"><span class="ce">🎵</span><span class="ck">媒体</span><span class="cv">播放器 · 专辑封面 · 播放 / 进度控件 · 音源切换</span></div>
+          <div class="pend">
+            <div class="foot"><b>原则</b> · 行为确定 · 数据真实 · 只调用不改写</div>
+            <div class="todo">📦 其余(导航 / 车况 / 身份 等)等确认<b>哪些可拆成独立组件</b>后再补。</div>
+          </div>
+        </div>
+
+        <div class="panel ai">
+          <div class="ph"><span class="pt">✨ AI 生成</span><span class="ps">设计规范内 · 三档(越往后生成越重)</span></div>
+          <div class="pnote">① 组合排布 → ② 参数化 → ③ 结构化。AI 生成的是「<b>怎么呈现</b>」而非数据本身——每个实例都标注了<b>生成了什么 · 基于什么规范</b>。</div>
+          <div class="exgrid">
+            <div class="ex" style="--ac:#5bd6ff">
+              <div class="exhead"><span class="extag">参数化 · 微可视化</span><span class="exname">数据卡 · 油耗趋势</span></div>
+              <div class="exbody fuel">
+                <div class="bignum">5.6<span>L/100km</span><i>↓ 6%</i></div>
+                <svg viewBox="0 0 260 44" preserveAspectRatio="none"><polyline points="2,30 45,24 88,32 131,18 174,22 217,11 258,7" fill="none" stroke="#5bd6ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="258" cy="7" r="3" fill="#5bd6ff"/></svg>
+                <div class="xaxis"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+              </div>
+              <div class="exfoot"><div class="efr"><span class="efk">生成</span><span class="efv">图表类型 + 数据编码(轴/色/标注) + 一句结论文案</span></div><div class="efr"><span class="efk">规范</span><span class="efv">图表 token(配色/网格/字号) · 数据点只读真实遥测</span></div></div>
+            </div>
+            <div class="ex" style="--ac:#ffcf6a">
+              <div class="exhead"><span class="extag">参数化 · 氛围/主题</span><span class="exname">从当前播放封面取色</span></div>
+              <div class="exbody theme">
+                <div class="cover"></div><div class="arrow">→</div>
+                <div class="pal"><div class="sw"><i style="background:#ff8a5b"></i>主</div><div class="sw"><i style="background:#ffcf6a"></i>辅</div><div class="sw"><i style="background:#ff6b9b"></i>强调</div></div>
+                <div class="cabin"></div>
+              </div>
+              <div class="exfoot"><div class="efr"><span class="efk">生成</span><span class="efv">主 / 辅 / 强调色 + 光效参数(亮度·呼吸)一套 theme</span></div><div class="efr"><span class="efk">规范</span><span class="efv">仅取品牌色域 · 满足对比度 · 夜间自动压暗</span></div></div>
+            </div>
+            <div class="ex" style="--ac:#34d06a">
+              <div class="exhead"><span class="extag">结构化 · 情境界面</span><span class="exname">庆祝卡</span></div>
+              <div class="exbody cele">
+                <div class="tro">🏆</div>
+                <div><div class="ct">本月最省油</div><div class="cs">比上月省 8% · 超过 92% 同款车主</div></div>
+                <button class="cbtn">查看报告</button>
+              </div>
+              <div class="exfoot"><div class="efr"><span class="efk">生成</span><span class="efv">版式骨架 + 文案 + 动机图形 + 动作建议(CTA)</span></div><div class="efr"><span class="efk">规范</span><span class="efv">语音区盒 · 卡片语法 · 动效库 · 一屏一焦点</span></div></div>
+            </div>
+            <div class="ex" style="--ac:#9b8bff">
+              <div class="exhead"><span class="extag">结构化 · 一次性模板</span><span class="exname">航班状态卡</span></div>
+              <div class="exbody flight">
+                <div class="frow"><b>MU 5137</b><span class="fstatus">登机中</span></div>
+                <div class="froute"><div><div class="fcode">SHA</div><div class="fsub">虹桥 T2</div></div><div class="fline"><span>✈</span></div><div style="text-align:right"><div class="fcode">CAN</div><div class="fsub">白云 T1</div></div></div>
+                <div class="fmeta">登机口 C12 · 38 分钟后登机 · 座位 12A</div>
+              </div>
+              <div class="exfoot"><div class="efr"><span class="efk">生成</span><span class="efv">现搭栅格分区(主信息/航线/详情) + 槽位填充</span></div><div class="efr"><span class="efk">规范</span><span class="efv">只用原子积木(标题/标签/分隔) + token + 语音区盒</span></div></div>
+            </div>
+          </div>
+          <div class="redline"><b>🚫 不生成</b><span>车控数值 · <b>真实数据</b>(电量/胎压/ETA/比分) · 地图与路线几何 · 支付与账户 · 身份判定 —— 只调用组件 / 只读真实数据。</span></div>
+        </div>
+      </div>
+
+      <div class="base">
+        <div class="bh">🎨 设计定义 · 规范层（组合与生成共同的地基 / 约束器）</div>
+        <div class="bchips" id="specChips"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1600,innerHeight/900)*0.985})`;}
+addEventListener('resize',fit);fit();
+const SPEC=['Design tokens(色板/字阶/间距/圆角/阴影)','栅格与盒(固定宽·动态高·不遮挡)','原子积木 + 卡片语法','动效库','「光」的表达语言','美术方向 DNA','可达性 & 数据只读'];
+document.getElementById('specChips').innerHTML=SPEC.map(s=>`<span class="bchip">${s}</span>`).join('');
+</script>
+</body>
+</html>

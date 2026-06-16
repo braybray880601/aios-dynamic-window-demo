@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>奔驰 · 语音区 · 推荐 Feed 与场景切换</title>
+<!--
+  语音区 = 常驻左栏面板，两种模式：
+    待机 = 推荐 Feed 流（文字 / 图文混排，缓慢上滚）
+    唤醒 = 按场景分流：
+      · 闲聊/简单指令（回复进顶栏）→ feed 保留变暗、答完复亮
+      · 导航 → 情境晋升：命中的那张 feed 卡展开成导航，其余清场；结束后 feed 回归
+  地图卡常驻右侧（feed 占左栏，切场景只是左栏内容替换）。
+  素材：真实专辑封面 / 电影海报；文案均为原创，无版权正文。
+-->
+<style>
+  :root{--card:rgba(20,26,38,.7);--card-bd:rgba(255,255,255,.1);--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.4);--gold:#ffcf6a;--green:#34d06a;--blue:#3b78ff;--vz-w:430px}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1300px;height:812px;overflow:hidden;transform-origin:center center;border-radius:18px;box-shadow:0 40px 120px rgba(0,0,0,.65);background:radial-gradient(135% 115% at 50% 8%,#141c2a 0%,#0e1420 46%,#080b12 100%)}
+  .mapbg{position:absolute;inset:0;z-index:0}.mapbg svg{position:absolute;inset:0;width:100%;height:100%}
+  .mapbg-scrim{position:absolute;inset:0;background:radial-gradient(125% 105% at 50% 40%,rgba(8,11,18,.5),rgba(6,9,15,.76))}
+
+  .statusbar{position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:55}
+  .sb-left{display:flex;align-items:center;gap:13px;flex:1;min-width:0;height:100%;padding-right:24px}
+  .avatar{width:36px;height:36px;border-radius:50%;flex:none;position:relative;background-image:linear-gradient(135deg,#f3c9b0,#cf9d86);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4);transition:box-shadow .5s}
+  .avatar::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(1px);opacity:0;transition:opacity .55s;animation:spin 5s linear infinite}
+  .avatar::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6));box-shadow:0 0 14px rgba(255,255,255,.55);opacity:0;transition:opacity .55s}
+  .avatar.awake{box-shadow:none;animation:breathe 3.2s ease-in-out infinite}.avatar.awake::before,.avatar.awake::after{opacity:1}
+  @keyframes spin{to{transform:rotate(360deg)}}@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  .sb-voice{position:relative;display:flex;align-items:center;min-width:0;height:100%}
+  .sv-asr{display:inline-flex;align-items:center;max-width:640px;overflow:hidden;white-space:nowrap;font-size:15.5px;font-weight:600;color:var(--ink);opacity:0;transition:opacity .35s,transform .4s,filter .4s}
+  .sv-asr.show{opacity:1}.sv-asr.done{color:#62e08c}.sv-asr.gone{opacity:0;transform:translateY(-7px);filter:blur(2px)}
+  .sv-cur{display:inline-block;width:2px;height:16px;background:#62e08c;margin-left:2px;animation:blink 1s step-end infinite}@keyframes blink{50%{opacity:0}}
+  .sv-reply{font-size:15.5px;font-weight:600;color:#fff;white-space:nowrap;opacity:0;transform:translateY(4px);transition:opacity .45s,transform .45s;text-shadow:0 1px 12px rgba(0,0,0,.5)}.sv-reply.show{opacity:1;transform:none}
+  .sb-right{display:flex;align-items:center;gap:16px;color:#dfe3e8;flex:none}.sb-clock{font-size:19px;font-weight:500}.sb-5g{font-size:10px;font-weight:700;vertical-align:top}
+
+  /* 地图卡：本场景常驻右侧（feed 占左栏） */
+  .map{position:absolute;top:64px;left:40px;width:300px;border-radius:20px;background:rgba(44,52,64,.5);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 8px 30px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.12);overflow:hidden;z-index:25;color:#fff;transition:transform .42s cubic-bezier(.2,.7,.2,1),width .42s cubic-bezier(.2,.7,.2,1)}
+  .stage.mapright .map{transform:translateX(calc(var(--vz-w) + 16px))}
+  .map-top{display:flex;align-items:center;gap:9px;padding:14px 16px}.map-top .t{flex:1;font-size:16px;font-weight:500}
+  .map-quick{display:flex;background:rgba(10,14,20,.4)}.map-quick div{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 0;opacity:.85}.map-quick div+div{box-shadow:inset 1px 0 0 rgba(255,255,255,.08)}
+  .weather{position:absolute;top:60px;right:36px;text-align:right;z-index:25}
+  .weather .temp{font-size:60px;font-weight:200;line-height:.9;letter-spacing:-1px;color:#fff}.weather .temp sup{font-size:20px;font-weight:300;vertical-align:top;margin-left:2px}.weather .loc{font-size:15px;color:var(--soft);margin-top:6px}
+  .cards{position:absolute;left:40px;right:40px;bottom:84px;display:flex;gap:16px;z-index:15}
+  .card{flex:1;height:96px;border-radius:18px;background:rgba(24,30,40,.6);backdrop-filter:blur(20px) saturate(1.2);box-shadow:0 8px 26px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.1);display:flex;align-items:center;gap:13px;padding:0 18px;color:#eef1f4}
+  .card .ic{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.08)}
+  .card .ic.pink{background:linear-gradient(135deg,#ff7a9c,#ff5277)}.card .big{font-size:18px;font-weight:600}.card .sub{font-size:12px;color:var(--soft);margin-top:3px}.card .lnk{color:#7fa8ff;font-weight:600}
+  .card .col2{display:flex;gap:18px;width:100%}.tyre{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--soft);width:100%}.tyre .r{display:flex;justify-content:space-between}.tyre .tcar{align-self:center;width:26px;height:14px;border-radius:5px;background:rgba(255,255,255,.16);margin:1px 0}
+
+  /* ── 语音区：常驻左栏 ── */
+  .voice-zone{position:absolute;left:40px;top:60px;z-index:50;width:var(--vz-w);display:flex;flex-direction:column}
+
+  /* feed 头 */
+  .feed-hd{display:flex;align-items:center;gap:8px;padding:6px 4px 10px;font-size:12.5px;font-weight:700;color:var(--soft);letter-spacing:.04em;transition:opacity .35s}
+  .feed-hd .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:livedot 1.6s ease-in-out infinite}
+  @keyframes livedot{0%,100%{opacity:.5}50%{opacity:1}}
+  .feed-hd .sp{margin-left:auto;font-weight:600;color:var(--faint)}
+
+  /* feed 流（静态列表，无自动滚动） */
+  .feed{transition:opacity .4s,filter .4s}
+  .feed-track{display:flex;flex-direction:column;gap:11px}
+  .voice-zone.dim .feed{opacity:.3;filter:saturate(.6)}
+  .voice-zone.dim .feed-hd{opacity:.4}
+  .voice-zone.busy .feed,.voice-zone.busy .feed-hd{display:none}
+
+  .fcard{background:var(--card);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border-radius:15px;box-shadow:inset 0 0 0 1px var(--card-bd);padding:12px 13px;display:flex;align-items:center;gap:12px;transition:opacity .4s,transform .4s,box-shadow .3s,max-height .45s ease,margin .45s ease,padding .45s ease}
+  .fcard .fic{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.07)}
+  .fcard .fcov{width:46px;height:46px;border-radius:10px;flex:none;object-fit:cover;background:#222b39;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+  .fcard .pcov{width:42px;height:56px;border-radius:8px;flex:none;object-fit:cover;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+  .fcard .ft{font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .fcard .fs{font-size:11.5px;color:var(--soft);margin-top:3px;line-height:1.35}
+  .fcard .ftag{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:6px;color:#7fd0ff;background:rgba(90,180,255,.16)}
+  .fcard .fgo{margin-left:auto;flex:none;font-size:11px;color:var(--faint)}
+  .fcard.hit{box-shadow:0 12px 28px rgba(120,150,255,.32),inset 0 0 0 2px rgba(120,150,255,.75);transform:translateX(2px)}
+  .fcard.gone{opacity:0;transform:translateX(-12px);max-height:0;padding-top:0;padding-bottom:0;margin-top:-11px;overflow:hidden}
+  /* 新推荐悄悄淡入顶部（不滚动）：起始收起，移除 .arriving 后展开+淡入 */
+  .fcard.arriving{opacity:0;max-height:0;padding-top:0;padding-bottom:0;margin-top:-11px;overflow:hidden}
+  .fcard.fresh{box-shadow:0 0 0 1.5px rgba(124,208,255,.55),0 10px 24px rgba(90,180,255,.28)}
+  .fcard .newtag{display:inline-block;vertical-align:1px;font-size:9px;font-weight:700;color:#7fd0ff;background:rgba(90,180,255,.2);padding:1px 6px;border-radius:5px;margin-left:2px;overflow:hidden;white-space:nowrap;animation:newtag 4s ease forwards}
+  @keyframes newtag{0%,62%{opacity:1;max-width:48px}100%{opacity:0;max-width:0;padding:0;margin:0}}
+
+  /* 场景容器（导航 / 复杂导航） */
+  .scene{display:none;flex-direction:column;gap:11px}
+  .scene.show{display:flex}
+  .grow{animation:grow .45s cubic-bezier(.2,.7,.2,1)}
+  @keyframes grow{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+
+  /* 导航卡（由 feed 地点卡情境晋升而来） */
+  .navcard{background:var(--card);backdrop-filter:blur(20px) saturate(1.2);border-radius:18px;box-shadow:0 12px 30px rgba(0,0,0,.34),inset 0 0 0 1px var(--card-bd);padding:15px}
+  .navcard .nh{display:flex;align-items:center;gap:12px}
+  .navcard .nh .pin{width:46px;height:46px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(150deg,#2f7d52,#1f9e52);box-shadow:0 4px 14px rgba(40,180,100,.4)}
+  .navcard .dest{font-size:18px;font-weight:800}
+  .navcard .sub{font-size:12px;color:var(--soft);margin-top:2px}
+  .navcard .eta{display:flex;align-items:baseline;gap:10px;margin:13px 0 4px}
+  .navcard .eta b{font-size:30px;font-weight:300;letter-spacing:-1px;color:#fff}
+  .navcard .eta .u{font-size:13px;color:var(--soft)}
+  .navcard .rl{position:relative;height:34px;margin-top:8px}
+  .navcard .rl .ln{position:absolute;left:7px;right:7px;top:50%;height:3px;border-radius:2px;background:linear-gradient(90deg,#3ee07a,#5b8cff)}
+  .navcard .rl .a,.navcard .rl .b{position:absolute;top:50%;transform:translateY(-50%);width:13px;height:13px;border-radius:50%}
+  .navcard .rl .a{left:2px;background:#3ee07a;box-shadow:0 0 0 3px rgba(62,224,122,.25)}
+  .navcard .rl .b{right:2px;background:#5b8cff;box-shadow:0 0 0 3px rgba(91,140,255,.25)}
+  .navcard .nbtns{display:flex;gap:10px;margin-top:14px}
+  .nbtn{flex:1;text-align:center;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px;padding:11px;border-radius:12px;color:#06140b;background:linear-gradient(135deg,#3ee07a,#1f9e52)}
+  .nbtn.ghost{color:var(--soft);background:rgba(255,255,255,.06)}
+
+  /* 地图组件 → picklist（导航地址选择，本场景独有） */
+  .map.picklist,.map.routed{background:rgba(28,34,46,.62);width:var(--vz-w)}  /* 导航时地图推回左侧并变宽，接管左栏 */
+  .map .pl-hd{display:flex;align-items:center;gap:8px;padding:13px 15px 9px;font-size:13.5px;font-weight:700;color:#fff}
+  .map .pl-hd .q{color:var(--gold)}
+  .map .pl-hd .cnt{margin-left:auto;font-size:11px;font-weight:600;color:var(--soft)}
+  .map .pl-list{padding-bottom:6px}
+  .pl-item{display:flex;align-items:center;gap:10px;padding:11px 15px;cursor:pointer;transition:background .25s,opacity .25s}
+  .pl-item+.pl-item{box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+  .pl-item .idx{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--soft);background:rgba(255,255,255,.08)}
+  .pl-item .pl-main{flex:1;min-width:0}
+  .pl-item .nm{font-size:14px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px}
+  .pl-item .rec{font-size:9px;font-weight:700;color:#06140b;background:var(--gold);padding:1px 5px;border-radius:5px}
+  .pl-item .ad{font-size:11px;color:var(--soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pl-item .dist{font-size:12px;color:var(--soft);flex:none}
+  .pl-item .check{width:16px;flex:none;text-align:center;color:var(--green);font-weight:800;opacity:0;transition:opacity .2s}
+  .pl-item:hover{background:rgba(255,255,255,.05)}
+  .pl-item.sel{background:rgba(62,224,122,.14)}
+  .pl-item.sel .idx{background:var(--green);color:#06140b}
+  .pl-item.sel .check{opacity:1}
+  .pl-item.dimmed{opacity:.35}
+  /* 选定后地图组件 → 路线视图 */
+  .map .navflag{margin-left:auto;font-size:10px;font-weight:700;color:#3ee07a;background:rgba(62,224,122,.16);padding:2px 8px;border-radius:9px}
+  .map .rt-line{position:relative;height:24px;margin:0 15px 4px}
+  .map .rt-line .ln{position:absolute;left:8px;right:8px;top:50%;height:3px;border-radius:2px;background:linear-gradient(90deg,#3ee07a,#5b8cff)}
+  .map .rt-line .d{position:absolute;top:50%;transform:translateY(-50%);width:11px;height:11px;border-radius:50%}
+  .map .rt-line .d.a{left:3px;background:#3ee07a}.map .rt-line .d.b{right:3px;background:#5b8cff}
+  .map .rt-meta{padding:0 15px 10px;font-size:11.5px;color:var(--soft)}
+  .map .rt-btns{display:flex;gap:10px;padding:2px 15px 14px}
+  /* 左侧导航控制（mini） */
+  .navmini{background:var(--card);backdrop-filter:blur(20px) saturate(1.2);border-radius:16px;box-shadow:0 10px 26px rgba(0,0,0,.32),inset 0 0 0 1px var(--card-bd);padding:14px 15px}
+  .navmini .row{display:flex;align-items:center;gap:12px}
+  .navmini .ic{width:42px;height:42px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(150deg,#2f7d52,#1f9e52)}
+  .navmini .t{font-size:16px;font-weight:800}.navmini .s{font-size:11.5px;color:var(--soft);margin-top:2px}
+  .navmini .btns{display:flex;gap:10px;margin-top:13px}
+
+  /* 思考胶囊 + 多目的地行程（复杂导航） */
+  .think{display:flex;flex-direction:column;gap:9px}
+  .think-pill{display:flex;align-items:center;gap:9px;background:var(--card);backdrop-filter:blur(22px);border-radius:14px;box-shadow:inset 0 0 0 1px var(--card-bd);padding:10px 14px}
+  .think-pill .spk{color:#b9a4ff;font-size:14px;animation:pulse 1.4s ease-in-out infinite}
+  .think.done .think-pill .spk{color:var(--gold);animation:none}
+  @keyframes pulse{0%,100%{opacity:.5;transform:scale(.9)}50%{opacity:1;transform:scale(1.15)}}
+  .think-pill .pt{font-size:13.5px;font-weight:600;color:var(--soft);flex:1}.think.done .think-pill .pt{color:var(--ink)}
+  .tsteps{margin:2px 2px 2px;padding-left:6px;border-left:1.5px solid rgba(150,130,255,.3);display:flex;flex-direction:column;gap:9px}
+  .tstep{opacity:0;transform:translateX(-6px);transition:opacity .35s,transform .35s;display:flex;gap:9px;align-items:flex-start;padding-left:8px}
+  .tstep.in{opacity:1;transform:none}
+  .tstep .ti{font-size:13px;flex:none;width:18px;text-align:center}.tstep .tt{font-size:13px;font-weight:600}.tstep .ts{font-size:11px;color:var(--soft);margin-top:1px}
+
+  .trip{display:flex;flex-direction:column;background:var(--card);backdrop-filter:blur(20px) saturate(1.2);border-radius:16px;box-shadow:0 10px 26px rgba(0,0,0,.32),inset 0 0 0 1px var(--card-bd);padding:6px 15px}
+  .stop{display:flex;align-items:center;gap:13px;padding:11px 0;opacity:0;transform:translateY(8px);transition:opacity .4s,transform .4s}
+  .stop.in{opacity:1;transform:none}.stop+.stop{border-top:1px solid rgba(255,255,255,.07)}
+  .stop .num{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#06140b;background:var(--gold)}
+  .stop .sn{font-size:15px;font-weight:700}.stop .ss{font-size:11.5px;color:var(--soft);margin-top:1px}
+  .stop .sd{margin-left:auto;font-size:11.5px;color:var(--soft)}
+
+  .dock{position:absolute;left:0;right:0;bottom:0;height:64px;z-index:30;display:flex;align-items:center;gap:18px;padding:0 22px;background:rgba(12,16,24,.6);backdrop-filter:blur(26px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  .dock .home{width:32px;height:32px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5);flex:none}
+  .dock .tt{font-size:13px;color:var(--soft)}.dock .sep{flex:1}.dock .ctrl{display:flex;align-items:center;gap:24px;color:rgba(238,241,244,.7);font-size:18px}
+  .np{display:none;align-items:center;gap:11px;padding:5px 14px 5px 6px;border-radius:14px;background:rgba(255,255,255,.06)}
+  .dock.playing .np{display:flex;animation:grow .4s ease}
+  .dock.playing .tt{display:none}
+  .np .npcov{width:40px;height:40px;border-radius:9px;flex:none;background:#2a3340 center/cover no-repeat;box-shadow:0 3px 10px rgba(0,0,0,.4)}
+  .np .npti{font-size:13.5px;font-weight:700;color:#fff;line-height:1.1}
+  .np .npar{font-size:11px;color:var(--soft);margin-top:2px}
+  .np .npbar{display:flex;align-items:flex-end;gap:2px;height:16px;margin:0 4px}
+  .np .npbar i{width:3px;background:var(--green);border-radius:2px;transform-origin:bottom}
+  .np .npbar i:nth-child(1){height:7px;animation:eq 1s ease-in-out infinite}
+  .np .npbar i:nth-child(2){height:13px;animation:eq 1s ease-in-out .2s infinite}
+  .np .npbar i:nth-child(3){height:9px;animation:eq 1s ease-in-out .4s infinite}
+  .np .npbar i:nth-child(4){height:15px;animation:eq 1s ease-in-out .1s infinite}
+  @keyframes eq{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1)}}
+  .np .npplay{font-size:15px;color:#fff}
+  .flycover{position:absolute;z-index:80;border-radius:9px;object-fit:cover;box-shadow:0 10px 28px rgba(0,0,0,.55);transform-origin:top left;transition:transform .62s cubic-bezier(.4,.05,.2,1),opacity .62s;pointer-events:none}
+
+  .panel{position:fixed;top:18px;right:18px;width:248px;z-index:100;background:rgba(20,22,26,.92);backdrop-filter:blur(20px);border-radius:16px;padding:15px;color:#e8eaee;font-size:12.5px;box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08)}
+  .panel .title{font-size:13.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;margin-bottom:11px}.panel .title i{width:8px;height:8px;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#ff6b9b,#ffab5b,#5b8cff)}
+  .panel button{width:100%;border:0;border-radius:11px;cursor:pointer;font-family:inherit;font-weight:600;font-size:13px;padding:10px;color:#fff;margin-top:8px;text-align:left;background:rgba(255,255,255,.08);transition:.15s}
+  .panel button:hover{background:rgba(255,255,255,.16)}
+  .panel button.main{background:linear-gradient(135deg,#3b78ff,#2f6bff);box-shadow:0 6px 16px rgba(47,107,255,.4)}
+  .panel .phase{margin-top:11px;font-size:11px;color:#8b9098;border-top:1px solid rgba(255,255,255,.08);padding-top:9px}.panel .phase b{color:#ffce8a}
+  /* 演示控制台：默认弱化半透明、略缩小，悬停恢复清晰（不抢演示效果） */
+  .panel{opacity:.3;transform:scale(.86);transform-origin:top right;transition:opacity .3s ease,transform .3s ease}
+  .panel:hover{opacity:1;transform:scale(1)}
+
+  /* 全局：底栏 MVA 光球（语音区收起时的最小化态 · 点击唤起；区域展开时淡出）*/
+  .mva-orb{width:38px;height:38px;border-radius:50%;flex:none;border:0;padding:0;cursor:pointer;position:relative;background:radial-gradient(circle at 38% 34%,#2a3340,#11161f);transition:transform .15s,opacity .35s}
+  .mva-orb::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(.6px);animation:mvaspin 6s linear infinite}
+  .mva-orb::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.62));box-shadow:0 0 11px rgba(255,255,255,.5)}
+  .mva-orb:hover{transform:scale(1.06)}.mva-orb:active{transform:scale(.93)}
+  .stage.voice-on .mva-orb{opacity:.4}
+  .mva-orb.busy{opacity:.26 !important;pointer-events:none;filter:saturate(.55)}
+  .stage.zone-hidden .voice-zone{opacity:0 !important;transform:translateY(-10px) scale(.985) !important;pointer-events:none !important;transition:opacity .35s ease,transform .35s ease}
+  .stage.zone-hidden .map{transform:none !important}
+  @keyframes mvaspin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage mapright" id="stage">
+    <div class="mapbg">
+      <svg viewBox="0 0 1300 812" preserveAspectRatio="xMidYMid slice">
+        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c2533"/><stop offset="1" stop-color="#151b25"/></linearGradient></defs>
+        <rect width="1300" height="812" fill="url(#bg)"/>
+        <path d="M-20 612 C 120 588 210 640 250 720 C 270 766 250 812 250 812 L -20 812 Z" fill="#1d3144"/>
+        <path d="M 1010 70 C 1110 60 1190 110 1180 200 C 1172 280 1080 300 1020 250 C 970 210 950 110 1010 70 Z" fill="#21362b"/>
+        <g stroke="#222b39" stroke-width="15" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/><path d="M 1330 150 C 1150 210 1050 330 1010 470 C 980 640 1010 760 1030 840"/></g>
+        <g stroke="#4b5566" stroke-width="9" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/><path d="M 1330 150 C 1150 210 1050 330 1010 470 C 980 640 1010 760 1030 840"/></g>
+        <g fill="#9aa3b0" font-size="15"><text x="430" y="470">莫干山镇</text><text x="800" y="210">埭溪镇</text><text x="1110" y="150">东林镇</text></g>
+      </svg>
+      <div class="mapbg-scrim"></div>
+    </div>
+
+    <div class="statusbar">
+      <div class="sb-left">
+        <div class="avatar" id="avatar"></div>
+        <div class="sb-voice"><span class="sv-asr" id="svAsr"><span id="asrText"></span><span class="sv-cur" id="asrCur"></span></span><span class="sv-reply" id="svReply"></span></div>
+      </div>
+      <div class="sb-right"><span><sup class="sb-5g">5G</sup> ▮▮▮</span><span class="sb-clock">21:36</span></div>
+    </div>
+
+    <div class="map" id="mapCard">
+      <div class="map-top"><span>📍</span><span class="t">地图</span><svg width="18" height="18" viewBox="0 0 18 18"><circle cx="7.5" cy="7.5" r="5.5" fill="none" stroke="#fff" stroke-width="1.6"/><path d="M12 12l4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="map-quick"><div>⌂</div><div>☰</div><div>★</div><div>⚡</div></div>
+    </div>
+    <div class="weather"><div class="temp">14<sup>°C</sup></div><div class="loc">上海市　夜间晴</div></div>
+
+    <!-- 语音区：feed 头 + feed 流 + 场景容器 -->
+    <div class="voice-zone" id="vz">
+      <div class="feed-hd" id="feedHd"><span class="dot"></span>为你推荐<span class="sp">实时更新</span></div>
+      <div class="feed" id="feed"><div class="feed-track" id="track"></div></div>
+      <div class="scene" id="scene"></div>
+    </div>
+
+    <div class="dock" id="dock"><button class="mva-orb" id="mvaOrb" title="MVA · 唤起语音区"></button>
+      <div class="np" id="np"><div class="npcov" id="npCov"></div><div><div class="npti" id="npTi">十年</div><div class="npar" id="npAr">陈奕迅</div></div><div class="npbar"><i></i><i></i><i></i><i></i></div><div class="npplay">⏸</div></div>
+      <div class="tt" id="dockTt">🏠 桌面 · 推荐</div><div class="sep"></div><div class="ctrl"><span>❄</span><span>🚘</span><span>360</span><span>📞</span><span>▦</span></div></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="title"><i></i>推荐 Feed × 场景切换</div>
+  <button class="main" id="bAll">▶ 完整演示（依次串场）</button>
+  <button id="bChat">💬 闲聊 · feed 保留变暗</button>
+  <button id="bMusic">🎵 音乐 · 晋升到播放器</button>
+  <button id="bNav">🧭 导航 · 地图组件转 picklist</button>
+  <button id="bIdle">↺ 回到 feed</button>
+  <div class="phase">状态：<b id="phlabel">待机 · Feed 流</b></div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1300,innerHeight/812)*0.985})`;}
+addEventListener('resize',fit);fit();
+const $=id=>document.getElementById(id);
+const mapCard=$('mapCard');const MAPHTML=mapCard.innerHTML;let navPicked=false,navStarted=false;   // 地图组件原始内容，导航 picklist 用完可还原
+
+// 推荐 feed 数据（文案原创；图为真实封面/海报）
+const FEED=[
+  {type:'text',ic:'🚗',t:'现在回家约 38 分钟',s:'全程畅通 · 比平时快 6 分钟'},
+  {type:'place',ic:'⛰️',t:'莫干山 · 周末好去处',s:'距你约 52 分钟 · 民宿评分 4.8',key:'mogan'},
+  {type:'media',pcov:'movies/ama.png',t:'给阿嬷的情书',s:'新片高口碑 9.2 · 已上线点播',tag:'影讯'},
+  {type:'media',fcov:'cover-shinian.jpg',t:'晚高峰电台 · 十年',s:'陈奕迅 · MVA 为你精选',tag:'音乐',key:'music'},
+  {type:'text',ic:'🔋',t:'电量 62% · 可达 310km',s:'回家路上有 3 个快充站'},
+  {type:'text',ic:'📅',t:'19:30 与张工的视频会',s:'到家前提醒你 · 已同步日历'},
+];
+// 导航地址搜索结果（用于把右侧地图组件转成 picklist 让用户选择）
+const NAVRESULTS=[
+  {nm:'莫干山风景区',ad:'浙江·湖州德清县',dist:'48.6km',rec:true},
+  {nm:'莫干山镇',ad:'湖州市德清县',dist:'45.2km'},
+  {nm:'莫干山高铁站',ad:'德清县·高铁新区',dist:'41.0km'},
+  {nm:'云溪谷·莫干山民宿',ad:'民宿 · 评分 4.8',dist:'53.1km'},
+];
+function cardHTML(f){
+  let media;
+  if(f.pcov) media=`<img class="pcov" src="${f.pcov}" alt="">`;
+  else if(f.fcov) media=`<img class="fcov" src="${f.fcov}" alt="">`;
+  else media=`<div class="fic">${f.ic}</div>`;
+  return `<div class="fcard" data-key="${f.key||''}">${media}
+    <div style="min-width:0"><div class="ft">${f.t}${f.tag?`<span class="ftag">${f.tag}</span>`:''}</div><div class="fs">${f.s}</div></div>
+    <div class="fgo">›</div></div>`;
+}
+function renderFeed(){ $('track').innerHTML=FEED.map(cardHTML).join(''); }
+renderFeed();
+
+const timers=[];const at=(ms,fn)=>timers.push(setTimeout(fn,ms));
+function clearT(){timers.forEach(clearTimeout);timers.length=0;}
+function typeASR(text,dur){const el=$('asrText'),sc=$('svAsr');let i=0;const step=dur/text.length;
+  (function tick(){el.textContent=text.slice(0,i);sc.scrollLeft=sc.scrollWidth;if(i++<=text.length)timers.push(setTimeout(tick,step));})();}
+function asrIn(text,dur){$('avatar').classList.add('awake');$('svAsr').className='sv-asr show';$('svAsr').style.display='';$('asrText').textContent='';$('asrCur').style.display='';typeASR(text,dur);}
+function asrDone(){$('asrCur').style.display='none';$('svAsr').classList.add('done');}
+function asrGone(){$('svAsr').classList.add('gone');setTimeout(()=>{$('svAsr').style.display='none';},400);}
+function reply(t){$('svReply').textContent=t;$('svReply').className='sv-reply show';}
+
+// 软复位：回到 feed 视觉态，但不清定时器、不动播放器（用于串场之间）
+function resetDOM(){
+  $('avatar').classList.remove('awake');
+  $('svAsr').className='sv-asr';$('svAsr').style.display='';$('asrText').textContent='';
+  $('svReply').className='sv-reply';$('svReply').textContent='';
+  $('vz').classList.remove('dim','busy');
+  $('scene').className='scene';$('scene').innerHTML='';
+  renderFeed();
+  stage.classList.add('mapright');mapCard.className='map';mapCard.style.animation='';mapCard.innerHTML=MAPHTML;navPicked=false;navStarted=false;   // 地图组件还原成地图、推回右侧
+  $('dockTt').textContent='🏠 桌面 · 推荐';
+  $('phlabel').textContent='待机 · Feed 流';
+}
+// 硬复位：停止一切（清定时器 + 复位 DOM + 停播放器）
+function toIdle(){clearT();resetDOM();$('dock').classList.remove('playing');}
+
+// 音乐晋升：把音乐卡封面“飞”进底部播放器
+function updatePlayer(){$('dock').classList.add('playing');$('npCov').style.backgroundImage="url('cover-shinian.jpg')";$('npTi').textContent='十年';$('npAr').textContent='陈奕迅';}
+function flyCoverToDock(src,fromEl){
+  $('dock').classList.add('playing');                 // 先让播放器占位，便于取目标坐标
+  const stg=stage.getBoundingClientRect(),sc=stg.height/812;
+  const f=fromEl.getBoundingClientRect(),d=$('npCov').getBoundingClientRect();
+  const x0=(f.left-stg.left)/sc,y0=(f.top-stg.top)/sc,w0=f.width/sc,h0=f.height/sc;
+  const x1=(d.left-stg.left)/sc,y1=(d.top-stg.top)/sc,w1=d.width/sc;
+  const img=document.createElement('img');img.src=src;img.className='flycover';
+  img.style.cssText=`left:${x0}px;top:${y0}px;width:${w0}px;height:${h0}px`;
+  $('npCov').style.backgroundImage='';                // 落地前播放器封面留空
+  stage.appendChild(img);
+  requestAnimationFrame(()=>{img.style.transform=`translate(${x1-x0}px,${y1-y0}px) scale(${w1/w0})`;img.style.opacity='.4';});
+  at(640,()=>{img.remove();updatePlayer();});
+}
+
+/* ① 闲聊：feed 保留变暗 → 答完复亮（不需要语音区空间，非音乐示例） */
+function chatTurn(t0){
+  at(t0,()=>{resetDOM();$('phlabel').textContent='闲聊 · feed 保留变暗';$('vz').classList.add('dim');asrIn('今天天气怎么样',1500);});
+  at(t0+1900,asrDone);at(t0+2400,asrGone);
+  at(t0+2800,()=>{reply('上海今天多云转晴，14 到 22 度，挺适合出门的 ☀️');$('phlabel').textContent='回复在顶栏 · feed 仍在';});
+  at(t0+4600,()=>{$('vz').classList.remove('dim');$('svReply').classList.remove('show');$('avatar').classList.remove('awake');$('phlabel').textContent='答完 · feed 复亮';});
+  at(t0+5200,resetDOM);
+  return t0+5400;
+}
+
+/* ② 音乐：情境晋升到底部播放器（非空间型，feed 其余保留） */
+function musicTurn(t0){
+  at(t0,()=>{resetDOM();$('phlabel').textContent='音乐 · 晋升到播放器';$('vz').classList.add('dim');asrIn('播放刚推荐的那首十年',1900);});
+  at(t0+2300,asrDone);
+  at(t0+2500,()=>{$('vz').classList.remove('dim');const c=document.querySelector('.fcard[data-key="music"]');if(c)c.classList.add('hit');$('phlabel').textContent='命中音乐卡';});
+  at(t0+3000,asrGone);
+  at(t0+3100,()=>{reply('好的，为你播放《十年》🎵');const cov=document.querySelector('.fcard[data-key="music"] .fcov');if(cov)flyCoverToDock('cover-shinian.jpg',cov);});
+  at(t0+3300,()=>{const c=document.querySelector('.fcard[data-key="music"]');if(c){c.classList.remove('hit');c.classList.add('gone');}$('phlabel').textContent='已进播放器 · feed 其余保留';});
+  at(t0+5000,()=>{$('svReply').classList.remove('show');$('avatar').classList.remove('awake');});
+  at(t0+5400,resetDOM);     // resetDOM 不动播放器 → 音乐继续播
+  return t0+5600;
+}
+
+/* ③ 导航（与众不同）：地址搜索 → 右侧地图组件转成 picklist → 用户选择后才发起导航 */
+function navTurn(t0){
+  at(t0,()=>{resetDOM();$('phlabel').textContent='导航 · 地址搜索';$('vz').classList.add('dim');asrIn('导航去莫干山',1500);});
+  at(t0+1900,asrDone);at(t0+2300,asrGone);
+  at(t0+2500,()=>{
+    reply('莫干山找到 4 个地点，请选择目的地');
+    stage.classList.remove('mapright');     // 说完导航 → 地图组件向左推回来
+    $('vz').classList.add('busy');           // 推荐 feed 消失
+    mapCard.className='map picklist';mapCard.style.animation='';
+    mapCard.innerHTML=`<div class="pl-hd"><span>🔍</span><span class="q">莫干山</span><span class="cnt">4 个结果</span></div><div class="pl-list">`+
+      NAVRESULTS.map((r,i)=>`<div class="pl-item" id="pl${i}"><div class="idx">${i+1}</div><div class="pl-main"><div class="nm">${r.nm}${r.rec?'<span class="rec">推荐</span>':''}</div><div class="ad">${r.ad}</div></div><div class="dist">${r.dist}</div><div class="check">✓</div></div>`).join('')+`</div>`;
+    NAVRESULTS.forEach((r,i)=>{$('pl'+i).onclick=()=>selectDest(i);});
+    $('phlabel').textContent='地图推回左侧 · feed 消失 · 在地图上选择目的地';
+  });
+  at(t0+4800,()=>selectDest(0));   // 自动演示：用户选了第 1 个（手动点也可）
+  return t0+12400;
+}
+// 用户从 picklist 选定目的地
+function selectDest(i){
+  if(navPicked)return;navPicked=true;
+  const r=NAVRESULTS[i];
+  document.querySelectorAll('.pl-item').forEach((el,j)=>{el.classList.toggle('sel',j===i);el.classList.toggle('dimmed',j!==i);el.onclick=null;});
+  reply('已选择 '+r.nm);
+  $('phlabel').textContent='已选目的地 → 发起导航';
+  at(1000,()=>startNavTo(r));
+}
+// 选定后：地图组件（已在左侧）转成路线视图 + 控制，展示选中 → 开始导航
+function startNavTo(r){
+  mapCard.className='map routed';mapCard.style.animation='';
+  mapCard.innerHTML=`<div class="map-top"><span>📍</span><span class="t">${r.nm}</span><span class="navflag">已选定</span></div><div class="rt-line"><span class="d a"></span><span class="ln"></span><span class="d b"></span></div><div class="rt-meta">${r.dist} · 约 52 分钟 · 预计 22:28 到达</div><div class="rt-btns"><button class="nbtn" id="goNav">开始导航</button><button class="nbtn ghost" id="endNav">结束</button></div>`;
+  reply('已选择 '+r.nm+'，确认出发');
+  $('dockTt').textContent='🧭 已选定 · '+r.nm;$('phlabel').textContent='展示选中 · 待开始导航';
+  $('goNav').onclick=()=>beginNav(r);
+  $('endNav').onclick=()=>{reply('已取消');at(500,toIdle);};
+  at(1400,()=>beginNav(r));   // 自动演示：开始导航
+}
+function beginNav(r){
+  if(navStarted)return;navStarted=true;
+  const f=document.querySelector('.map .navflag');if(f)f.textContent='导航中';
+  const go=$('goNav');if(go)go.textContent='导航中…';
+  reply('好的，开始导航，全程约 52 分钟 🚗');
+  $('dockTt').textContent='🧭 导航中 · '+r.nm;$('phlabel').textContent='导航进行中';
+  at(3800,()=>$('phlabel').textContent='结束 → feed 回归');
+  at(4800,resetDOM);
+}
+
+/* 完整演示：闲聊 → 音乐 → 导航 → 回到 feed（串场不再互相清定时器） */
+function playAll(){
+  toIdle();
+  let t=1400;
+  t=chatTurn(t)+1000;
+  t=musicTurn(t)+1000;
+  t=navTurn(t)+1000;
+  at(t,()=>{resetDOM();$('phlabel').textContent='演示结束 · 待机 Feed';});
+}
+
+$('bAll').onclick=playAll;
+$('bChat').onclick=()=>{clearT();chatTurn(200);};
+$('bMusic').onclick=()=>{clearT();musicTurn(200);};
+$('bNav').onclick=()=>{clearT();navTurn(200);};
+$('bIdle').onclick=toIdle;
+/* feed 实时感：偶尔在顶部悄悄淡入一张新推荐（不滚动），仅真正待机时插入，保持总数 ≤ 6 不挤占底部 */
+const INCOMING=[
+  {ic:'🅿️',t:'目的地附近有车位',s:'B2 层 · 步行约 3 分钟'},
+  {ic:'☕',t:'前方 800m 瑞幸咖啡',s:'你常喝 · 可到店自提'},
+  {ic:'🌧️',t:'21:40 后转小雨',s:'记得带伞 · 已为你留意'},
+  {ic:'⛽',t:'油价明日 24 时上调',s:'今晚加满更划算'},
+  {ic:'🎶',t:'夜间巡航歌单已更新',s:'随车速智能切换'},
+  {ic:'📩',t:'家人发来一个位置',s:'“到楼下了” · 可一键导航'},
+];
+let inq=0;
+function feedTick(){
+  const vz=$('vz');
+  if(vz.classList.contains('dim')||vz.classList.contains('busy'))return;     // 仅真正待机插入
+  if(getComputedStyle($('feed')).display==='none')return;
+  const f=INCOMING[inq++%INCOMING.length];
+  const div=document.createElement('div');div.className='fcard arriving fresh';
+  div.innerHTML=`<div class="fic">${f.ic}</div><div style="min-width:0"><div class="ft">${f.t}<span class="newtag">刚刚</span></div><div class="fs">${f.s}</div></div><div class="fgo">›</div>`;
+  const track=$('track');track.prepend(div);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>div.classList.remove('arriving')));   // 下一帧触发展开+淡入
+  const cards=[...track.children];if(cards.length>6){const last=cards[cards.length-1];last.classList.add('gone');setTimeout(()=>last.remove(),460);}
+  setTimeout(()=>div.classList.remove('fresh'),2600);
+}
+setInterval(feedTick,3000);
+setTimeout(playAll,700);
+</script>
+
+<script>
+(function(){
+  var orb=document.getElementById('mvaOrb');if(!orb)return;
+  var stage=document.querySelector('.stage');
+  var watch=[document.querySelector('.voice-zone'),document.querySelector('.statusbar')].filter(Boolean);
+  var busy=true,settleT=null;
+  function en(on){orb.classList.toggle('busy',!on);}
+  function settle(){busy=false;en(true);}
+  function bump(){busy=true;en(false);clearTimeout(settleT);settleT=setTimeout(settle,1200);}
+  try{var obs=new MutationObserver(bump);watch.forEach(function(n){obs.observe(n,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','style']});});}catch(e){}
+  bump();
+  orb.onclick=function(){if(busy)return;stage.classList.toggle('zone-hidden');};
+})();
+</script>
+</body>
+</html>

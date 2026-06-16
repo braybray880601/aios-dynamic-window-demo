@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mercedes-Benz · Voice Zone · Cabin Light (Dark)</title>
+<!--
+  场景：语音调节座舱氛围灯（深色壁纸桌面）
+  ① 识别（单行滚动）→ 变色 → 消失 → 一句回复
+  ② 屏幕四边「微微生长」出一道瞬态涟漪光波，染成目标色，持续几秒后散去（非常驻浮层，subtle）
+  ③ 语音区下方氛围灯小组件：亮度滑条 + 相近色切换（粉/黄系），手动调整也会再触发一次涟漪
+-->
+<style>
+  @property --amb{syntax:'<color>';inherits:true;initial-value:#ff7eb0}
+  :root{
+    --card:rgba(26,32,42,.62);--card-bd:rgba(255,255,255,.1);
+    --ink:#eef1f4;--ink-soft:rgba(238,241,244,.58);--ink-faint:rgba(238,241,244,.4);
+    --blue:#3b78ff;--vz-w:392px;--amb:#ff7eb0;--amb-int:.7;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;
+    font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1300px;height:812px;overflow:hidden;transform-origin:center center;
+    border-radius:18px;box-shadow:0 40px 120px rgba(0,0,0,.65);transition:--amb .5s ease;
+    background:radial-gradient(135% 115% at 50% 8%,#141c2a 0%,#0e1420 46%,#080b12 100%)}
+  /* 壁纸：极淡光晕增加层次 */
+  /* 地图桌面底图（Flyme 地图桌面 · 夜间）*/
+  .mapbg{position:absolute;inset:0;z-index:0}
+  .mapbg svg{position:absolute;inset:0;width:100%;height:100%}
+  .mapbg-scrim{position:absolute;inset:0;background:radial-gradient(125% 105% at 50% 38%,rgba(8,11,18,.42),rgba(6,9,15,.72))}
+
+  /* chrome（深色）*/
+  .statusbar{position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:55}
+  .sb-left{display:flex;align-items:center;gap:13px;flex:1;min-width:0;height:100%;padding-right:24px}
+  .avatar{width:36px;height:36px;border-radius:50%;flex:none;position:relative;background-image:linear-gradient(135deg,#f3c9b0,#cf9d86);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4);transition:box-shadow .5s}
+  .avatar::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(1px);opacity:0;transition:opacity .55s;animation:spin 5s linear infinite}
+  .avatar::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6));box-shadow:0 0 14px rgba(255,255,255,.55);opacity:0;transition:opacity .55s}
+  .avatar.awake{box-shadow:none;animation:breathe 3.2s ease-in-out infinite}
+  .avatar.awake::before,.avatar.awake::after{opacity:1}
+  .sb-voice{position:relative;display:flex;align-items:center;min-width:0;height:100%}
+  .sv-asr{display:inline-flex;align-items:center;max-width:600px;overflow:hidden;white-space:nowrap;font-size:15.5px;font-weight:600;color:var(--ink);opacity:0;transition:opacity .35s,transform .4s,filter .4s}
+  .sv-asr.show{opacity:1}.sv-asr.done{color:#62e08c}.sv-asr.gone{opacity:0;transform:translateY(-7px);filter:blur(2px)}
+  .sv-cur{display:inline-block;width:2px;height:16px;background:#62e08c;margin-left:2px;animation:blink 1s step-end infinite}
+  .sv-reply{font-size:15.5px;font-weight:600;color:#fff;white-space:nowrap;opacity:0;transform:translateY(4px);transition:opacity .45s,transform .45s;text-shadow:0 1px 10px rgba(0,0,0,.4)}
+  .sv-reply.show{opacity:1;transform:none}
+  .sb-right{display:flex;align-items:center;gap:16px;color:#dfe3e8;flex:none}
+  .sb-clock{font-size:19px;font-weight:500;letter-spacing:.5px}.sb-5g{font-size:10px;font-weight:700;vertical-align:top;margin-right:1px}
+  .map{position:absolute;top:64px;left:40px;width:300px;border-radius:20px;background:rgba(44,52,64,.5);
+    backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);
+    box-shadow:0 8px 30px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.12);overflow:hidden;z-index:25;color:#fff;
+    transition:transform .42s cubic-bezier(.2,.7,.2,1)}
+  .stage.voice-on .map{transform:translateX(calc(var(--vz-w) + 16px))}
+  .map-top{display:flex;align-items:center;gap:9px;padding:14px 16px}.map-top .t{flex:1;font-size:16px;font-weight:500}
+  .map-quick{display:flex;background:rgba(10,14,20,.4)}
+  .map-quick div{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 0;opacity:.85}
+  .map-quick div+div{box-shadow:inset 1px 0 0 rgba(255,255,255,.08)}
+  .weather{position:absolute;top:60px;right:36px;text-align:right;z-index:25}
+  .weather .temp{font-size:60px;font-weight:200;line-height:.9;letter-spacing:-1px;color:#fff}
+  .weather .temp sup{font-size:20px;font-weight:300;vertical-align:top;margin-left:2px}
+  .weather .loc{font-size:15px;color:var(--ink-soft);margin-top:6px}
+  .cards{position:absolute;left:40px;right:40px;bottom:84px;display:flex;gap:16px;z-index:15}
+  .card{flex:1;height:96px;border-radius:18px;background:var(--card);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);
+    box-shadow:0 8px 26px rgba(0,0,0,.25),inset 0 0 0 1px var(--card-bd);display:flex;align-items:center;gap:13px;padding:0 18px}
+  .card .ic{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+  .card .ic.pink{background:linear-gradient(135deg,#ff7a9c,#ff5277)}
+  .card .big{font-size:18px;font-weight:600}.card .sub{font-size:12px;color:var(--ink-soft);margin-top:3px}.card .lnk{color:#7fa8ff;font-weight:600}
+  .card .col2{display:flex;gap:18px;width:100%}
+  .tyre{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-soft);width:100%}
+  .tyre .r{display:flex;justify-content:space-between}.tyre .car{align-self:center;width:26px;height:14px;border-radius:5px;background:rgba(255,255,255,.16);margin:1px 0}
+  .dock{position:absolute;left:0;right:0;bottom:0;height:72px;z-index:30;display:flex;align-items:center;gap:18px;padding:0 22px;
+    background:rgba(12,16,24,.6);backdrop-filter:blur(26px) saturate(1.2);-webkit-backdrop-filter:blur(26px) saturate(1.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  .dock .home{width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5);flex:none}
+  .np{display:flex;align-items:center;gap:11px;width:230px}.np .cov{width:40px;height:40px;border-radius:9px;flex:none;background:linear-gradient(135deg,#ffb37a,#ff7eb0,#9b8cff)}
+  .np .ti{font-size:14px;font-weight:600;line-height:1.25}.np .ar{font-size:11px;color:var(--ink-soft)}.np .pause{margin-left:auto;font-size:16px;color:var(--ink-soft)}
+  .dock .sep{flex:1}.dock .ctrl{display:flex;align-items:center;gap:24px;color:rgba(238,241,244,.72)}
+  .dock .ctrl .temp{display:flex;align-items:center;gap:9px;font-size:21px;font-weight:600;color:var(--ink)}
+  .dock .ctrl .temp small{font-size:12px;color:var(--ink-soft)}.dock .ctrl .chev{font-size:13px;color:var(--ink-faint)}.dock .ctrl .it{font-size:19px}
+
+  /* ── ② 氛围灯：边缘「生长」式瞬态涟漪（非常驻浮层）── */
+  .amb{position:absolute;inset:0;z-index:41;pointer-events:none;border-radius:18px}
+  /* 极淡常驻边光：仅暗示氛围灯已开，几乎不可察 */
+  .amb .edge{position:absolute;inset:0;border-radius:18px;mix-blend-mode:screen;
+    box-shadow:inset 0 0 46px -10px var(--amb);opacity:0;transition:opacity 1s ease}
+  .stage.amb-on .amb .edge{opacity:calc(.14*var(--amb-int))}
+  /* 涟漪波：从边缘极细生长进来，淡入后向内扩散并散去 */
+  .amb .wave{position:absolute;inset:0;border-radius:18px;mix-blend-mode:screen;opacity:0;box-shadow:inset 0 0 3px 0 var(--amb)}
+  .amb.go .wave{animation:edgegrow 2.9s cubic-bezier(.22,.62,.2,1) both}
+  .amb.go .wave:nth-child(3){animation-delay:.6s}
+  .amb.go .wave:nth-child(4){animation-delay:1.2s}
+  @keyframes edgegrow{
+    0%{opacity:0;box-shadow:inset 0 0 3px 0 var(--amb)}
+    16%{opacity:calc(.62*var(--amb-int))}
+    100%{opacity:0;box-shadow:inset 0 0 116px 14px var(--amb)}
+  }
+
+  /* ── 语音区 ── */
+  .voice-zone{position:absolute;left:40px;top:64px;z-index:50;width:var(--vz-w);display:flex;flex-direction:column;gap:14px}
+  .asr{display:flex;align-items:center;gap:12px;opacity:0;transition:opacity .35s,transform .45s,filter .45s}
+  .asr.show{opacity:1}.asr.done .asr-text{color:#62e08c;transition:color .35s}
+  .asr.gone{opacity:0;transform:translateY(-8px);filter:blur(2px)}
+  .aicy{width:42px;height:42px;border-radius:50%;flex:none;position:relative;animation:breathe 3.2s ease-in-out infinite}
+  .aicy::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(1px);animation:spin 5s linear infinite}
+  .aicy::after{content:"";position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6));box-shadow:0 0 14px rgba(255,255,255,.55)}
+  @keyframes spin{to{transform:rotate(360deg)}}@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  .asr-box{flex:1;min-width:0;background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-radius:15px;box-shadow:inset 0 0 0 1px var(--card-bd);padding:13px 16px;overflow:hidden}
+  .asr-scroll{overflow:hidden;white-space:nowrap;width:100%}
+  .asr-text{font-size:15.5px;font-weight:500;color:var(--ink);white-space:nowrap}
+  .asr-cursor{display:inline-block;width:2px;height:16px;background:#62e08c;margin-left:2px;vertical-align:-3px;animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+  .reply{display:flex;align-items:flex-start;gap:12px;opacity:0;transform:translateY(6px);transition:opacity .5s,transform .5s}
+  .reply.show{opacity:1;transform:none}
+  .reply-t{font-size:16px;font-weight:600;color:#fff;line-height:1.45;padding-top:9px;text-shadow:0 1px 12px rgba(0,0,0,.5)}
+
+  /* ── ③ 氛围灯小组件：精致径向亮度表盘 ── */
+  .amb-widget{opacity:0;transform:translateY(10px);transition:opacity .5s cubic-bezier(.16,1,.3,1),transform .5s cubic-bezier(.16,1,.3,1);
+    background:linear-gradient(180deg,rgba(28,34,46,.66),rgba(17,21,30,.66));backdrop-filter:blur(28px) saturate(1.3);-webkit-backdrop-filter:blur(28px) saturate(1.3);
+    border-radius:28px;box-shadow:0 22px 56px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08),inset 0 1px 0 rgba(255,255,255,.16);padding:20px 22px 18px;width:344px}
+  .amb-widget.show{opacity:1;transform:none}
+  .aw-title{display:flex;align-items:center;justify-content:space-between;padding:0 3px 2px}
+  .aw-title .l{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:600;letter-spacing:.01em}
+  .aw-title .dot{width:11px;height:11px;border-radius:50%;background:var(--amb);box-shadow:0 0 11px var(--amb),0 0 3px var(--amb),inset 0 0 0 1px rgba(255,255,255,.55)}
+  .aw-title .hint{font-size:11.5px;color:var(--ink-faint);font-weight:500}
+
+  /* 表盘 */
+  .dial{position:relative;width:216px;height:216px;margin:12px auto 8px;border-radius:50%;touch-action:none;cursor:grab;-webkit-tap-highlight-color:transparent}
+  .dial:active{cursor:grabbing}
+  .dial .face{position:absolute;inset:13px;border-radius:50%;
+    background:radial-gradient(128% 128% at 50% 26%,rgba(255,255,255,.13),rgba(255,255,255,.025) 52%,rgba(0,0,0,.18));
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.3),inset 0 0 0 1px rgba(255,255,255,.06),inset 0 -24px 46px rgba(0,0,0,.3),0 14px 36px rgba(0,0,0,.42)}
+  /* 随亮度增强的环境辉光 */
+  .dial .aura{position:absolute;inset:-4px;border-radius:50%;pointer-events:none;z-index:0;
+    background:radial-gradient(circle,var(--amb),transparent 60%);filter:blur(22px);
+    opacity:calc(.08 + .4*var(--amb-int));transition:opacity .4s ease}
+  #brDial{position:absolute;top:0;left:0;z-index:1}
+  .dial-center{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;pointer-events:none}
+  .dc-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-soft);letter-spacing:.03em}
+  .dc-ic{display:inline-flex;color:var(--amb);filter:drop-shadow(0 0 5px var(--amb))}
+  .dc-pct{display:flex;align-items:baseline;color:#fff;line-height:1;text-shadow:0 2px 18px rgba(0,0,0,.45)}
+  .dc-pct .num{font-size:56px;font-weight:200;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .dc-pct .unit{font-size:20px;font-weight:300;margin-left:3px;color:rgba(255,255,255,.62)}
+  /* 两个关闭动作 */
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .act-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;border-radius:14px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink);transition:.18s;user-select:none}
+  .act-btn:hover{background:rgba(255,255,255,.12)}
+  .act-btn .ai{font-size:16px}
+  .act-btn.on{background:rgba(255,255,255,.15);box-shadow:inset 0 0 0 1.4px rgba(255,255,255,.32)}
+
+  /* 面板 */
+  .panel{position:fixed;top:18px;right:18px;width:236px;z-index:100;background:rgba(20,22,26,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-radius:16px;padding:15px;color:#e8eaee;font-size:12.5px;box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08)}
+  .panel .title{font-size:13.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;margin-bottom:12px}
+  .panel .title i{width:8px;height:8px;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#ff6b9b,#ffab5b,#5b8cff)}
+  .ask{width:100%;border:0;border-radius:12px;cursor:pointer;font-family:inherit;font-weight:600;font-size:13.5px;padding:13px;color:#fff;
+    background:linear-gradient(135deg,#3b78ff,#2f6bff);box-shadow:0 6px 18px rgba(47,107,255,.45);transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .ask:hover{filter:brightness(1.08)}.ask:active{transform:translateY(1px)}
+  .panel .phase{margin-top:12px;font-size:11px;color:#8b9098;border-top:1px solid rgba(255,255,255,.08);padding-top:10px}.panel .phase b{color:#ffce8a}
+  .panel .tip{margin-top:8px;font-size:11px;color:#8b9098;line-height:1.5}
+  /* 演示控制台：默认弱化半透明、略缩小，悬停恢复清晰（不抢演示效果） */
+  .panel{opacity:.3;transform:scale(.86);transform-origin:top right;transition:opacity .3s ease,transform .3s ease}
+  .panel:hover{opacity:1;transform:scale(1)}
+  @media (prefers-reduced-motion: reduce){
+    .avatar.awake,.avatar::before,.aicy,.aicy::before{animation:none}
+    .amb.go .wave{animation-duration:.6s}
+    .amb-widget{transition:opacity .2s}
+  }
+
+  /* 全局：底栏 MVA 光球（语音区收起时的最小化态 · 点击唤起；区域展开时淡出）*/
+  .mva-orb{width:38px;height:38px;border-radius:50%;flex:none;border:0;padding:0;cursor:pointer;position:relative;background:radial-gradient(circle at 38% 34%,#2a3340,#11161f);transition:transform .15s,opacity .35s}
+  .mva-orb::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(.6px);animation:mvaspin 6s linear infinite}
+  .mva-orb::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.62));box-shadow:0 0 11px rgba(255,255,255,.5)}
+  .mva-orb:hover{transform:scale(1.06)}.mva-orb:active{transform:scale(.93)}
+  .stage.voice-on .mva-orb{opacity:.4}
+  .mva-orb.busy{opacity:.26 !important;pointer-events:none;filter:saturate(.55)}
+  .stage.zone-hidden .voice-zone{opacity:0 !important;transform:translateY(-10px) scale(.985) !important;pointer-events:none !important;transition:opacity .35s ease,transform .35s ease}
+  .stage.zone-hidden .map{transform:none !important}
+  @keyframes mvaspin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <div class="mapbg">
+      <svg viewBox="0 0 1300 812" preserveAspectRatio="xMidYMid slice">
+        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c2533"/><stop offset="1" stop-color="#151b25"/></linearGradient></defs>
+        <rect width="1300" height="812" fill="url(#bg)"/>
+        <path d="M-20 612 C 120 588 210 640 250 720 C 270 766 250 812 250 812 L -20 812 Z" fill="#1d3144"/>
+        <path d="M 470 -20 C 520 90 470 160 540 250 C 600 330 560 420 640 470" fill="none" stroke="#1d3144" stroke-width="26" stroke-linecap="round" opacity=".9"/>
+        <path d="M 1010 70 C 1110 60 1190 110 1180 200 C 1172 280 1080 300 1020 250 C 970 210 950 110 1010 70 Z" fill="#21362b"/>
+        <g stroke="#222b39" stroke-width="15" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/><path d="M 1330 150 C 1150 210 1050 330 1010 470 C 980 640 1010 760 1030 840"/><path d="M-20 230 C 220 250 430 250 640 300 C 900 360 1040 340 1330 300"/></g>
+        <g stroke="#4b5566" stroke-width="9" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/><path d="M 1330 150 C 1150 210 1050 330 1010 470 C 980 640 1010 760 1030 840"/><path d="M-20 230 C 220 250 430 250 640 300 C 900 360 1040 340 1330 300"/></g>
+        <g stroke="#3c4552" stroke-width="4.8" fill="none" stroke-linecap="round"><path d="M 360 90 C 420 230 480 360 560 470"/><path d="M 700 300 C 760 380 820 430 920 450"/><path d="M 640 548 C 700 620 740 700 720 812"/><path d="M 1010 470 C 900 500 800 520 700 560"/><path d="M 200 400 C 320 420 440 440 540 470"/><path d="M 880 110 C 900 200 920 300 945 360"/></g>
+        <g stroke="#3a4350" stroke-width="3.4" fill="none" stroke-linecap="round"><path d="M 380 560 C 520 600 680 636 840 658 C 1000 680 1150 694 1330 686"/><path d="M 520 470 C 540 600 552 700 560 812"/><path d="M 760 560 C 778 660 792 740 800 812"/><path d="M 900 520 C 944 620 972 712 982 812"/><path d="M 240 650 C 440 660 640 682 860 704"/><path d="M 1090 540 C 1118 640 1136 740 1150 812"/><path d="M 640 548 C 600 656 566 742 542 812"/><path d="M 700 300 C 640 360 580 392 520 470"/><path d="M 980 470 C 1060 510 1140 540 1330 560"/></g>
+        <text x="560" y="360" fill="#5d7e98" font-size="14" font-style="italic" transform="rotate(58 560 360)">Dongming Creek</text>
+        <g fill="#9aa3b0" font-size="15"><text x="430" y="470">Moganshan Town</text><text x="800" y="210">Daixi Town</text><text x="1110" y="150">Donglin Town</text></g>
+        <g fill="#7c8694" font-size="13"><text x="250" y="320">Pudong South Rd</text><text x="640" y="630">Century Avenue</text><text x="1040" y="560">Riverside East Rd</text></g>
+        <g font-size="12" font-weight="700" text-anchor="middle"><rect x="688" y="392" width="42" height="20" rx="5" fill="#b8443a"/><text x="709" y="406" fill="#fff">G104</text><rect x="500" y="500" width="42" height="20" rx="5" fill="#2f9e8d"/><text x="521" y="514" fill="#fff">S43</text></g>
+      </svg>
+      <div class="mapbg-scrim"></div>
+    </div>
+
+    <div class="statusbar">
+      <div class="sb-left">
+        <div class="avatar" id="avatar"></div>
+        <div class="sb-voice">
+          <span class="sv-asr" id="svAsr"><span id="asrText"></span><span class="sv-cur" id="asrCur"></span></span>
+          <span class="sv-reply" id="replyT"></span>
+        </div>
+      </div>
+      <div class="sb-right">
+        <svg width="15" height="18" viewBox="0 0 15 18"><path d="M3 5l9 8-4.5 4V1L12 5 3 13" fill="none" stroke="#dfe3e8" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span><sup class="sb-5g">5G</sup>
+          <svg width="22" height="16" viewBox="0 0 22 16" style="vertical-align:middle">
+            <rect x="0" y="11" width="3.4" height="5" rx="1" fill="#dfe3e8"/><rect x="5.2" y="8" width="3.4" height="8" rx="1" fill="#dfe3e8"/>
+            <rect x="10.4" y="5" width="3.4" height="11" rx="1" fill="#dfe3e8"/><rect x="15.6" y="2" width="3.4" height="14" rx="1" fill="#dfe3e8"/></svg></span>
+        <span class="sb-clock">13:12</span>
+      </div>
+    </div>
+
+    <div class="map">
+      <div class="map-top"><span>📍</span><span class="t">Map</span>
+        <svg width="18" height="18" viewBox="0 0 18 18"><circle cx="7.5" cy="7.5" r="5.5" fill="none" stroke="#fff" stroke-width="1.6"/><path d="M12 12l4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="map-quick"><div>⌂</div><div>☰</div><div>★</div><div>⚡</div></div>
+    </div>
+    <div class="weather"><div class="temp">18<sup>°C</sup></div><div class="loc">Shanghai &nbsp; Sunny</div></div>
+
+    <!-- ② 氛围灯边缘瞬态涟漪 -->
+    <div class="amb" id="amb">
+      <div class="edge"></div>
+      <div class="wave"></div><div class="wave"></div><div class="wave"></div>
+    </div>
+
+    <!-- 语音区 -->
+    <div class="voice-zone" id="vz">
+      <div class="amb-widget" id="awidget">
+        <div class="aw-title"><div class="l"><span class="dot"></span>Cabin Light · Warm Pink</div><div class="hint">Turn dial to adjust brightness</div></div>
+        <div class="dial" id="brDialWrap">
+          <div class="aura"></div>
+          <div class="face"></div>
+          <canvas id="brDial"></canvas>
+          <div class="dial-center">
+            <div class="dc-label"><span class="dc-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M5 5l1.6 1.6M17.4 17.4L19 19M2.5 12h2.2M19.3 12h2.2M5 19l1.6-1.6M17.4 6.6L19 5"/></svg></span>Warm Pink</div>
+            <div class="dc-pct"><span class="num" id="brPctNum">70</span><span class="unit">%</span></div>
+          </div>
+        </div>
+        <div class="actions">
+          <div class="act-btn" id="actLights"><span class="ai">🌙</span>All Lights Off</div>
+          <div class="act-btn" id="actScreens"><span class="ai">⬛</span>Screens Off</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dock">
+      <button class="mva-orb" id="mvaOrb" title="MVA · Wake Voice Zone"></button>
+      <div class="np"><div class="cov"></div><div><div class="ti">Infinite Passion</div><div class="ar">Suker Wong</div></div><div class="pause">❙❙</div></div>
+      <div class="sep"></div>
+      <div class="ctrl"><div class="it">❄</div><div class="temp"><span class="chev">‹</span>23.5<small>°</small><span class="chev">›</span></div>
+        <div class="it">🚘</div><div class="it">⚡</div><div class="it">360</div><div class="it">📞</div><div class="it">▦</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="title"><i></i>Cabin Light · Brightness</div>
+  <button class="ask" id="ask">🎤 "Set the cabin light to warm pink"</button>
+  <div class="opt-seg" style="display:flex;gap:6px;align-items:center;margin:9px 0 3px">
+    <span style="font-size:12px;color:#93a3bb;white-space:nowrap">Recognition style</span>
+    <button id="optGlow" style="flex:1;padding:7px 0;font-size:12px;border-radius:9px;border:1px solid rgba(140,185,255,.4);background:rgba(96,152,236,.3);color:#e6f0ff;cursor:pointer">Glow</button>
+    <button id="optText" style="flex:1;padding:7px 0;font-size:12px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#9fb0c8;cursor:pointer">Text on screen</button>
+  </div>
+  <div class="phase">Phase: <b id="phlabel">Standby</b></div>
+  <div class="tip">Turn the dial to adjust brightness — ripples will pulse along the screen edges. Two actions below: All Lights Off / Screens Off.</div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1300,innerHeight/812)*0.985})`;}
+addEventListener('resize',fit);fit();
+const $=id=>document.getElementById(id);
+
+const SENT='Set the cabin ambient light to warm pink, a bit softer';
+const amb=$('amb');
+const FIXED_AMB='hsl(332 85% 62%)';   // 暖粉,颜色固定(本组件只调亮度)
+let curBright=70,savedBright=70;
+
+function ripple(){amb.classList.remove('go');void amb.offsetWidth;amb.classList.add('go');}
+// ── 径向亮度表盘（canvas 细刻度，活跃刻度=氛围色 + 前缘高亮白）──
+const cv=$('brDial'),cctx=cv.getContext('2d');
+const SZ=216, DPR=Math.min(2,window.devicePixelRatio||1);
+const DC=SZ/2, START=125, SPAN=290, NT=56, R2=95, RIN=80, RIN_ACT=75;
+(function initDial(){cv.width=SZ*DPR;cv.height=SZ*DPR;cv.style.width=SZ+'px';cv.style.height=SZ+'px';cctx.scale(DPR,DPR);})();
+function drawDial(){
+  cctx.clearRect(0,0,SZ,SZ);cctx.lineCap='round';
+  const p=curBright/100;
+  for(let i=0;i<NT;i++){
+    const tp=i/(NT-1), ang=(START+tp*SPAN)*Math.PI/180, ca=Math.cos(ang), sa=Math.sin(ang);
+    const active=curBright>0 && tp<=p+1e-6;
+    const lead=active && (p-tp)<=1.6/NT;          // 前缘几根刻度高亮白
+    const inner=active?RIN_ACT:RIN;
+    cctx.beginPath();cctx.moveTo(DC+ca*inner,DC+sa*inner);cctx.lineTo(DC+ca*R2,DC+sa*R2);
+    if(active){cctx.lineWidth=lead?3.4:2.5;cctx.strokeStyle=lead?'#ffffff':FIXED_AMB;cctx.shadowColor=FIXED_AMB;cctx.shadowBlur=lead?13:7;}
+    else{cctx.lineWidth=2;cctx.strokeStyle='rgba(255,255,255,0.12)';cctx.shadowBlur=0;}
+    cctx.stroke();
+  }
+  cctx.shadowBlur=0;
+}
+// 只调亮度
+function setBright(b,quiet){
+  curBright=Math.max(0,Math.min(100,Math.round(b)));
+  stage.style.setProperty('--amb-int',(0.15+0.85*curBright/100).toFixed(3));
+  $('brPctNum').textContent=curBright;
+  drawDial();
+  if(!quiet)ripple();
+}
+// 转动表盘调亮度（底部留缺口，落在缺口就近吸附 0/100）
+const dialWrap=$('brDialWrap');
+function brFromPointer(cxp,cyp){
+  const r=dialWrap.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+  let ang=Math.atan2(cyp-cy,cxp-cx)*180/Math.PI; if(ang<0)ang+=360;
+  let rel=ang-START; if(rel<0)rel+=360;
+  let p; if(rel<=SPAN)p=rel/SPAN; else p=((rel-SPAN)<(360-rel))?1:0;
+  setBright(p*100,true);
+}
+dialWrap.addEventListener('pointerdown',e=>{dialWrap.setPointerCapture(e.pointerId);brFromPointer(e.clientX,e.clientY);
+  const mv=ev=>brFromPointer(ev.clientX,ev.clientY),up=()=>{dialWrap.removeEventListener('pointermove',mv);dialWrap.removeEventListener('pointerup',up);ripple();};
+  dialWrap.addEventListener('pointermove',mv);dialWrap.addEventListener('pointerup',up);});
+
+function reply(t){$('replyT').textContent=t;$('replyT').className='sv-reply show';}
+// 全车关灯 / 屏幕关闭
+$('actLights').onclick=()=>{const el=$('actLights'),on=!el.classList.contains('on');el.classList.toggle('on',on);
+  if(on){savedBright=curBright;stage.classList.remove('amb-on');setBright(0,true);reply('All cabin lights off 🌙');}
+  else{stage.classList.add('amb-on');setBright(savedBright);reply('Lights restored');}};
+$('actScreens').onclick=()=>{const el=$('actScreens');el.classList.toggle('on');
+  reply(el.classList.contains('on')?'Screens off ⬛':'Screens back on');};
+
+// ── 分镜 ──
+const timers=[];const at=(ms,fn)=>timers.push(setTimeout(fn,ms));
+function reset(){
+  timers.forEach(clearTimeout);timers.length=0;
+  $('avatar').classList.remove('awake');
+  $('svAsr').className='sv-asr';$('svAsr').style.display='';$('asrText').textContent='';$('svAsr').scrollLeft=0;$('asrCur').style.display='';
+  $('replyT').className='sv-reply';$('replyT').textContent='';
+  $('awidget').className='amb-widget';
+  amb.classList.remove('go');stage.classList.remove('amb-on','voice-on');
+  $('actLights').classList.remove('on');$('actScreens').classList.remove('on');
+  stage.style.setProperty('--amb',FIXED_AMB);setBright(70,true);
+}
+function typeASR(text,dur,done){const el=$('asrText'),sc=$('svAsr');let i=0;const step=Math.min(28,dur/text.length);
+  (function tick(){el.textContent=text.slice(0,i);sc.scrollLeft=sc.scrollWidth;
+    if(i++<=text.length)timers.push(setTimeout(tick,step));else done&&done();})();}
+function play(textMode){
+  reset();
+  $('phlabel').textContent='Listening · Recognizing';
+  $('avatar').classList.add('awake');   // 识别阶段先不推地图
+  $('svAsr').classList.add('show');
+  if(textMode) typeASR(SENT,2600);       // 光效模式: 不上屏文字, 只有识别光效
+  at(2900,()=>{$('phlabel').textContent='Recognized';$('asrCur').style.display='none';$('svAsr').classList.add('done');});
+  at(3500,()=>$('svAsr').classList.add('gone'));
+  at(4000,()=>{$('svAsr').style.display='none';$('phlabel').textContent='Cabin light adjusted';
+    if(textMode){$('replyT').textContent='Sure, I\'ve set the cabin light to warm pink for you.';$('replyT').classList.add('show');}  // 光效模式: 不出回复
+    stage.classList.add('voice-on');});  // 回复/组件即将出现时再推地图
+  // ② 氛围灯亮起：常驻极淡边光 + 一道生长涟漪
+  at(4300,()=>{stage.classList.add('amb-on');stage.style.setProperty('--amb',FIXED_AMB);setBright(70);});
+  // ③ 亮度光环 + 两个关闭动作浮出
+  at(5100,()=>{$('awidget').classList.add('show');$('phlabel').textContent='Drag ring to adjust brightness · Below: All Lights Off / Screens Off';});
+}
+function setAsrMode(text){
+  document.body.classList.toggle('asr-glow',!text);   // 全局默认上屏; 本页 glow=加 asr-glow
+  var on='1px solid rgba(140,185,255,.4)',off='1px solid rgba(255,255,255,.12)';
+  $('optGlow').style.background=text?'rgba(255,255,255,.05)':'rgba(96,152,236,.3)';
+  $('optGlow').style.color=text?'#9fb0c8':'#e6f0ff';$('optGlow').style.border=text?off:on;
+  $('optText').style.background=text?'rgba(96,152,236,.3)':'rgba(255,255,255,.05)';
+  $('optText').style.color=text?'#e6f0ff':'#9fb0c8';$('optText').style.border=text?on:off;
+}
+$('optGlow').onclick=function(){setAsrMode(false);play(false);};
+$('optText').onclick=function(){setAsrMode(true);play(true);};
+$('ask').onclick=function(){play(!document.body.classList.contains('asr-glow'));};
+stage.style.setProperty('--amb',FIXED_AMB);setBright(70,true);
+setAsrMode(true);
+setTimeout(()=>play(true),600);   // 默认: 文字上屏(ASR)
+</script>
+
+<script>
+(function(){
+  var orb=document.getElementById('mvaOrb');if(!orb)return;
+  var stage=document.querySelector('.stage');
+  var watch=[document.querySelector('.voice-zone'),document.querySelector('.statusbar')].filter(Boolean);
+  var busy=true,settleT=null;
+  function en(on){orb.classList.toggle('busy',!on);}
+  function settle(){busy=false;en(true);}
+  function bump(){busy=true;en(false);clearTimeout(settleT);settleT=setTimeout(settle,1200);}
+  try{var obs=new MutationObserver(bump);watch.forEach(function(n){obs.observe(n,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','style']});});}catch(e){}
+  bump();
+  orb.onclick=function(){if(busy)return;stage.classList.toggle('zone-hidden');};
+})();
+</script>
+</body>
+</html>

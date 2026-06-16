@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>奔驰 · 语音区 · 通话/音乐 被通知打断 → 并入 Feed</title>
+<!--
+  动效:正在打电话 / 听音乐(语音区上方是会话卡,下方是原有通知 feed)→
+       一条系统通知从顶部插入 → 会话卡(电话/音乐)整体【下移】让位 →
+       挂断/收起后会话卡消失 → 那条新消息【并入原有 feed 流】顶部(刚刚高亮)。
+  会话卡复刻已做好的电话通话界面 / 音乐小窗(封面取色 + 旋转唱片)。号码脱敏、联系人虚构、专辑为真实元数据无版权正文。
+-->
+<style>
+  :root{--card:rgba(20,26,38,.7);--card-bd:rgba(255,255,255,.1);--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.4);--gold:#ffcf6a;--green:#34d06a;--red:#ff4452;--vz-w:418px;--tc:#c9785a}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1300px;height:812px;overflow:hidden;transform-origin:center center;border-radius:18px;box-shadow:0 40px 120px rgba(0,0,0,.65);background:radial-gradient(135% 115% at 50% 8%,#141c2a 0%,#0e1420 46%,#080b12 100%)}
+  .mapbg{position:absolute;inset:0;z-index:0}.mapbg svg{position:absolute;inset:0;width:100%;height:100%}
+  .mapbg-scrim{position:absolute;inset:0;background:radial-gradient(125% 105% at 50% 40%,rgba(8,11,18,.5),rgba(6,9,15,.76))}
+
+  .statusbar{position:absolute;top:0;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:55}
+  .sb-left{display:flex;align-items:center;gap:13px;flex:1;min-width:0;height:100%;padding-right:24px}
+  .avatar{width:36px;height:36px;border-radius:50%;flex:none;position:relative;background-image:linear-gradient(135deg,#f3c9b0,#cf9d86);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4);transition:box-shadow .5s}
+  .avatar::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(1px);opacity:0;transition:opacity .55s;animation:spin 5s linear infinite}
+  .avatar::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6));box-shadow:0 0 14px rgba(255,255,255,.55);opacity:0;transition:opacity .55s}
+  .avatar.awake{box-shadow:none;animation:breathe 3.2s ease-in-out infinite}.avatar.awake::before,.avatar.awake::after{opacity:1}
+  @keyframes spin{to{transform:rotate(360deg)}}@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  .sb-voice{position:relative;display:flex;align-items:center;min-width:0;height:100%}
+  .sv-asr{display:inline-flex;align-items:center;max-width:640px;overflow:hidden;white-space:nowrap;font-size:15.5px;font-weight:600;color:var(--ink);opacity:0;transition:opacity .35s,transform .4s,filter .4s}
+  .sv-asr.show{opacity:1}.sv-asr.done{color:#62e08c}.sv-asr.gone{opacity:0;transform:translateY(-7px);filter:blur(2px)}
+  .sv-cur{display:inline-block;width:2px;height:16px;background:#62e08c;margin-left:2px;animation:blink 1s step-end infinite}@keyframes blink{50%{opacity:0}}
+  .sv-reply{font-size:15.5px;font-weight:600;color:#fff;white-space:nowrap;opacity:0;transform:translateY(4px);transition:opacity .45s,transform .45s;text-shadow:0 1px 12px rgba(0,0,0,.5)}.sv-reply.show{opacity:1;transform:none}
+  .sb-right{display:flex;align-items:center;gap:16px;color:#dfe3e8;flex:none}.sb-clock{font-size:19px;font-weight:500}.sb-5g{font-size:10px;font-weight:700;vertical-align:top}
+
+  .map{position:absolute;top:64px;left:40px;width:300px;border-radius:20px;background:rgba(44,52,64,.5);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 8px 30px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.12);overflow:hidden;z-index:25;color:#fff;transition:transform .42s cubic-bezier(.2,.7,.2,1)}
+  .stage.voice-on .map{transform:translateX(calc(var(--vz-w) + 16px))}
+  .map-top{display:flex;align-items:center;gap:9px;padding:14px 16px}.map-top .t{flex:1;font-size:16px;font-weight:500}
+  .map-quick{display:flex;background:rgba(10,14,20,.4)}.map-quick div{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 0;opacity:.85}.map-quick div+div{box-shadow:inset 1px 0 0 rgba(255,255,255,.08)}
+  .weather{position:absolute;top:60px;right:36px;text-align:right;z-index:25}
+  .weather .temp{font-size:60px;font-weight:200;line-height:.9;letter-spacing:-1px;color:#fff}.weather .temp sup{font-size:20px;font-weight:300;vertical-align:top;margin-left:2px}.weather .loc{font-size:15px;color:var(--soft);margin-top:6px}
+  .cards{position:absolute;left:40px;right:40px;bottom:84px;display:flex;gap:16px;z-index:15}
+  .card{flex:1;height:96px;border-radius:18px;background:rgba(24,30,40,.6);backdrop-filter:blur(20px) saturate(1.2);box-shadow:0 8px 26px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.1);display:flex;align-items:center;gap:13px;padding:0 18px;color:#eef1f4}
+  .card .ic{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.08)}
+  .card .big{font-size:18px;font-weight:600}.card .sub{font-size:12px;color:var(--soft);margin-top:3px}.card .lnk{color:#7fa8ff;font-weight:600}
+  .card .col2{display:flex;gap:18px;width:100%}.tyre{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--soft);width:100%}.tyre .r{display:flex;justify-content:space-between}.tyre .tcar{align-self:center;width:26px;height:14px;border-radius:5px;background:rgba(255,255,255,.16);margin:1px 0}
+
+  /* ── 语音区:通知 + 会话卡 + feed 三段(flex 列)── */
+  .voice-zone{position:absolute;left:40px;top:60px;z-index:50;width:var(--vz-w);display:flex;flex-direction:column;gap:11px}
+
+  /* 顶部插入的系统通知 + 会话卡:都用 max-height 折叠,实现"下移 / 上移" */
+  .slot{display:block;overflow:hidden;max-height:0;opacity:0;transition:max-height .45s cubic-bezier(.3,.8,.25,1),opacity .4s}
+  .slot.show{max-height:600px;opacity:1}
+  .slot.gone{display:none}
+
+  /* feed 头 + 现有 feed 流(会话卡进来时整段折叠消失) */
+  .feed{overflow:hidden;max-height:640px;opacity:1;transition:max-height .45s cubic-bezier(.3,.8,.25,1),opacity .4s,margin .4s}
+  .feed.hidden{max-height:0;opacity:0;margin-top:-11px;pointer-events:none}
+  /* feed 融化消失:从下往上变透明 + 模糊下沉 + 收拢 */
+  .feed.melting{transform-origin:top center;-webkit-mask-image:linear-gradient(to bottom,#000 48%,transparent 92%);mask-image:linear-gradient(to bottom,#000 48%,transparent 92%);animation:feedmelt .6s cubic-bezier(.55,0,.65,.4) forwards;pointer-events:none}
+  @keyframes feedmelt{0%{opacity:1;filter:blur(0);max-height:640px;transform:translateY(0) scaleY(1)}100%{opacity:0;filter:blur(9px);max-height:0;transform:translateY(14px) scaleY(.84)}}
+  .feed-hd{display:flex;align-items:center;gap:8px;padding:2px 4px 0;font-size:12px;font-weight:700;color:var(--soft);letter-spacing:.04em}
+  .feed-hd .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:livedot 1.6s ease-in-out infinite}
+  @keyframes livedot{0%,100%{opacity:.5}50%{opacity:1}}
+  .feed-hd .sp{margin-left:auto;font-weight:600;color:var(--faint)}
+  .track{display:flex;flex-direction:column;gap:11px}
+  .fcard{background:var(--card);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border-radius:15px;box-shadow:inset 0 0 0 1px var(--card-bd);padding:12px 13px;display:flex;align-items:center;gap:12px;transition:box-shadow .5s}
+  .fcard .fic{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.07)}
+  .fcard .fmain{flex:1;min-width:0}
+  .fcard .ft{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .fcard .fs{font-size:11.5px;color:var(--soft);margin-top:3px;line-height:1.35}
+  .fcard .ftag{font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:6px}
+  .fcard .newtag{font-size:9px;font-weight:800;color:#7fd0ff;background:rgba(90,180,255,.2);padding:1px 6px;border-radius:5px;animation:newfade 4s ease forwards}
+  @keyframes newfade{0%,60%{opacity:1;max-width:40px}100%{opacity:0;max-width:0;padding:0;margin:0}}
+  .fcard .fgo{margin-left:auto;color:var(--faint);font-size:15px}
+  .fcard.fresh{box-shadow:0 0 0 1.5px rgba(124,208,255,.55),0 10px 24px rgba(90,180,255,.28)}
+  /* 顶部刚插入的通知:略加强(系统蓝),与 feed 卡同形,方便后续无缝并入 */
+  .slot .fcard{box-shadow:0 12px 30px rgba(90,150,255,.22),inset 0 0 0 1.4px rgba(124,180,255,.5)}
+
+  /* 会话卡通用 */
+  .ac-card{position:relative;border-radius:20px;overflow:hidden;color:#fff;box-shadow:0 18px 46px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.12)}
+  .ac-top{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:rgba(255,255,255,.82);padding:13px 16px 0}
+  .ac-top .dotg{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .ac-top .cl{margin-left:auto;width:25px;height:25px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(255,255,255,.12);font-size:13px}
+  /* 电话通话卡 */
+  .phone-card{background:rgba(20,26,38,.82);backdrop-filter:blur(22px)}
+  .phone-card .pad{padding:6px 18px 16px;text-align:center}
+  .call-av{position:relative;width:84px;height:84px;margin:8px auto 12px}
+  .call-av .av{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:#fff}
+  .call-av .ring{position:absolute;inset:-5px;border-radius:50%;box-shadow:0 0 0 3px rgba(52,208,106,.3);animation:ringpulse 2s ease-out infinite}
+  @keyframes ringpulse{0%{box-shadow:0 0 0 2px rgba(52,208,106,.4)}100%{box-shadow:0 0 0 16px rgba(52,208,106,0)}}
+  .call-nm{font-size:21px;font-weight:800}
+  .call-sub{font-size:12px;color:var(--soft);margin-top:3px;font-variant-numeric:tabular-nums}
+  .call-status{font-size:13px;color:#5fe08c;margin-top:9px;font-weight:600;font-variant-numeric:tabular-nums}
+  .call-ctrl{display:flex;justify-content:center;gap:24px;margin:14px 0 13px}
+  .cbtn{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--soft);cursor:pointer}
+  .cbtn .ci{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+  .hangup{width:100%;border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:15px;color:#fff;background:var(--red);padding:12px;border-radius:13px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 20px rgba(255,68,82,.4)}
+  /* 音乐卡 */
+  .music-card .m-bg{position:absolute;inset:0;background:center/cover no-repeat;filter:blur(36px) saturate(1.5);transform:scale(1.5);opacity:.55}
+  .music-card .m-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,15,22,.5),rgba(10,13,19,.82)),radial-gradient(120% 80% at 50% 18%,color-mix(in srgb,var(--tc) 42%,transparent),transparent 70%)}
+  .music-card .m-in{position:relative;padding:0 18px 16px}
+  .music-card .disc-wrap{display:flex;justify-content:center;padding:6px 0 10px;animation:mbreath 4s ease-in-out infinite}
+  @keyframes mbreath{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+  .music-card .disc{width:124px;height:124px;border-radius:50%;position:relative;background:repeating-radial-gradient(circle at center,#191919 0 2px,#0e0e0e 2px 4px);box-shadow:0 12px 30px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06);animation:spin 14s linear infinite}
+  .music-card .disc::after{content:"";position:absolute;inset:46%;border-radius:50%;background:#05060a;box-shadow:0 0 0 3px rgba(255,255,255,.12)}
+  .music-card .disc img{position:absolute;inset:24%;width:52%;height:52%;border-radius:50%;object-fit:cover;box-shadow:0 0 0 5px #07080c}
+  .music-card .m-meta{text-align:center;margin-bottom:10px}
+  .music-card .m-title{font-size:19px;font-weight:800}
+  .music-card .m-artist{font-size:12px;color:rgba(255,255,255,.66);margin-top:3px}
+  .music-card .m-prog{margin-bottom:11px}
+  .music-card .m-bar{height:4px;border-radius:3px;background:rgba(255,255,255,.18);position:relative}
+  .music-card .m-bar .fill{position:absolute;left:0;top:0;bottom:0;width:27%;border-radius:3px;background:var(--tc)}
+  .music-card .m-bar .knob{position:absolute;left:27%;top:50%;width:11px;height:11px;border-radius:50%;background:#fff;transform:translate(-50%,-50%)}
+  .music-card .m-times{display:flex;justify-content:space-between;font-size:10.5px;color:rgba(255,255,255,.55);margin-top:6px}
+  .music-card .m-ctrl{display:flex;align-items:center;justify-content:center;gap:30px}
+  .music-card .m-ctrl button{border:0;background:none;cursor:pointer;color:rgba(255,255,255,.9);font-size:20px;display:flex;align-items:center;justify-content:center}
+  .music-card .m-ctrl .play{width:48px;height:48px;border-radius:50%;background:var(--tc);color:#0a0a0a;font-size:18px}
+
+  .dock{position:absolute;left:0;right:0;bottom:0;height:64px;z-index:30;display:flex;align-items:center;gap:18px;padding:0 22px;background:rgba(12,16,24,.6);backdrop-filter:blur(26px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  .dock .home{width:32px;height:32px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5);flex:none}
+  .dock .tt{font-size:13px;color:var(--soft)}.dock .sep{flex:1}.dock .ctrl{display:flex;align-items:center;gap:24px;color:rgba(238,241,244,.7);font-size:18px}
+
+  .panel{position:fixed;top:18px;right:18px;width:248px;z-index:100;background:rgba(20,22,26,.9);backdrop-filter:blur(20px);border-radius:16px;padding:15px;color:#e8eaee;font-size:12.5px;box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08)}
+  .panel .title{font-size:13.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;margin-bottom:11px}.panel .title i{width:8px;height:8px;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#ff6b9b,#ffab5b,#5b8cff)}
+  .panel button{width:100%;border:0;border-radius:11px;cursor:pointer;font-family:inherit;font-weight:600;font-size:13px;padding:10px;color:#fff;margin-top:8px;text-align:left;background:rgba(255,255,255,.08);transition:.15s}
+  .panel button:hover{background:rgba(255,255,255,.16)}.panel button.main{background:linear-gradient(135deg,#3b78ff,#2f6bff)}
+  .panel .phase{margin-top:11px;font-size:11px;color:#8b9098;border-top:1px solid rgba(255,255,255,.08);padding-top:9px}.panel .phase b{color:#ffce8a}
+  .panel{opacity:.3;transform:scale(.86);transform-origin:top right;transition:opacity .3s ease,transform .3s ease}
+  .panel:hover{opacity:1;transform:scale(1)}
+
+  /* 全局：底栏 MVA 光球（语音区收起时的最小化态 · 点击唤起；区域展开时淡出）*/
+  .mva-orb{width:38px;height:38px;border-radius:50%;flex:none;border:0;padding:0;cursor:pointer;position:relative;background:radial-gradient(circle at 38% 34%,#2a3340,#11161f);transition:transform .15s,opacity .35s}
+  .mva-orb::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);filter:blur(.6px);animation:mvaspin 6s linear infinite}
+  .mva-orb::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.62));box-shadow:0 0 11px rgba(255,255,255,.5)}
+  .mva-orb:hover{transform:scale(1.06)}.mva-orb:active{transform:scale(.93)}
+  .stage.voice-on .mva-orb{opacity:.4}
+  .mva-orb.busy{opacity:.26 !important;pointer-events:none;filter:saturate(.55)}
+  .stage.zone-hidden .voice-zone{opacity:0 !important;transform:translateY(-10px) scale(.985) !important;pointer-events:none !important;transition:opacity .35s ease,transform .35s ease}
+  .stage.zone-hidden .map{transform:none !important}
+  @keyframes mvaspin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage voice-on" id="stage">
+    <div class="mapbg">
+      <svg viewBox="0 0 1300 812" preserveAspectRatio="xMidYMid slice">
+        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c2533"/><stop offset="1" stop-color="#151b25"/></linearGradient></defs>
+        <rect width="1300" height="812" fill="url(#bg)"/>
+        <path d="M-20 612 C 120 588 210 640 250 720 C 270 766 250 812 250 812 L -20 812 Z" fill="#1d3144"/>
+        <path d="M 1010 70 C 1110 60 1190 110 1180 200 C 1172 280 1080 300 1020 250 C 970 210 950 110 1010 70 Z" fill="#21362b"/>
+        <g stroke="#222b39" stroke-width="15" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/></g>
+        <g stroke="#4b5566" stroke-width="9" fill="none" stroke-linecap="round"><path d="M-20 590 C 230 560 440 540 640 548 C 900 558 1080 520 1330 452"/><path d="M 300 -20 C 350 200 400 410 540 560 C 660 690 740 760 800 840"/></g>
+        <g fill="#9aa3b0" font-size="15"><text x="430" y="470">莫干山镇</text><text x="800" y="210">埭溪镇</text></g>
+      </svg>
+      <div class="mapbg-scrim"></div>
+    </div>
+
+    <div class="statusbar">
+      <div class="sb-left">
+        <div class="avatar" id="avatar"></div>
+        <div class="sb-voice"><span class="sv-asr" id="svAsr"><span id="asrText"></span><span class="sv-cur" id="asrCur"></span></span><span class="sv-reply" id="svReply"></span></div>
+      </div>
+      <div class="sb-right"><span><sup class="sb-5g">5G</sup> ▮▮▮</span><span class="sb-clock">21:36</span></div>
+    </div>
+
+    <div class="map">
+      <div class="map-top"><span>📍</span><span class="t">地图</span><svg width="18" height="18" viewBox="0 0 18 18"><circle cx="7.5" cy="7.5" r="5.5" fill="none" stroke="#fff" stroke-width="1.6"/><path d="M12 12l4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="map-quick"><div>⌂</div><div>☰</div><div>★</div><div>⚡</div></div>
+    </div>
+    <div class="weather"><div class="temp">14<sup>°C</sup></div><div class="loc">上海市　夜间晴</div></div>
+
+    <!-- 语音区:① 顶部通知槽 ② 会话卡 ③ 现有 feed -->
+    <div class="voice-zone" id="vz">
+      <div class="slot gone" id="notifSlot"></div>
+      <div class="slot gone" id="active"></div>
+      <div class="feed" id="feedwrap">
+        <div class="feed-hd"><span class="dot"></span>通知 · 推荐<span class="sp">实时更新</span></div>
+        <div class="track" id="track"></div>
+      </div>
+    </div>
+
+    <div class="dock"><button class="mva-orb" id="mvaOrb" title="MVA · 唤起语音区"></button><div class="tt" id="dockTt">🏠 桌面</div><div class="sep"></div><div class="ctrl"><span>❄</span><span>🚘</span><span>360</span><span>📞</span><span>▦</span></div></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="title"><i></i>通知打断 → 并入 Feed</div>
+  <button class="main" id="bPhone">▶ 电话场景演示</button>
+  <button class="main" id="bMusic" style="background:linear-gradient(135deg,#c4823f,#a8632f)">▶ 音乐场景演示</button>
+  <button id="bNotif">🔔 来条系统通知(插入下移)</button>
+  <button id="bEnd">⤵ 挂断 / 收起 → 并入 feed</button>
+  <button id="bIdle">↺ 复位</button>
+  <div class="phase">状态:<b id="phlabel">待机</b></div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1300,innerHeight/812)*0.985})`;}
+addEventListener('resize',fit);fit();
+const $=id=>document.getElementById(id);
+const COVER='cover-shinian.jpg';
+
+function themeFromCover(src){
+  const img=new Image();img.crossOrigin='anonymous';
+  img.onload=()=>{try{
+    const c=document.createElement('canvas');c.width=c.height=24;const x=c.getContext('2d');x.drawImage(img,0,0,24,24);
+    const d=x.getImageData(0,0,24,24).data;let r=0,g=0,b=0,n=0;
+    for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];n++;}
+    r/=n*255;g/=n*255;b/=n*255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h=0,s=0,l=(mx+mn)/2;
+    if(mx!==mn){const dd=mx-mn;s=l>.5?dd/(2-mx-mn):dd/(mx+mn);if(mx===r)h=(g-b)/dd+(g<b?6:0);else if(mx===g)h=(b-r)/dd+2;else h=(r-g)/dd+4;h/=6;}
+    s=Math.min(.92,Math.max(.52,s*1.6));l=Math.min(.63,Math.max(.5,l));
+    const h2=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<.5)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
+    const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q;
+    document.documentElement.style.setProperty('--tc',`rgb(${Math.round(h2(p,q,h+1/3)*255)},${Math.round(h2(p,q,h)*255)},${Math.round(h2(p,q,h-1/3)*255)})`);
+  }catch(e){}};
+  img.src=src;
+}
+themeFromCover(COVER);
+
+// 现有 feed 流
+const FEED=[
+  {ic:'🔧',t:'机油寿命剩 8%',s:'建议本周预约保养',tag:'车辆·保养',tc:'#ffab5b'},
+  {ic:'☕',t:'顺路 · Manner 咖啡(常去)',s:'前方 1.2km · 本周来过 2 次',tag:'AI 推荐',tc:'#ffcf6a'},
+];
+// 打断进来、最后并入 feed 的系统通知
+const NOTIF={ic:'🔔',t:'「高德地图」已更新到 v12.3',s:'刚刚 · 系统通知',tag:'系统',tc:'#9aa6b8'};
+
+function fcardHTML(n,fresh){
+  return `<div class="fcard${fresh?' fresh':''}"><div class="fic">${n.ic}</div>
+    <div class="fmain"><div class="ft">${n.t}<span class="ftag" style="color:${n.tc};background:${n.tc}26">${n.tag}</span>${fresh?'<span class="newtag">刚刚</span>':''}</div><div class="fs">${n.s}</div></div>
+    <div class="fgo">›</div></div>`;
+}
+function renderFeed(){$('track').innerHTML=FEED.map(n=>fcardHTML(n)).join('');}
+function hideFeed(){$('feedwrap').classList.add('hidden');}
+function showFeed(){$('feedwrap').classList.remove('hidden','melting');}   // 会话卡消失 → feed 回来
+function meltFeed(){const fw=$('feedwrap');fw.classList.add('melting');at(620,()=>{fw.classList.add('hidden');fw.classList.remove('melting');});}  // 识别后 → feed 融化消失
+
+// 会话卡内容
+function callHTML(){return `<div class="ac-card phone-card">
+  <div class="ac-top"><span class="dotg"></span>通话中<span class="cl" data-end>⌄</span></div>
+  <div class="pad">
+    <div class="call-av"><div class="ring"></div><div class="av" style="background:linear-gradient(135deg,#5b8cff,#2f6bff)">张</div></div>
+    <div class="call-nm">张伟</div><div class="call-sub">手机 · 138 **** 5678</div>
+    <div class="call-status" id="callStatus">通话中 00:06</div>
+    <div class="call-ctrl"><div class="cbtn"><div class="ci">🔇</div>静音</div><div class="cbtn"><div class="ci">🔊</div>免提</div><div class="cbtn"><div class="ci">⌨</div>键盘</div></div>
+    <button class="hangup" data-end>📞 挂断</button>
+  </div></div>`;}
+function musicHTML(){return `<div class="ac-card music-card">
+  <div class="m-bg" id="mbg"></div><div class="m-scrim"></div>
+  <div class="m-in">
+    <div class="ac-top"><span class="dotg" style="background:var(--tc);box-shadow:0 0 8px var(--tc)"></span>正在播放<span class="cl" data-end>⌄</span></div>
+    <div class="disc-wrap"><div class="disc"><img src="${COVER}" alt=""></div></div>
+    <div class="m-meta"><div class="m-title">十年</div><div class="m-artist">陈奕迅 · 专辑《十年》</div></div>
+    <div class="m-prog"><div class="m-bar"><div class="fill"></div><div class="knob"></div></div><div class="m-times"><span>01:12</span><span>04:35</span></div></div>
+    <div class="m-ctrl"><button>⏮</button><button class="play">⏸</button><button>⏭</button></div>
+  </div></div>`;}
+
+const timers=[];let collapseT=null,callT=null;
+const at=(ms,fn)=>timers.push(setTimeout(fn,ms));
+function clearT(){timers.forEach(clearTimeout);timers.length=0;if(collapseT){clearTimeout(collapseT);collapseT=null;}if(callT){clearInterval(callT);callT=null;}}
+function reply(t){$('svReply').textContent=t;$('svReply').className='sv-reply show';}
+function clearReply(){$('svReply').className='sv-reply';$('svReply').textContent='';}
+function phase(t){$('phlabel').textContent=t;}
+function typeASR(t,dur){const el=$('asrText'),sc=$('svAsr');let i=0;const step=dur/t.length;(function tick(){el.textContent=t.slice(0,i);sc.scrollLeft=sc.scrollWidth;if(i++<=t.length)timers.push(setTimeout(tick,step));})();}
+function asrShow(){$('avatar').classList.add('awake');$('svAsr').className='sv-asr show';$('svAsr').style.display='';$('asrText').textContent='';$('asrCur').style.display='';}
+function asrDone(){$('asrCur').style.display='none';$('svAsr').classList.add('done');}
+function asrGone(){$('svAsr').classList.add('gone');timers.push(setTimeout(()=>{$('svAsr').style.display='none';},400));}
+
+function reset(){
+  clearT();
+  $('svAsr').className='sv-asr';$('svAsr').style.display='';$('asrText').textContent='';$('asrCur').style.display='';
+  $('active').className='slot gone';$('active').innerHTML='';
+  $('notifSlot').className='slot gone';$('notifSlot').innerHTML='';
+  $('avatar').classList.remove('awake');clearReply();renderFeed();showFeed();
+  $('dockTt').textContent='🏠 桌面';phase('待机 · 先显示 feed');
+}
+
+// ① 开始会话(电话 / 音乐)
+let curType=null;
+function startActive(type){
+  curType=type;
+  $('active').classList.remove('gone');
+  $('active').innerHTML = type==='music'?musicHTML():callHTML();
+  if(type==='music'){$('mbg').style.backgroundImage=`url('${COVER}')`;}
+  requestAnimationFrame(()=>$('active').classList.add('show'));   // 展开(此时 feed 已在识别后融化消失)
+  $('active').querySelectorAll('[data-end]').forEach(e=>e.onclick=endActive);
+  $('avatar').classList.add('awake');
+  if(type==='music'){reply('正在播放《十年》🎵');$('dockTt').textContent='🎵 音乐 · 十年';phase('听音乐中');}
+  else{reply('已接通 · 通话中 📞');$('dockTt').textContent='📞 通话中 · 张伟';phase('通话中');
+    let s=6;const tick=()=>{const st=$('callStatus');if(st)st.textContent='通话中 '+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
+    if(callT)clearInterval(callT);callT=setInterval(()=>{s++;tick();},1000);}
+}
+// ② 系统通知插入顶部 → 会话卡下移
+function notifIn(){
+  if($('notifSlot').classList.contains('show'))return;
+  $('notifSlot').classList.remove('gone');
+  $('notifSlot').innerHTML=fcardHTML(NOTIF,false);
+  requestAnimationFrame(()=>$('notifSlot').classList.add('show'));   // 顶部展开 → 把会话卡 + feed 往下推
+  reply('一条系统通知进来了');phase('通知插入顶部 · 会话卡下移');
+}
+// ③ 挂断 / 收起会话卡 → 通知并入 feed 顶部
+function endActive(){
+  if(callT){clearInterval(callT);callT=null;}
+  if(!$('active').classList.contains('show')){return;}
+  $('active').classList.remove('show');                            // 会话卡折叠收起(下方上移)
+  reply(curType==='music'?'音乐收起,刚才的新通知帮你留着':'通话结束,刚才的新通知帮你留着');
+  phase('会话卡消失中…');
+  if(collapseT)clearTimeout(collapseT);
+  collapseT=setTimeout(()=>{
+    $('active').className='slot gone';$('active').innerHTML='';     // 彻底移除会话卡(不占位)
+    const card=$('notifSlot').firstElementChild;                   // 把通知卡从顶槽移入 feed 顶部
+    if(card){card.classList.add('fresh');$('track').prepend(card);} // 并入原有 feed 流
+    $('notifSlot').className='slot gone';$('notifSlot').innerHTML='';
+    showFeed();                                                    // feed 重新出现(带着刚并入的新消息)
+    reply('新消息已并入通知列表 ✦');phase('会话卡消失 · feed 回来 · 新消息在顶部');
+    at(2600,()=>{const c=$('track').firstElementChild;if(c)c.classList.remove('fresh');});
+    $('dockTt').textContent='🏠 桌面';
+  },470);
+}
+
+$('bNotif').onclick=notifIn;
+$('bEnd').onclick=endActive;
+$('bIdle').onclick=reset;
+
+function playPhone(){
+  reset();                                                                   // 先显示 feed
+  at(500,()=>{asrShow();typeASR('给张伟打个电话',1700);phase('聆听 · 识别中');});
+  at(2400,asrDone);
+  at(2800,()=>{asrGone();meltFeed();phase('识别后 → feed 融化让位');});       // 识别后、电话卡出来前,feed 先融化消失
+  at(3600,()=>startActive('phone'));                                         // feed 没了之后,电话卡进来
+  at(6100,notifIn);                                                          // 通话中来通知 → 电话卡下移
+  at(8700,endActive);                                                        // 挂断 → 通知并入 feed
+}
+function playMusic(){
+  reset();
+  at(500,()=>{asrShow();typeASR('放一首陈奕迅的歌',1800);phase('聆听 · 识别中');});
+  at(2500,asrDone);
+  at(2900,()=>{asrGone();meltFeed();phase('识别后 → feed 融化让位');});
+  at(3700,()=>startActive('music'));
+  at(6200,notifIn);
+  at(8800,endActive);
+}
+$('bPhone').onclick=playPhone;
+$('bMusic').onclick=playMusic;
+setTimeout(playMusic,700);
+</script>
+
+<script>
+(function(){
+  var orb=document.getElementById('mvaOrb');if(!orb)return;
+  var stage=document.querySelector('.stage');
+  var watch=[document.querySelector('.voice-zone'),document.querySelector('.statusbar')].filter(Boolean);
+  var busy=true,settleT=null;
+  function en(on){orb.classList.toggle('busy',!on);}
+  function settle(){busy=false;en(true);}
+  function bump(){busy=true;en(false);clearTimeout(settleT);settleT=setTimeout(settle,1200);}
+  try{var obs=new MutationObserver(bump);watch.forEach(function(n){obs.observe(n,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','style']});});}catch(e){}
+  bump();
+  orb.onclick=function(){if(busy)return;stage.classList.toggle('zone-hidden');};
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>愿景与落地 · Vision 与现方案</title>
+<style>
+  :root{--ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.34);--gold:#ffcf6a;--card:rgba(22,28,40,.6);--bd:rgba(255,255,255,.09)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:#05070b;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink)}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:1600px;height:900px;overflow:hidden;transform-origin:center center;border-radius:22px;
+    background:radial-gradient(130% 120% at 18% 0%,#16203040 0%,transparent 55%),radial-gradient(120% 120% at 100% 100%,#1a1f2e 0%,#0e1420 45%,#080b12 100%);
+    box-shadow:0 50px 140px rgba(0,0,0,.7)}
+  .glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.16;pointer-events:none}
+  .glow.g1{width:520px;height:520px;top:-160px;right:-120px;background:#5b8cff;animation:breath 9s ease-in-out infinite}
+  .glow.g2{width:560px;height:560px;bottom:-220px;left:-140px;background:#34d06a;animation:breath 11s ease-in-out infinite 1s}
+  @keyframes breath{0%,100%{opacity:.1;transform:scale(1)}50%{opacity:.2;transform:scale(1.08)}}
+
+  .wrap{position:absolute;inset:0;padding:44px 56px 38px;display:flex;flex-direction:column}
+  header{display:flex;align-items:flex-start;gap:22px;margin-bottom:16px}
+  .orb{width:56px;height:56px;border-radius:50%;flex:none;position:relative;margin-top:2px;
+    background:conic-gradient(from 0deg,#5b8cff,#9b6bff,#ff6b9b,#ffab5b,#5bd6ff,#5b8cff);animation:spin 7s linear infinite;box-shadow:0 0 30px rgba(120,120,255,.4)}
+  .orb::after{content:"";position:absolute;inset:12px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.55));box-shadow:0 0 14px rgba(255,255,255,.5)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .htext{flex:1;min-width:0}
+  .eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.28em;color:var(--gold);text-transform:uppercase;margin-bottom:9px}
+  h1{font-size:36px;font-weight:800;letter-spacing:.01em;line-height:1.12}
+  h1 b{background:linear-gradient(100deg,#fff 0%,#7fd0a0 120%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .lede{margin-top:10px;font-size:14px;color:var(--soft);line-height:1.58;max-width:1080px}
+  .lede b{color:var(--ink);font-weight:600}
+
+  /* bridge 三段 */
+  .bridge{display:flex;align-items:center;gap:10px;flex:none;align-self:center}
+  .bstep{text-align:center;background:var(--card);border-radius:13px;box-shadow:inset 0 0 0 1px var(--bd);padding:9px 15px;min-width:128px}
+  .bstep .bt{font-size:13px;font-weight:800;color:var(--ink)}
+  .bstep .bs{font-size:10px;color:var(--faint);margin-top:3px;letter-spacing:.02em}
+  .bstep.now{box-shadow:inset 0 0 0 1px rgba(52,208,106,.5);background:rgba(52,208,106,.08)}
+  .bstep.now .bt{color:#7fe0a4}
+  .barrow{color:var(--faint);font-size:17px;font-weight:700}
+
+  /* 三泳道 */
+  .lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;flex:1;min-height:0;margin-bottom:13px}
+  .lane{display:flex;flex-direction:column;background:rgba(10,14,22,.45);border-radius:16px;box-shadow:inset 0 0 0 1px var(--bd);padding:14px 14px 12px;overflow:hidden}
+  .lane.l1{box-shadow:inset 0 0 0 1px rgba(52,208,106,.28)}
+  .lane.l2{box-shadow:inset 0 0 0 1px rgba(255,171,91,.26)}
+  .lane.l3{box-shadow:inset 0 0 0 1px rgba(91,140,255,.28)}
+  .lhead{display:flex;align-items:center;gap:9px;padding-bottom:11px;margin-bottom:11px;border-bottom:1px solid var(--bd)}
+  .lhead .ic{font-size:17px}
+  .lhead .lt{font-size:16px;font-weight:800;color:var(--ink)}
+  .lhead .lc{margin-left:auto;font-size:11px;font-weight:800;color:var(--lac);background:rgba(255,255,255,.06);padding:2px 9px;border-radius:11px;font-variant-numeric:tabular-nums}
+  .items{display:flex;flex-direction:column;gap:8px;overflow:hidden}
+  .item{position:relative;padding-left:14px}
+  .item::before{content:"";position:absolute;left:0;top:6px;width:6px;height:6px;border-radius:50%;background:var(--lac)}
+  .item .it{display:flex;align-items:baseline;gap:8px;font-size:13px;font-weight:700;color:var(--ink);line-height:1.3}
+  .item .it .vtag{margin-left:auto;flex:none;font-size:10px;font-weight:700;letter-spacing:.01em;color:var(--lac);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:9px;white-space:nowrap;line-height:1.45}
+  .item .id{font-size:11.5px;color:var(--soft);line-height:1.4;margin-top:2px}
+
+  /* 为什么先走中间方案 */
+  .why{flex:none;background:linear-gradient(100deg,rgba(52,208,106,.07),rgba(91,140,255,.06));border-radius:15px;box-shadow:inset 0 0 0 1px var(--bd);padding:13px 20px;display:flex;align-items:center;gap:18px}
+  .why .wlab{font-size:12px;font-weight:800;color:var(--gold);letter-spacing:.04em;writing-mode:vertical-rl;text-orientation:upright;line-height:1.1;flex:none;letter-spacing:.16em}
+  .why .wgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;flex:1}
+  .why .w{display:flex;flex-direction:column;gap:3px}
+  .why .w .wt{font-size:13.5px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:7px}
+  .why .w .wt i{width:7px;height:7px;border-radius:50%;background:var(--wc);box-shadow:0 0 9px var(--wc);font-style:normal;flex:none}
+  .why .w .wd{font-size:11px;color:var(--soft);line-height:1.45}
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <div class="wrap">
+      <header>
+        <div class="orb"></div>
+        <div class="htext">
+          <div class="eyebrow">愿景 → 落地 · VISION → PROPOSAL</div>
+          <h1>完整愿景 与 <b>现方案</b> 的差距</h1>
+          <div class="lede">完整 vision 太抽象、太大,研发难一步到位、时间又紧。所以我们<b>基于现有系统做了一版可落地的中间方案</b>——先把"能验证体感"的部分做出来,同时为完整 vision 留好接口。下面看清:哪些<b>已放进去</b>、哪些<b>部分体现</b>、哪些<b>暂缓到未来</b>。</div>
+        </div>
+        <div class="bridge">
+          <div class="bstep"><div class="bt">完整 Vision</div><div class="bs">抽象 · 大 · 难落地</div></div>
+          <div class="barrow">→</div>
+          <div class="bstep now"><div class="bt">中间方案</div><div class="bs">基于现有系统 · 可落地</div></div>
+          <div class="barrow">→</div>
+          <div class="bstep"><div class="bt">逼近 Vision</div><div class="bs">分阶段渐进</div></div>
+        </div>
+      </header>
+
+      <div class="lanes" id="lanes"></div>
+
+      <div class="why">
+        <div class="wlab">为何中间方案</div>
+        <div class="wgrid" id="why"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const stage=document.getElementById('stage');
+function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1600,innerHeight/900)*0.985})`;}
+addEventListener('resize',fit);fit();
+
+const LANES=[
+  {cls:'l1',ic:'✅',t:'已放进去',ac:'#34d06a',sub:'现方案做到的体感',items:[
+    {it:'会生长的语音区',vis:'基石 C · 容器自适应',id:'容器随内容自适应伸缩 · 把右侧地图推开'},
+    {it:'思考被看见',vis:'A5 · 工具记忆可视化',id:'深度思考胶囊:工具 / 记忆调用过程可视化'},
+    {it:'记忆有痕',vis:'基石 B · 在场语言',id:'生成/调用金色 ✦ + TTS×卡片双重证据'},
+    {it:'GenUI 涌现',vis:'A3 · GenUI 涌现',id:'天气雨幕毛玻璃 · 音乐封面取色小窗'},
+    {it:'Agentic 复杂导航',vis:'场景 S5',id:'多目的地扎点 + 路线生长 + 改途径点重规划'},
+    {it:'多步指令编排',vis:'基石 A · Agentic 中间层',id:'一句长指令,简单→复杂逐条落地执行'},
+    {it:'推荐 Feed',vis:'主动推荐 · 显性呈现',id:'常驻图文推荐(主动推荐的雏形)'},
+    {it:'多人 × 声纹',vis:'感知 · 方位辨声',id:'四座位识别"谁在说",按人计分'},
+    {it:'可控生成方法',vis:'跨基石 · 语汇组合二分',id:'语汇与组合二分 + 有限词表(已成页讲清)'},
+  ]},
+  {cls:'l2',ic:'🟡',t:'部分体现',ac:'#ffab5b',sub:'方向对了,还差完整弧',items:[
+    {it:'Avatar 形态模型',id:'仍是 avatar 形态,缺完全体母体绽放;已有 avatar 与融合态雏形'},
+    {it:'主动推荐',id:'有常驻 feed 流,但仍缺"试探-升级 + 高把握门槛"完整链路'},
+    {it:'多端协同反馈',id:'单屏内模拟涟漪(氛围灯场景),未真联动灯 / 音 / 座椅 / 香氛'},
+    {it:'容器生长与编排',id:'固定宽语音区会长高,未做跨区漂移 / 多容器协调与任意位置生长'},
+  ]},
+  {cls:'l3',ic:'🔜',t:'暂缓 · 未来',ac:'#5b8cff',sub:'留给完整 vision',items:[
+    {it:'完全体母体绽放',id:'召唤时星辉化开成大容器、内容填入(仪式时刻)'},
+    {it:'两种容器',id:'绽放 vs 点亮 的诞生动作,区分本体 / 普通容器'},
+    {it:'连续画布',id:'容器跨三分区漂移 + 多容器优先级协调'},
+    {it:'状态分级 L1/L2/L3',id:'座位×驾驶状态的显形强度安全过滤'},
+    {it:'初见 S1',id:'品牌沉浸 → 授权"未在场的在场" → 诞生 → 对话初始化'},
+    {it:'系统约束叙事化',id:'让位 / 拒绝 / 隐私由 MVA 人设承接(基石 D)'},
+    {it:'真·在场语言 + 光物理',id:'多硬件协同 + 惯性/余晖/折射的真实物理质感'},
+  ]},
+];
+document.getElementById('lanes').innerHTML=LANES.map(l=>`<div class="lane ${l.cls}" style="--lac:${l.ac}">
+  <div class="lhead"><span class="ic">${l.ic}</span><span class="lt">${l.t}</span><span class="lc">${l.items.length} 项</span></div>
+  <div class="items">${l.items.map(i=>`<div class="item"><div class="it">${i.it}${i.vis?`<span class="vtag">↳ ${i.vis}</span>`:''}</div><div class="id">${i.id}</div></div>`).join('')}</div>
+</div>`).join('');
+
+const WHY=[
+  {wc:'#34d06a',t:'可落地',d:'基于现有系统,研发风险低、周期短,不必等全新架构'},
+  {wc:'#62b8ff',t:'可验证',d:'真机先证明"会生长 / 被看见 / 有记忆"的体感成立'},
+  {wc:'#b58cff',t:'可生长',d:'形态模型 / 容器 / 语汇二分已埋骨架,后续逐步升级'},
+  {wc:'#ffcf6a',t:'够务实',d:'时间紧 → 不赌一步到位,分阶段稳稳逼近北极星'},
+];
+document.getElementById('why').innerHTML=WHY.map(w=>`<div class="w" style="--wc:${w.wc}">
+  <div class="wt"><i></i>${w.t}</div><div class="wd">${w.d}</div></div>`).join('');
+</script>
+</body>
+</html>
