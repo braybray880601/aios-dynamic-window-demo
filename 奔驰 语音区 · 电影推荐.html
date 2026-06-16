@@ -1187,8 +1187,9 @@ setTimeout(play,600);
     'calling wei zhang':'tts/phone-1.mp3',
     'connected on call':'tts/phone-2.mp3'
   };
-  var cur=null;
-  function mvaPlay(text){var f=CLIP[norm(text)];if(!f)return false;try{if(cur){cur.pause();}cur=new Audio(f);cur.play().catch(function(){});}catch(e){}return true;}
+  var cur=null,q=[];
+  function _next(){if(!q.length){cur=null;return;}cur=q.shift();cur.onended=_next;cur.onerror=_next;cur.play().catch(_next);}
+  function mvaPlay(text){var f=CLIP[norm(text)];if(!f)return false;try{q.push(new Audio(f));if(!cur)_next();}catch(e){}return true;}   // 排队播放: 上一句播完再播下一句, 不打断
   window.mvaPlay=mvaPlay;
   try{var last=new WeakMap();[].forEach.call(document.querySelectorAll('.sv-reply'),function(el){
     new MutationObserver(function(){var t=(el.textContent||'').trim();if(t&&last.get(el)!==t){last.set(el,t);mvaPlay(t);}}).observe(el,{childList:true,characterData:true,subtree:true});
