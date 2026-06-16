@@ -1160,6 +1160,33 @@ setTimeout(playAll,700);
     })(performance.now());
   }
 })();
+
+/* ===== MVA 系统回复 TTS: 用预生成的 OpenAI 语音(tts/*.mp3)替代浏览器合成 —— 只念系统回复(.sv-reply / speak), 绝不念用户指令(.sv-asr) ===== */
+(function(){
+  function norm(s){return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+  var CLIP={
+    'long day take a breather and relax':'tts/chat-1.mp3',
+    'i m mercedes virtual assistant':'tts/chat-2.mp3',
+    'moderate rain expected in shanghai tomorrow bring an umbrella':'tts/weather-1.mp3',
+    'the glass is fogging up rain is falling outside':'tts/weather-2.mp3',
+    'group a has 6 matches here is the full schedule':'tts/match-1.mp3',
+    'sure i ve set the cabin light to warm pink for you':'tts/genui-1.mp3',
+    'sure planning your multi stop route now':'tts/nav-1.mp3',
+    'got it removing the kids pickup stop and re planning your route':'tts/nav-2.mp3',
+    'done kids pickup removed continuing navigation':'tts/nav-3.mp3',
+    'now playing ten years':'tts/music-1.mp3',
+    'music window expanded switch to feed':'tts/music-2.mp3',
+    'calling wei zhang':'tts/phone-1.mp3',
+    'connected on call':'tts/phone-2.mp3'
+  };
+  var cur=null;
+  function mvaPlay(text){var f=CLIP[norm(text)];if(!f)return false;try{if(cur){cur.pause();}cur=new Audio(f);cur.play().catch(function(){});}catch(e){}return true;}
+  window.mvaPlay=mvaPlay;
+  try{var last=new WeakMap();[].forEach.call(document.querySelectorAll('.sv-reply'),function(el){
+    new MutationObserver(function(){var t=(el.textContent||'').trim();if(t&&last.get(el)!==t){last.set(el,t);mvaPlay(t);}}).observe(el,{childList:true,characterData:true,subtree:true});
+  });}catch(e){}                                  // 屏上系统回复 → 播对应语音
+  try{if(typeof window.speak==='function'){var _spk=window.speak;window.speak=function(t){if(mvaPlay(t))return;return _spk.apply(this,arguments);};}}catch(e){}   // 闲聊页只 TTS → 包 speak()
+})();
 </script>
 </body>
 </html>
