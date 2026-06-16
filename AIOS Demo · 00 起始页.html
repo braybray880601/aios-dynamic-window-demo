@@ -87,12 +87,10 @@
   const stage=document.getElementById('stage');
   function fit(){stage.style.transform=`translate(-50%,-50%) scale(${Math.min(innerWidth/1300,innerHeight/812)*0.985})`;}
   addEventListener('resize',fit);fit();
-  // 6 条能力依次入场 + 依次点亮(快速 overview)
+  // 6 条能力依次入场 + 一遍依次点亮 → 全部点亮后静止(不再轮播循环)
   const caps=[...document.querySelectorAll('#caps .cap')];
   caps.forEach((c,i)=>setTimeout(()=>c.classList.add('in'),1500+i*230));
-  let li=0;
-  function lite(){caps.forEach(c=>c.classList.remove('lit'));caps[li%caps.length].classList.add('lit');li++;}
-  setTimeout(()=>{lite();setInterval(lite,650);},3100);
+  caps.forEach((c,i)=>setTimeout(()=>c.classList.add('lit'),3100+i*300));   // 依次点亮且保持, 走完静止
 </script>
 </body>
 </html>
