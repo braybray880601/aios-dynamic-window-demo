@@ -615,6 +615,7 @@ render(cur);
 
   function aiRight(){return di.classList.contains('show')?(stageX(di)+di.offsetWidth):(stageX(di)+orb.offsetWidth);}
   function layoutDock(){                                  // ① 音乐岛排 AI 岛右侧 ② 身份球(通话球)排音乐岛右侧
+    if(getComputedStyle(mi).display==='none'){if(sibBall)sibBall.style.transform='none';return;}  // 音乐岛隐藏(电话页)→ 通话球留在 AI 球右侧底部 dock 自然位(否则会被相对音乐岛排版顶到顶部)
     var miLeft=aiRight()+12;mi.style.left=miLeft+'px';
     if(sibBall){
       var miRight=miLeft+mi.offsetWidth;
@@ -628,11 +629,11 @@ render(cur);
   mi.addEventListener('transitionend',function(e){if(e.propertyName==='max-width'||e.propertyName==='left')layoutDock();});
   requestAnimationFrame(function(){requestAnimationFrame(function(){layoutDock();miMarquee();});});
 
-  /* 电话页: 音乐与通话互斥 → 底部不再并排显示音乐岛, 只留「通话」这一个服务 icon */
+  /* 电话页: 音乐与通话互斥 → 底部不并排音乐岛, 只在 dock 留一个「电话球」(像音乐球那样, 通话 active 时在底下) */
   var fabCall=document.getElementById('fabCall');
   if(fabCall){
     mi.style.display='none';                 // 音乐岛隐藏(本页是电话服务, 音乐不可能同时在放)
-    layoutDock();                            // 通话身份球紧贴 AI 球右侧, 不留音乐岛的空位
+    fabCall.style.transform='none';          // 清掉「相对音乐岛排版」的位移 → 电话球回到 AI 球右侧的底部 dock 自然位(否则会被顶到顶部)
   }
 
   function itemEl(o){
