@@ -202,7 +202,7 @@
       </div>
     </div>
 
-    <div class="dock"><div class="dockfabs"><button class="fab fab-stream" id="fabStream" title="Suggestions"></button><button class="fab fab-call" id="fabCall" title="Call"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></button></div><div class="tt" id="dockTt">🏠 Home · Phone</div><div class="sep"></div><div class="ctrl"><span>❄</span><span>🚘</span><span>360</span><span>📞</span><span>▦</span></div></div>
+    <div class="dock"><div class="dockfabs"><button class="fab fab-stream" id="fabStream" title="Suggestions"></button><button class="fab fab-call" id="fabCall" title="Call"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></button></div><div class="tt" id="dockTt">📱 Hanchao's iPhone 17</div><div class="sep"></div><div class="ctrl"><span>❄</span><span>🚘</span><span>360</span><span>📞</span><span>▦</span></div></div>
   </div>
 </div>
 
@@ -265,7 +265,7 @@ function resetDOM(){
   $('svReply').className='sv-reply';$('svReply').textContent='';
   $('phone').className='phone';document.querySelectorAll('.ct').forEach(e=>e.classList.remove('sel','dim'));
   $('feed').className='feed';view='phone';savedPhoneCls='phone';updateFabs();
-  $('dockTt').textContent='🏠 Home · Phone';$('phlabel').textContent='Standby';
+  $('dockTt').textContent='📱 Hanchao\'s iPhone 17';$('phlabel').textContent='Standby';
 }
 function reset(){clearT();resetDOM();}
 
@@ -295,7 +295,7 @@ function endCall(){
   $('feed').className='feed';
   const p=$('phone'),inPhone=p.classList.contains('show');
   if(inPhone)p.classList.add('collapsing');
-  $('phlabel').textContent='Ending call...';$('dockTt').textContent='🏠 Home · Phone';
+  $('phlabel').textContent='Ending call...';$('dockTt').textContent='📱 Hanchao\'s iPhone 17';
   if(collapseT)clearTimeout(collapseT);
   collapseT=setTimeout(()=>{p.className='phone';savedPhoneCls='phone';view='phone';stage.classList.remove('voice-on');updateFabs();$('phlabel').textContent='Hung up · Call ended';reply('Call ended');collapseT=null;},400);
 }
