@@ -1,12 +1,3 @@
-<!doctype html>
-<html lang="en">
-<head>
-
-<meta charset="utf-8">
-<meta name="robots" content="noindex,nofollow"/>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AIOS Dynamic Window — Demo</title>
-<script>location.replace("AIOS%20Demo%20%C2%B7%20Runner%20%E4%B8%B2%E5%9C%BA.html");</script>
 <style id="__aiosgate_css">
 #__aiosgate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(130% 130% at 50% -10%,#141b27 0%,#0a0e15 48%,#05070b 100%);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
 #__aiosgate *{box-sizing:border-box}
@@ -54,8 +45,3 @@
   if(document.documentElement)build();else document.addEventListener('DOMContentLoaded',build);
 })();
 </script>
-</head>
-<body style="margin:0;height:100vh;background:#04060a;color:#7fc8ff;font:16px -apple-system,system-ui,sans-serif;display:flex;align-items:center;justify-content:center">
-<a href="AIOS%20Demo%20%C2%B7%20Runner%20%E4%B8%B2%E5%9C%BA.html" style="color:#7fc8ff;text-decoration:none">Open the AIOS Dynamic Window demo</a>
-</body>
-</html>

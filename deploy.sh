@@ -21,7 +21,10 @@ for fn in glob.glob("*.html"):
     )
 PY
 
-# 3) Commit + push (no-op if nothing changed)
+# 3) Inject the shared-password gate into every page (stripped by re-inject, so re-add here)
+python3 _inject_gate.py *.html >/dev/null 2>&1
+
+# 4) Commit + push (no-op if nothing changed)
 MSG="${1:-update demo}"
 git add -A
 if git diff --cached --quiet; then
