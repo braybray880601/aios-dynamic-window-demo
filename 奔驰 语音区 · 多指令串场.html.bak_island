@@ -171,19 +171,17 @@
   .hlock.pulse{animation:hlPulse .42s ease}
   @keyframes hlPulse{0%,100%{transform:scale(1)}40%{transform:scale(1.12)}}
 
-  /* 回溯展开:覆盖当前视图的浮层 */
-  .trace{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:46px}
-  .trace.show{display:flex}
-  .trace-scrim{position:absolute;inset:0;background:rgba(5,8,14,.6);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);opacity:0;transition:opacity .34s;cursor:pointer}
-  .trace.show .trace-scrim{opacity:1}
-  .trace-card{position:relative;width:556px;max-width:92%;max-height:82%;overflow:auto;border-radius:24px;background:rgba(17,23,33,.94);backdrop-filter:blur(30px) saturate(1.2);-webkit-backdrop-filter:blur(30px) saturate(1.2);box-shadow:0 44px 120px rgba(0,0,0,.64),inset 0 0 0 1px rgba(255,255,255,.12);padding:17px 18px 20px;opacity:0;transform:translateY(20px) scale(.95);transition:opacity .38s cubic-bezier(.2,.9,.25,1),transform .38s cubic-bezier(.2,.9,.25,1)}
-  .trace.show .trace-card{opacity:1;transform:none}
-  .trace-head{display:flex;align-items:center;gap:10px;margin:2px 2px 15px}
-  .trace-head .th-tag{font-size:11px;font-weight:700;color:#cfe0ff;background:rgba(91,140,255,.2);box-shadow:inset 0 0 0 1px rgba(91,140,255,.32);padding:3px 11px;border-radius:20px}
-  .trace-head .th-t{font-size:16.5px;font-weight:700;color:#fff}
-  .trace-x{margin-left:auto;width:30px;height:30px;border:0;border-radius:50%;cursor:pointer;background:rgba(255,255,255,.1);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;transition:background .2s}
-  .trace-x:hover{background:rgba(255,255,255,.22)}
-  .trace-body>*{opacity:1!important;transform:none!important;margin:0!important}
+  /* 回溯展开:就地「完整替换」语音区内容(非屏幕中央弹窗) */
+  .vzdetail{display:none;animation:vdIn .36s cubic-bezier(.2,.9,.25,1)}
+  #vz.detail-open .hcount,#vz.detail-open .hwrap,#vz.detail-open #active{display:none!important}
+  #vz.detail-open .vzdetail{display:block}
+  @keyframes vdIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+  .vd-head{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+  .vd-back{display:flex;align-items:center;gap:6px;border:0;cursor:pointer;font-family:inherit;font-size:13px;font-weight:650;color:#cfe0ff;background:rgba(91,140,255,.16);box-shadow:inset 0 0 0 1px rgba(91,140,255,.3);padding:7px 14px 7px 11px;border-radius:11px;transition:background .2s,transform .12s}
+  .vd-back:hover{background:rgba(91,140,255,.3)}.vd-back:active{transform:scale(.96)}
+  .vd-tag{font-size:11px;font-weight:700;color:#cfe0ff;background:rgba(91,140,255,.16);box-shadow:inset 0 0 0 1px rgba(91,140,255,.28);padding:3px 10px;border-radius:20px}
+  .vd-title{font-size:15px;font-weight:700;color:#fff}
+  .vd-body>*{opacity:1!important;transform:none!important;margin:0!important}
 </style>
 </head>
 <body>
@@ -231,10 +229,9 @@
       <div class="hcount" id="hcount"></div>
       <div class="hwrap"><div class="hstack" id="hstack"></div><div class="hlock" id="hlock">🔒 生成中 · 暂不可回溯</div></div>
       <div class="active" id="active"></div>
+      <!-- 回溯:就地替换语音区内容 -->
+      <div class="vzdetail" id="vzdetail"><div class="vd-head"><button class="vd-back" id="vdBack">← 返回</button><span class="vd-tag">回溯</span><span class="vd-title" id="vdTitle"></span></div><div class="vd-body" id="vdBody"></div></div>
     </div></div>
-
-    <!-- 回溯展开浮层(覆盖当前视图) -->
-    <div class="trace" id="trace"><div class="trace-scrim" id="traceScrim"></div><div class="trace-card"><div class="trace-head"><span class="th-tag">回溯</span><span class="th-t" id="traceTitle"></span><button class="trace-x" id="traceX">✕</button></div><div class="trace-body" id="traceBody"></div></div></div>
 
     <div class="dock" id="dock"><button class="mva-orb" id="mvaOrb" title="MVA · 唤起语音区"></button><div class="home2"></div>
       <div class="np" id="np"><div class="npcov" id="npCov"></div><div><div class="npti">十年</div><div class="npar">陈奕迅</div></div><div class="npbar"><i></i><i></i><i></i></div></div>
@@ -354,9 +351,10 @@ function collapseToStack(){
   if(willDrop){const top=hstack.firstElementChild;if(top){top.classList.add('drop');setTimeout(finish,300);}else finish();}else finish();
 }
 function bumpLocked(){hstack.classList.remove('shake');void hstack.offsetWidth;hstack.classList.add('shake');hlock.classList.remove('pulse');void hlock.offsetWidth;hlock.classList.add('pulse');}
-function traceOpen(cmd){$('traceTitle').textContent=cmd.title;$('traceBody').innerHTML=cmd.html;$('trace').classList.add('show');$('phlabel').textContent='回溯 · '+cmd.title;}
-function traceClose(silent){$('trace').classList.remove('show');if(!silent)$('phlabel').textContent='历史可回溯 · 串场结束';}
-$('traceX').onclick=()=>traceClose();$('traceScrim').onclick=()=>traceClose();
+const vzEl=$('vz');
+function traceOpen(cmd){$('vdTitle').textContent=cmd.title;$('vdBody').innerHTML=cmd.html;vzEl.classList.add('detail-open');$('phlabel').textContent='回溯 · '+cmd.title+' · 完整替换语音区';}
+function traceClose(silent){vzEl.classList.remove('detail-open');if(!silent)$('phlabel').textContent='历史可回溯 · 串场结束';}
+$('vdBack').onclick=()=>traceClose();
 function startGen(cmd,i){
   setGen(true);$('avatar').classList.add('awake','thinking');stage.classList.add('voice-on');$('svReply').classList.remove('show');exec(i+1,CMDS.length,cmd.name);
   activeBox.innerHTML=`<div class="think-pill"><div class="spinner"></div><div class="now"><div class="l1">正在生成 · ${cmd.title}</div><div class="l2">${cmd.ask}</div></div></div>`;
