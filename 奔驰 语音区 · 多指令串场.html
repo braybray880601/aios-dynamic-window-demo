@@ -291,7 +291,7 @@
   <div class="title"><i></i>多指令串场</div>
   <button class="ask" id="ask">▶ 播放完整串场</button>
   <div class="phase">当前：<b id="phlabel">待机</b></div>
-  <div class="steps">一句说完多条指令 → 逐条生成图文卡片<br><b style="color:#9fe7b8">完成的折叠成历史卡片(最多 5 张)</b><br>生成中置灰锁定 · 完成后点卡片可回溯</div>
+  <div class="steps">一句说完:天气 → 世界杯 → 多目的地导航<br><b style="color:#9fe7b8">图文卡完成后折叠成历史(最多 5 张)</b><br>生成中置灰锁定 · 完成后点卡片就地展开回溯</div>
 </div>
 
 <script>
@@ -338,13 +338,13 @@ function resetDOM(){stopRain();
 function reset(){clearT();resetDOM();}
 
 /* 一句说完(一长串指令) */
-const BIG='今晚会下雨吗,顺便看一下世界杯A组的积分榜';
+const BIG='今晚会下雨吗、看下世界杯A组积分榜,再规划个顺路导航:华润万家、接孩子、回家';
 function bigSpeak(t0){
-  at(t0,()=>{$('avatar').classList.add('awake');$('svAsr').className='sv-asr show';$('svAsr').style.display='';$('asrText').textContent='';$('asrCur').style.display='';typeASR(BIG,2400);$('phlabel').textContent='聆听 · 一次说完两条指令';});
-  at(t0+2700,()=>{$('asrCur').style.display='none';$('svAsr').classList.add('done');});
-  at(t0+3400,()=>$('svAsr').classList.add('gone'));
-  at(t0+3800,()=>{$('svAsr').style.display='none';$('svAsr').className='sv-asr';reply('好的,这两件事这就帮你生成,完成的会折叠在上方 👆');$('phlabel').textContent='逐条生成';});
-  return t0+4400;}
+  at(t0,()=>{$('avatar').classList.add('awake');$('svAsr').className='sv-asr show';$('svAsr').style.display='';$('asrText').textContent='';$('asrCur').style.display='';typeASR(BIG,3400);$('phlabel').textContent='聆听 · 一次说完多条指令';});
+  at(t0+3700,()=>{$('asrCur').style.display='none';$('svAsr').classList.add('done');});
+  at(t0+4400,()=>$('svAsr').classList.add('gone'));
+  at(t0+4800,()=>{$('svAsr').style.display='none';$('svAsr').className='sv-asr';reply('好的,这就一条条帮你处理,完成的会折叠在上方 👆');$('phlabel').textContent='逐条生成';});
+  return t0+5400;}
 
 /* 逐条执行一个结果(无识别;识别已一次说完) */
 function runResult(t0,cfg){const hold=cfg.hold||1500;
@@ -404,7 +404,7 @@ function traceOpen(cmd){$('vdTitle').textContent=cmd.title;$('vdBody').innerHTML
 function traceClose(silent){vzEl.classList.remove('detail-open');if(!silent)$('phlabel').textContent='历史可回溯 · 串场结束';}
 $('vdBack').onclick=()=>traceClose();
 function startGen(cmd,i){
-  setGen(true);$('avatar').classList.add('awake','thinking');stage.classList.add('voice-on');$('svReply').classList.remove('show');exec(i+1,CMDS.length,cmd.name);
+  setGen(true);$('avatar').classList.add('awake','thinking');stage.classList.add('voice-on');$('svReply').classList.remove('show');exec(i+1,3,cmd.name);
   activeBox.innerHTML=`<div class="think-pill"><div class="spinner"></div><div class="now"><div class="l1">正在生成 · ${cmd.title}</div><div class="l2">${cmd.ask}</div></div></div>`;
 }
 function revealCard(cmd){
@@ -418,8 +418,8 @@ function scheduleGen(t0,cmd,i){at(t0,()=>{collapseToStack();startGen(cmd,i);});a
 const THINK_STEPS=['理解多目的地出行指令','识别「华润万家」「学校」位置','计算最优途经顺序','避开晚高峰拥堵','规划路线与耗时','生成行程'];
 function stopHTML(p,i){return `<div class="node">${p.start?'起':i}</div><div class="strow"><div class="em">${p.start?'📍':p.em}</div><div><div class="name">${p.name}${p.tag?`<span class="tag">${p.tag}</span>`:''}</div><div class="meta">${p.meta||'出发点'}</div></div>${p.km?`<div class="eta"><b>${p.eta}</b>${p.km}</div>`:''}</div>`;}
 function navStage(t0){
-  at(t0,()=>{$('svReply').classList.remove('show');exec(5,'复杂导航');$('avatar').classList.add('awake','thinking');stage.classList.add('nav-active');stage.classList.remove('voice-on');reply('好的,这就为你规划顺路的多目的地路线');
-    $('vz').innerHTML=`<div class="think show expanded" id="think"><div class="think-pill"><div class="spinner"></div><div class="now"><div class="l1" id="thinkNow">理解多目的地指令</div><div class="l2" id="thinkNext">下一步 · …</div></div><div class="chev">⌃</div></div><div class="think-panel"><div class="tp-head"><span class="tp-orb"></span>MVA 思考过程<span class="tp-tag">深度思考</span></div><div class="tp-list" id="tpList"></div></div></div><div class="trip" id="trip"><div class="trip-line" id="tripLine"></div></div><div class="go" id="go"><div class="go-sum">为你规划 <b>3 个目的地</b><br>全程 21.4 公里 · 约 1 小时</div><button class="go-btn">开始导航</button></div>`;
+  at(t0,()=>{collapseToStack();setGen(true);$('svReply').classList.remove('show');exec(3,3,'多目的地导航');$('avatar').classList.add('awake','thinking');stage.classList.add('nav-active');reply('好的,这就为你规划顺路的多目的地路线');
+    $('active').innerHTML=`<div class="think show expanded" id="think"><div class="think-pill"><div class="spinner"></div><div class="now"><div class="l1" id="thinkNow">理解多目的地指令</div><div class="l2" id="thinkNext">下一步 · …</div></div><div class="chev">⌃</div></div><div class="think-panel"><div class="tp-head"><span class="tp-orb"></span>MVA 思考过程<span class="tp-tag">深度思考</span></div><div class="tp-list" id="tpList"></div></div></div><div class="trip" id="trip"><div class="trip-line" id="tripLine"></div></div><div class="go" id="go"><div class="go-sum">为你规划 <b>3 个目的地</b><br>全程 21.4 公里 · 约 1 小时</div><button class="go-btn">开始导航</button></div>`;
     $('tpList').innerHTML=THINK_STEPS.map((s,i)=>`<div class="tp-row todo" id="tpr${i}"><span class="ic"></span><span>${s}</span></div>`).join('');});
   // 思考步骤
   const TS=t0+700,SM=820;
@@ -437,7 +437,7 @@ function navStage(t0){
     requestAnimationFrame(()=>{sd.classList.add('in');if(line)line.style.height=(trip.scrollHeight-28)+'px';});
     $('pin'+i).classList.add('show');const sp=seg(PTS[i-1],PTS[i]);requestAnimationFrame(()=>{sp.getBoundingClientRect();sp.style.strokeDashoffset='0';});
     shown.push(PTS[i]);fitCam(shown,PLAN_R,true,1.6);});});
-  at(base+3*gap+500,()=>{const g=$('go');if(g)g.classList.add('show');fitCam(shown,PLAN_R,true,1.5);$('phlabel').textContent='✅ 规划完成 · 可开始导航 · 串场结束';reply('多目的地路线已就绪,出发吧 🚗');$('dockTt').textContent='🗺️ 多目的地 · 已规划';window.__seqRunning=false;});
+  at(base+3*gap+500,()=>{const g=$('go');if(g)g.classList.add('show');fitCam(shown,PLAN_R,true,1.5);setGen(false);$('phlabel').textContent='✅ 多目的地已规划 · 点上方卡片可回溯';reply('多目的地路线已就绪,出发吧 🚗');$('dockTt').textContent='🗺️ 多目的地 · 已规划';});
 }
 
 function playAll(){if(window.__seqRunning)return;window.__seqRunning=true;clearT();resetDOM();
@@ -447,9 +447,11 @@ function playAll(){if(window.__seqRunning)return;window.__seqRunning=true;clearT
     if(i===1)at(start+480,()=>{if(history.length)bumpLocked();});   // 演示:生成「世界杯」时点叠放的天气卡 → 锁定抖动
     t=scheduleGen(t,cmd,i);
   });
-  at(t,()=>{$('phlabel').textContent='✅ 全部完成 · 点上方天气卡可回溯';reply('都处理好了,点上方的天气卡可以回看 👆');});
-  at(t+1100,()=>{if(history.includes(CMDS[0]))traceOpen(CMDS[0]);});   // 回溯演示:展开叠放的天气卡
-  at(t+4200,()=>{traceClose();window.__seqRunning=false;});}
+  // ③ 导航 finale:折叠世界杯进叠放区 → 深度思考 + 多目的地地图路线
+  navStage(t);
+  const navEnd=t+11200;
+  at(navEnd+1000,()=>{if(history.includes(CMDS[0]))traceOpen(CMDS[0]);});   // 收尾回溯演示:展开叠放的天气卡(再返回导航)
+  at(navEnd+4300,()=>{traceClose();window.__seqRunning=false;});}
 $('ask').onclick=()=>{window.__seqRunning=false;playAll();};   // ▶ 显式重播
 setTimeout(playAll,700);
 </script>
