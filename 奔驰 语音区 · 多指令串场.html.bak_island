@@ -38,7 +38,7 @@
   .sb-right{display:flex;align-items:center;gap:16px;color:#dfe3e8;flex:none}.sb-clock{font-size:19px;font-weight:500}.sb-5g{font-size:10px;font-weight:700;vertical-align:top}
 
   /* 桌面家具(导航识别后整体淡出) */
-  .home{transition:opacity .5s}.stage.nav-active .home{opacity:0;pointer-events:none}
+  .home{transition:opacity .5s}.stage.nav-active .home{opacity:0;pointer-events:none}.mapcard{display:none}
   .mapcard{position:absolute;top:64px;left:40px;width:300px;border-radius:20px;background:rgba(44,52,64,.5);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 8px 30px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.12);overflow:hidden;z-index:25;color:#fff;transition:transform .42s cubic-bezier(.2,.7,.2,1)}
   .stage.voice-on .mapcard{transform:translateX(calc(var(--vz-w) + 16px))}
   .mc-top{display:flex;align-items:center;gap:9px;padding:14px 16px}.mc-top .t{flex:1;font-size:16px;font-weight:500}
@@ -145,6 +145,45 @@
   .stage.zone-hidden .voice-zone{opacity:0 !important;transform:translateY(-10px) scale(.985) !important;pointer-events:none !important;transition:opacity .35s ease,transform .35s ease}
   .stage.zone-hidden .map{transform:none !important}
   @keyframes mvaspin{to{transform:rotate(360deg)}}
+
+  /* ── 叠放历史系统 ── */
+  .hcount{font-size:10.5px;font-weight:700;color:var(--faint);letter-spacing:.04em;padding:0 3px 1px;display:flex;align-items:center;gap:7px;min-height:14px}
+  .hcount b{color:#9fb6d8}.hcount .dotg{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green)}
+  .hwrap{position:relative}
+  .hstack{position:relative;display:flex;flex-direction:column;transition:opacity .35s,filter .35s}
+  .hstack .hcard{position:relative;display:flex;align-items:center;gap:11px;padding:9px 13px;border-radius:14px;background:rgba(28,35,49,.86);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);box-shadow:0 9px 22px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.1);color:#eef1f4;cursor:pointer;margin-top:-17px;transform-origin:center top;transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .25s;animation:hcIn .44s cubic-bezier(.2,.9,.25,1)}
+  .hstack .hcard:first-child{margin-top:0}
+  @keyframes hcIn{from{opacity:0;transform:translateY(15px) scale(.96)}to{opacity:1;transform:none}}
+  .hstack .hcard.drop{animation:hcDrop .32s ease forwards;pointer-events:none}
+  @keyframes hcDrop{to{opacity:0;transform:translateY(-22px) scale(.93);margin-top:-52px}}
+  .hstack .hcard .hc-ic{width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(255,255,255,.08)}
+  .hstack .hcard .hc-tx{flex:1;min-width:0;display:flex;align-items:baseline;overflow:hidden;white-space:nowrap}
+  .hstack .hcard .hc-t{font-size:14px;font-weight:680;color:#fff}
+  .hstack .hcard .hc-s{font-size:12px;color:var(--soft);margin-left:8px;overflow:hidden;text-overflow:ellipsis}
+  .hstack .hcard .hc-exp{flex:none;font-size:13px;color:rgba(255,255,255,.38);transition:color .2s}
+  .hstack:not(.locked) .hcard:hover{transform:translateX(5px);box-shadow:0 14px 32px rgba(0,0,0,.5),inset 0 0 0 1px rgba(127,200,255,.45)}
+  .hstack:not(.locked) .hcard:hover .hc-exp{color:#7fc8ff}
+  .hstack.locked{opacity:.38;filter:saturate(.55)}
+  .hstack.locked .hcard{pointer-events:none}
+  .hstack.shake{animation:hsShake .42s}
+  @keyframes hsShake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(4px)}50%{transform:translateX(-7px)}}
+  .hlock{position:absolute;top:-10px;right:4px;z-index:40;display:none;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:#ffd49a;background:rgba(42,32,16,.94);box-shadow:inset 0 0 0 1px rgba(255,184,92,.36),0 6px 16px rgba(0,0,0,.4);padding:4px 10px;border-radius:20px;white-space:nowrap}
+  .hlock.pulse{animation:hlPulse .42s ease}
+  @keyframes hlPulse{0%,100%{transform:scale(1)}40%{transform:scale(1.12)}}
+
+  /* 回溯展开:覆盖当前视图的浮层 */
+  .trace{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:46px}
+  .trace.show{display:flex}
+  .trace-scrim{position:absolute;inset:0;background:rgba(5,8,14,.6);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);opacity:0;transition:opacity .34s;cursor:pointer}
+  .trace.show .trace-scrim{opacity:1}
+  .trace-card{position:relative;width:556px;max-width:92%;max-height:82%;overflow:auto;border-radius:24px;background:rgba(17,23,33,.94);backdrop-filter:blur(30px) saturate(1.2);-webkit-backdrop-filter:blur(30px) saturate(1.2);box-shadow:0 44px 120px rgba(0,0,0,.64),inset 0 0 0 1px rgba(255,255,255,.12);padding:17px 18px 20px;opacity:0;transform:translateY(20px) scale(.95);transition:opacity .38s cubic-bezier(.2,.9,.25,1),transform .38s cubic-bezier(.2,.9,.25,1)}
+  .trace.show .trace-card{opacity:1;transform:none}
+  .trace-head{display:flex;align-items:center;gap:10px;margin:2px 2px 15px}
+  .trace-head .th-tag{font-size:11px;font-weight:700;color:#cfe0ff;background:rgba(91,140,255,.2);box-shadow:inset 0 0 0 1px rgba(91,140,255,.32);padding:3px 11px;border-radius:20px}
+  .trace-head .th-t{font-size:16.5px;font-weight:700;color:#fff}
+  .trace-x{margin-left:auto;width:30px;height:30px;border:0;border-radius:50%;cursor:pointer;background:rgba(255,255,255,.1);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+  .trace-x:hover{background:rgba(255,255,255,.22)}
+  .trace-body>*{opacity:1!important;transform:none!important;margin:0!important}
 </style>
 </head>
 <body>
@@ -188,7 +227,14 @@
     </div>
 
     <div id="pins"></div>
-    <div class="voice-zone"><div id="vz"></div></div>
+    <div class="voice-zone"><div id="vz">
+      <div class="hcount" id="hcount"></div>
+      <div class="hwrap"><div class="hstack" id="hstack"></div><div class="hlock" id="hlock">🔒 生成中 · 暂不可回溯</div></div>
+      <div class="active" id="active"></div>
+    </div></div>
+
+    <!-- 回溯展开浮层(覆盖当前视图) -->
+    <div class="trace" id="trace"><div class="trace-scrim" id="traceScrim"></div><div class="trace-card"><div class="trace-head"><span class="th-tag">回溯</span><span class="th-t" id="traceTitle"></span><button class="trace-x" id="traceX">✕</button></div><div class="trace-body" id="traceBody"></div></div></div>
 
     <div class="dock" id="dock"><button class="mva-orb" id="mvaOrb" title="MVA · 唤起语音区"></button><div class="home2"></div>
       <div class="np" id="np"><div class="npcov" id="npCov"></div><div><div class="npti">十年</div><div class="npar">陈奕迅</div></div><div class="npbar"><i></i><i></i><i></i></div></div>
@@ -200,7 +246,7 @@
   <div class="title"><i></i>多指令串场</div>
   <button class="ask" id="ask">▶ 播放完整串场</button>
   <div class="phase">当前：<b id="phlabel">待机</b></div>
-  <div class="steps">一句说完 → 逐条执行:闲聊·空调·天气·音乐·积分榜 →<br><b style="color:#9fe7b8">复杂多目的地导航（深度思考）</b></div>
+  <div class="steps">一句说完多条指令 → 逐条生成图文卡片<br><b style="color:#9fe7b8">完成的折叠成历史卡片(最多 5 张)</b><br>生成中置灰锁定 · 完成后点卡片可回溯</div>
 </div>
 
 <script>
@@ -235,22 +281,24 @@ const timers=[];const at=(ms,fn)=>timers.push(setTimeout(fn,ms));
 function clearT(){timers.forEach(clearTimeout);timers.length=0;}
 function typeASR(t,dur){const el=$('asrText'),sc=$('svAsr');let i=0;const step=dur/t.length;(function tick(){el.textContent=t.slice(0,i);sc.scrollLeft=sc.scrollWidth;if(i++<=t.length)timers.push(setTimeout(tick,step));})();}
 function reply(t){$('svReply').textContent=t;$('svReply').className='sv-reply show';}
-function exec(n,name){$('execChip').textContent=`逐条执行 ${n}/5 · ${name}`;$('execChip').classList.add('show');$('phlabel').textContent=`执行 ${n}/5 · ${name}`;}
+function exec(n,total,name){$('execChip').textContent=`生成 ${n}/${total} · ${name}`;$('execChip').classList.add('show');$('phlabel').textContent=`生成 ${n}/${total} · ${name}`;}
 function resetDOM(){stopRain();
   stage.classList.remove('nav-active','voice-on');$('avatar').classList.remove('awake','thinking');
   $('svAsr').className='sv-asr';$('svAsr').style.display='';$('asrText').textContent='';$('svAsr').scrollLeft=0;$('asrCur').style.display='';
   $('svReply').className='sv-reply';$('svReply').textContent='';$('execChip').className='exec-chip';$('execChip').textContent='';
-  $('vz').innerHTML='';routeG.innerHTML='';PTS.forEach((p,i)=>{const el=$('pin'+i);el.className='pin'+(p.start?' start':'');});applyCam(1,0,0,false);
+  history=[];activeCmd=null;generating=false;
+  hstack.innerHTML='';hstack.classList.remove('locked','shake');hlock.style.display='none';activeBox.innerHTML='';hcount.innerHTML='';
+  traceClose(true);
   $('dock').classList.remove('playing');$('dockTt').textContent='🏠 桌面';$('phlabel').textContent='待机';}
 function reset(){clearT();resetDOM();}
 
 /* 一句说完(一长串指令) */
-const BIG='今天几号？空调调到24度、今晚会下雨吗、放首陈奕迅的歌、看下世界杯A组积分榜，然后先去华润万家、再去接孩子、最后回家';
+const BIG='今晚会下雨吗、看下世界杯A组积分榜、放首陈奕迅的歌、附近有啥好吃的、看下我明天的日程、来点今天的新闻,对了附近哪儿能充电';
 function bigSpeak(t0){
   at(t0,()=>{$('avatar').classList.add('awake');$('svAsr').className='sv-asr show';$('svAsr').style.display='';$('asrText').textContent='';$('asrCur').style.display='';typeASR(BIG,3600);$('phlabel').textContent='聆听 · 一次说完多条指令';});
   at(t0+3900,()=>{$('asrCur').style.display='none';$('svAsr').classList.add('done');});
   at(t0+4700,()=>$('svAsr').classList.add('gone'));
-  at(t0+5100,()=>{$('svAsr').style.display='none';$('svAsr').className='sv-asr';reply('好的,这就一条条帮你处理 👇');$('phlabel').textContent='逐条执行';});
+  at(t0+5100,()=>{$('svAsr').style.display='none';$('svAsr').className='sv-asr';reply('好的,这就一条条帮你生成,完成的会折叠在上方 👆');$('phlabel').textContent='逐条生成';});
   return t0+5700;}
 
 /* 逐条执行一个结果(无识别;识别已一次说完) */
@@ -268,6 +316,62 @@ const WX=`<div class="wcard"><canvas class="spec" id="cspec"></canvas><canvas cl
 const MU=`<div class="music"><div class="m-bg" style="background-image:url('cover-shinian.jpg')"></div><div class="m-scrim2"></div><div class="m-in"><div class="m-top"><span class="dot"></span>正在播放 · 音乐小窗</div><div class="disc-wrap"><div class="disc"><img src="cover-shinian.jpg" alt=""></div></div><div class="m-meta"><div class="m-title">十年</div><div class="m-artist">陈奕迅 · 专辑《十年》</div></div><div class="m-prog"><div class="m-bar"><div class="fill"></div><div class="knob"></div></div><div class="m-times"><span>01:12</span><span>04:35</span></div></div><div class="m-ctrl"><svg class="ico sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 17h3l9-10h3M3 7h3l3 3.5M15 17h3l1.5-1.7"/></svg><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M7 6v12H5V6h2zm12 0v12l-9-6 9-6z"/></svg><button class="play"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="3.6" height="14" rx="1"/><rect x="13.9" y="5" width="3.6" height="14" rx="1"/></svg></button><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M17 6v12h2V6h-2zM5 6v12l9-6L5 6z"/></svg><svg class="ico sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 3l3 3-3 3M20 6H8a4 4 0 0 0-4 4v1M7 21l-3-3 3-3M4 18h12a4 4 0 0 0 4-4v-1"/></svg></div></div></div>`;
 const TBL=`<div class="mini"><div class="tbl-h">⚽ 世界杯 · A 组积分榜<span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--soft)">第 3 轮后</span></div><div class="tbl-head"><span style="width:32px">名次</span><span style="flex:1">球队</span><span style="width:62px;text-align:center">胜平负</span><span style="width:34px;text-align:right">积分</span></div>${[['1','阿根廷','2-1-0','7',1],['2','法国','2-0-1','6',1],['3','巴西','1-1-1','4',0],['4','西班牙','0-0-3','0',0]].map(r=>`<div class="tbl-row"><span class="rk${r[4]?' top':''}">${r[0]}</span><span class="tm">${r[1]}</span><span class="rec">${r[2]}</span><span class="pt">${r[3]}</span></div>`).join('')}</div>`;
 function dockPlay(){$('dock').classList.add('playing');$('dockTt').textContent='🎵 正在播放 · 十年';}
+
+/* ── 新增图文卡片 ── */
+const FOOD=`<div class="mini"><div class="tbl-h">🍜 附近美食 · 滨江<span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--soft)">3 家推荐</span></div>${[['🍲','蝉与火锅·滨江店','川味火锅 · 320m','4.8'],['🍜','一兰拉面','日式豚骨 · 540m','4.6'],['🥘','江南私厨','本帮菜 · 1.1km','4.7']].map(([e,n,m,r])=>`<div class="tbl-row"><span class="rk" style="background:rgba(255,255,255,.08);font-size:15px">${e}</span><span class="tm">${n}<div style="font-size:11px;color:var(--soft);font-weight:400;margin-top:2px">${m}</div></span><span class="pt" style="color:var(--gold);font-size:14px">★${r}</span></div>`).join('')}</div>`;
+const SCHED=`<div class="mini"><div class="tbl-h">📅 明日日程 · 周二<span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--soft)">3 项</span></div>${[['09:30','产品评审会','3 号会议室','#5b8cff'],['12:30','与张总午餐','滨江壹号','#34d06a'],['18:00','接孩子放学','阳光小学','#ffab5b']].map(([t,n,loc,c])=>`<div class="tbl-row"><span style="width:46px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;flex:none">${t}</span><span style="width:3px;height:30px;border-radius:2px;background:${c};flex:none"></span><span class="tm">${n}<div style="font-size:11px;color:var(--soft);font-weight:400;margin-top:2px">${loc}</div></span></div>`).join('')}</div>`;
+const NEWS=`<div class="mini"><div class="tbl-h">📰 今日早报<span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--soft)">3 条要闻</span></div>${[['科技','MVA 全新动态窗口正式亮相'],['财经','A 股三大指数今日集体高开'],['体育','世界杯小组赛今晚正式开打']].map(([tag,h])=>`<div class="tbl-row"><span style="font-size:10.5px;font-weight:700;color:#cfe0ff;background:rgba(91,140,255,.18);padding:3px 9px;border-radius:7px;flex:none">${tag}</span><span class="tm" style="font-weight:600">${h}</span></div>`).join('')}</div>`;
+const CHARGE=`<div class="mini"><div class="tbl-h">⚡ 附近充电站<span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--soft)">2 处可用</span></div>${[['特来电·滨江站','6/8 空闲 · 480m','120kW'],['星星充电·世纪广场','3/10 空闲 · 1.2km','60kW']].map(([n,s,p])=>`<div class="tbl-row"><span class="rk" style="background:linear-gradient(135deg,#3ee07a,#1f9e52);color:#06210f">⚡</span><span class="tm">${n}<div style="font-size:11px;color:var(--soft);font-weight:400;margin-top:2px">${s}</div></span><span class="pt" style="font-size:13px;color:#9fd9b4">${p}</span></div>`).join('')}</div>`;
+
+/* ── 指令清单(每条 → 一张图文卡) ── */
+const CMDS=[
+  {icon:'🌧️',title:'今夜天气',summary:'中雨 · 14°',name:'天气',ask:'今晚会下雨吗',reply:'今夜上海有中雨,记得带伞 ☔',html:WX,onShow:startRain,onHide:stopRain},
+  {icon:'⚽',title:'世界杯 A 组',summary:'阿根廷 7 分领跑',name:'积分榜',ask:'看下 A 组积分榜',reply:'A 组:阿根廷 7 分领跑、法国 6 分紧随',html:TBL},
+  {icon:'🎵',title:'十年',summary:'陈奕迅',name:'音乐',ask:'放首陈奕迅的歌',reply:'好的,这就放《十年》🎵',html:MU,onShow:dockPlay},
+  {icon:'🍜',title:'附近美食',summary:'3 家高分推荐',name:'美食',ask:'附近有啥好吃的',reply:'滨江找到 3 家高分餐厅 🍜',html:FOOD},
+  {icon:'📅',title:'明日日程',summary:'3 项安排',name:'日程',ask:'看下我明天的日程',reply:'明天有 3 项安排,已为你整理 📅',html:SCHED},
+  {icon:'📰',title:'今日早报',summary:'3 条要闻',name:'早报',ask:'来点今天的新闻',reply:'为你摘了今天的 3 条要闻 📰',html:NEWS},
+  {icon:'⚡',title:'附近充电站',summary:'2 处快充',name:'充电',ask:'附近哪儿能充电',reply:'附近 2 处快充站可用 ⚡',html:CHARGE}
+];
+
+/* ── 叠放历史系统 ── */
+const MAX_STACK=5;let history=[],generating=false,activeCmd=null;
+const hstack=$('hstack'),activeBox=$('active'),hlock=$('hlock'),hcount=$('hcount');
+function renderStack(animateNew){
+  const vis=history.slice(-MAX_STACK);hstack.innerHTML='';
+  vis.forEach((cmd,idx)=>{
+    const depth=vis.length-1-idx;const d=document.createElement('div');d.className='hcard';
+    d.style.zIndex=String(idx+1);d.style.opacity=(1-depth*0.13).toFixed(2);
+    if(!(animateNew&&idx===vis.length-1))d.style.animation='none';
+    d.innerHTML=`<span class="hc-ic">${cmd.icon}</span><span class="hc-tx"><span class="hc-t">${cmd.title}</span><span class="hc-s">${cmd.summary}</span></span><span class="hc-exp">⤢</span>`;
+    d.onclick=()=>{if(generating){bumpLocked();return;}traceOpen(cmd);};
+    hstack.appendChild(d);
+  });
+  const n=history.length;
+  hcount.innerHTML=n?`<span class="dotg"></span>历史卡片 <b>${Math.min(n,MAX_STACK)}</b>/${MAX_STACK}${n>MAX_STACK?` · 已折叠最早 ${n-MAX_STACK} 张`:''}`:'';
+  hstack.classList.toggle('locked',generating);
+}
+function setGen(on){generating=on;hstack.classList.toggle('locked',on);hlock.style.display=(on&&history.length)?'flex':'none';}
+function collapseToStack(){
+  if(!activeCmd)return;
+  const willDrop=history.length>=MAX_STACK;
+  const finish=()=>{if(activeCmd.onHide)activeCmd.onHide();history.push(activeCmd);activeCmd=null;activeBox.innerHTML='';renderStack(true);};
+  if(willDrop){const top=hstack.firstElementChild;if(top){top.classList.add('drop');setTimeout(finish,300);}else finish();}else finish();
+}
+function bumpLocked(){hstack.classList.remove('shake');void hstack.offsetWidth;hstack.classList.add('shake');hlock.classList.remove('pulse');void hlock.offsetWidth;hlock.classList.add('pulse');}
+function traceOpen(cmd){$('traceTitle').textContent=cmd.title;$('traceBody').innerHTML=cmd.html;$('trace').classList.add('show');$('phlabel').textContent='回溯 · '+cmd.title;}
+function traceClose(silent){$('trace').classList.remove('show');if(!silent)$('phlabel').textContent='历史可回溯 · 串场结束';}
+$('traceX').onclick=()=>traceClose();$('traceScrim').onclick=()=>traceClose();
+function startGen(cmd,i){
+  setGen(true);$('avatar').classList.add('awake','thinking');stage.classList.add('voice-on');$('svReply').classList.remove('show');exec(i+1,CMDS.length,cmd.name);
+  activeBox.innerHTML=`<div class="think-pill"><div class="spinner"></div><div class="now"><div class="l1">正在生成 · ${cmd.title}</div><div class="l2">${cmd.ask}</div></div></div>`;
+}
+function revealCard(cmd){
+  activeBox.innerHTML=cmd.html;const c=activeBox.firstElementChild;requestAnimationFrame(()=>c&&c.classList.add('in'));
+  if(cmd.onShow)cmd.onShow();$('avatar').classList.remove('thinking');reply(cmd.reply);activeCmd=cmd;setGen(false);
+}
+const GEN=950,HOLD=1450;
+function scheduleGen(t0,cmd,i){at(t0,()=>{collapseToStack();startGen(cmd,i);});at(t0+GEN,()=>revealCard(cmd));return t0+GEN+HOLD;}
 
 /* ⑥ 复杂导航(完全复刻深度思考) */
 const THINK_STEPS=['理解多目的地出行指令','识别「华润万家」「学校」位置','计算最优途经顺序','避开晚高峰拥堵','规划路线与耗时','生成行程'];
@@ -295,13 +399,18 @@ function navStage(t0){
   at(base+3*gap+500,()=>{const g=$('go');if(g)g.classList.add('show');fitCam(shown,PLAN_R,true,1.5);$('phlabel').textContent='✅ 规划完成 · 可开始导航 · 串场结束';reply('多目的地路线已就绪,出发吧 🚗');$('dockTt').textContent='🗺️ 多目的地 · 已规划';window.__seqRunning=false;});
 }
 
-function playAll(){if(window.__seqRunning)return;window.__seqRunning=true;clearT();resetDOM();   // 正在播放则忽略重复触发,避免叠成两遍
+function playAll(){if(window.__seqRunning)return;window.__seqRunning=true;clearT();resetDOM();
   let t=bigSpeak(700);
-  t=runResult(t,{idx:1,name:'闲聊',reply:'今天 6 月 8 日,星期一 ☀️',hold:1400});
-  t=runResult(t,{idx:2,name:'空调 + 音乐',reply:'好的,空调调到 24°C、音乐也放上了 🎵',onShow:dockPlay,hold:1700});   // 空调+音乐合成一句,亮底部播放器,不出内容
-  t=runResult(t,{idx:3,name:'天气',reply:'今夜上海有中雨,记得带伞 ☔',html:WX,hold:2600,onShow:startRain,onHide:stopRain});
-  t=runResult(t,{idx:4,name:'世界杯积分榜',reply:'世界杯 A 组:阿根廷 7 分领跑、法国 6 分、巴西 4 分、西班牙 0 分垫底',html:TBL,hold:2400});  // 念出来(视觉很快消失)
-  navStage(t);}
+  CMDS.forEach((cmd,i)=>{
+    const start=t;
+    if(i===4)at(start+460,()=>{if(history.length)bumpLocked();});   // 演示:生成中点历史卡 → 锁定抖动
+    t=scheduleGen(t,cmd,i);
+  });
+  at(t,()=>{$('phlabel').textContent='✅ 全部完成 · 点上方卡片可回溯';reply('都处理好了,点上方任意卡片可以回看 👆');});
+  at(t+1000,()=>{if(history.includes(CMDS[1]))traceOpen(CMDS[1]);});   // 回溯演示①:积分榜
+  at(t+3200,()=>traceClose());
+  at(t+4000,()=>{if(history.includes(CMDS[3]))traceOpen(CMDS[3]);});   // 回溯演示②:美食
+  at(t+6200,()=>{traceClose();window.__seqRunning=false;});}
 $('ask').onclick=()=>{window.__seqRunning=false;playAll();};   // ▶ 显式重播
 setTimeout(playAll,700);
 </script>
