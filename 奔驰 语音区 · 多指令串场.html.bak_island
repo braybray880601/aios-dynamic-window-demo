@@ -293,13 +293,13 @@ function resetDOM(){stopRain();
 function reset(){clearT();resetDOM();}
 
 /* 一句说完(一长串指令) */
-const BIG='今晚会下雨吗、看下世界杯A组积分榜、放首陈奕迅的歌、附近有啥好吃的、看下我明天的日程、来点今天的新闻,对了附近哪儿能充电';
+const BIG='今晚会下雨吗,顺便看一下世界杯A组的积分榜';
 function bigSpeak(t0){
-  at(t0,()=>{$('avatar').classList.add('awake');$('svAsr').className='sv-asr show';$('svAsr').style.display='';$('asrText').textContent='';$('asrCur').style.display='';typeASR(BIG,3600);$('phlabel').textContent='聆听 · 一次说完多条指令';});
-  at(t0+3900,()=>{$('asrCur').style.display='none';$('svAsr').classList.add('done');});
-  at(t0+4700,()=>$('svAsr').classList.add('gone'));
-  at(t0+5100,()=>{$('svAsr').style.display='none';$('svAsr').className='sv-asr';reply('好的,这就一条条帮你生成,完成的会折叠在上方 👆');$('phlabel').textContent='逐条生成';});
-  return t0+5700;}
+  at(t0,()=>{$('avatar').classList.add('awake');$('svAsr').className='sv-asr show';$('svAsr').style.display='';$('asrText').textContent='';$('asrCur').style.display='';typeASR(BIG,2400);$('phlabel').textContent='聆听 · 一次说完两条指令';});
+  at(t0+2700,()=>{$('asrCur').style.display='none';$('svAsr').classList.add('done');});
+  at(t0+3400,()=>$('svAsr').classList.add('gone'));
+  at(t0+3800,()=>{$('svAsr').style.display='none';$('svAsr').className='sv-asr';reply('好的,这两件事这就帮你生成,完成的会折叠在上方 👆');$('phlabel').textContent='逐条生成';});
+  return t0+4400;}
 
 /* 逐条执行一个结果(无识别;识别已一次说完) */
 function runResult(t0,cfg){const hold=cfg.hold||1500;
@@ -326,12 +326,7 @@ const CHARGE=`<div class="mini"><div class="tbl-h">⚡ 附近充电站<span styl
 /* ── 指令清单(每条 → 一张图文卡) ── */
 const CMDS=[
   {icon:'🌧️',title:'今夜天气',summary:'中雨 · 14°',name:'天气',ask:'今晚会下雨吗',reply:'今夜上海有中雨,记得带伞 ☔',html:WX,onShow:startRain,onHide:stopRain},
-  {icon:'⚽',title:'世界杯 A 组',summary:'阿根廷 7 分领跑',name:'积分榜',ask:'看下 A 组积分榜',reply:'A 组:阿根廷 7 分领跑、法国 6 分紧随',html:TBL},
-  {icon:'🎵',title:'十年',summary:'陈奕迅',name:'音乐',ask:'放首陈奕迅的歌',reply:'好的,这就放《十年》🎵',html:MU,onShow:dockPlay},
-  {icon:'🍜',title:'附近美食',summary:'3 家高分推荐',name:'美食',ask:'附近有啥好吃的',reply:'滨江找到 3 家高分餐厅 🍜',html:FOOD},
-  {icon:'📅',title:'明日日程',summary:'3 项安排',name:'日程',ask:'看下我明天的日程',reply:'明天有 3 项安排,已为你整理 📅',html:SCHED},
-  {icon:'📰',title:'今日早报',summary:'3 条要闻',name:'早报',ask:'来点今天的新闻',reply:'为你摘了今天的 3 条要闻 📰',html:NEWS},
-  {icon:'⚡',title:'附近充电站',summary:'2 处快充',name:'充电',ask:'附近哪儿能充电',reply:'附近 2 处快充站可用 ⚡',html:CHARGE}
+  {icon:'⚽',title:'世界杯 A 组',summary:'阿根廷 7 分领跑',name:'积分榜',ask:'看下 A 组积分榜',reply:'A 组:阿根廷 7 分领跑、法国 6 分紧随',html:TBL}
 ];
 
 /* ── 叠放历史系统 ── */
@@ -403,14 +398,12 @@ function playAll(){if(window.__seqRunning)return;window.__seqRunning=true;clearT
   let t=bigSpeak(700);
   CMDS.forEach((cmd,i)=>{
     const start=t;
-    if(i===4)at(start+460,()=>{if(history.length)bumpLocked();});   // 演示:生成中点历史卡 → 锁定抖动
+    if(i===1)at(start+480,()=>{if(history.length)bumpLocked();});   // 演示:生成「世界杯」时点叠放的天气卡 → 锁定抖动
     t=scheduleGen(t,cmd,i);
   });
-  at(t,()=>{$('phlabel').textContent='✅ 全部完成 · 点上方卡片可回溯';reply('都处理好了,点上方任意卡片可以回看 👆');});
-  at(t+1000,()=>{if(history.includes(CMDS[1]))traceOpen(CMDS[1]);});   // 回溯演示①:积分榜
-  at(t+3200,()=>traceClose());
-  at(t+4000,()=>{if(history.includes(CMDS[3]))traceOpen(CMDS[3]);});   // 回溯演示②:美食
-  at(t+6200,()=>{traceClose();window.__seqRunning=false;});}
+  at(t,()=>{$('phlabel').textContent='✅ 全部完成 · 点上方天气卡可回溯';reply('都处理好了,点上方的天气卡可以回看 👆');});
+  at(t+1100,()=>{if(history.includes(CMDS[0]))traceOpen(CMDS[0]);});   // 回溯演示:展开叠放的天气卡
+  at(t+4200,()=>{traceClose();window.__seqRunning=false;});}
 $('ask').onclick=()=>{window.__seqRunning=false;playAll();};   // ▶ 显式重播
 setTimeout(playAll,700);
 </script>
