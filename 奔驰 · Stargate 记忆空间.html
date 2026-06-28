@@ -37,16 +37,44 @@
   .hd .t{font-size:21px;font-weight:300;letter-spacing:3px}.hd .t b{font-weight:650}
   .hd .s{margin-top:7px;font-size:12px;letter-spacing:.22em;color:var(--faint);text-transform:uppercase}
 
-  /* 灵动岛 */
-  .island{position:absolute;top:30px;left:50%;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:10px;padding:9px 17px 9px 11px;border-radius:24px;
-    background:rgba(16,20,30,.82);backdrop-filter:blur(20px) saturate(1.2);box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.1);cursor:pointer;
-    transition:opacity .5s ease,transform .6s cubic-bezier(.4,1.3,.5,1)}
+  /* ── 动态窗口(基座层:展开前 / 收回后的车机首页)── */
+  .window{position:absolute;inset:0;z-index:22;transition:opacity .7s ease,transform .75s cubic-bezier(.4,.8,.2,1)}
+  .stage.bloomed .window{opacity:0;transform:scale(1.09);pointer-events:none}
+  .whome{position:absolute;inset:0;background:
+    radial-gradient(120% 90% at 50% 0%,rgba(42,58,86,.32),transparent 55%),
+    radial-gradient(100% 80% at 82% 100%,rgba(62,46,88,.22),transparent 60%),
+    linear-gradient(180deg,#0c1018,#080b12 60%,#06080e)}
+  .whome::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 100% at 50% 50%,transparent 56%,rgba(3,5,10,.5))}
+  .wstatus{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;gap:12px;padding:0 26px;color:#dfe3e8;z-index:3}
+  .wstatus .wav{width:30px;height:30px;border-radius:50%;position:relative;flex:none}
+  .wstatus .wav::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);filter:blur(.4px);animation:spin 6s linear infinite}
+  .wstatus .wav::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6))}
+  .wstatus .wtime{font-size:18px;font-weight:500}.wstatus .w5g{margin-left:auto;font-size:11px;font-weight:700;letter-spacing:1px;color:#aeb6c0}
+  .wamb{position:absolute;top:45%;left:0;right:0;text-align:center;transform:translateY(-50%);z-index:2}
+  .wamb .wclock{font-size:98px;font-weight:200;letter-spacing:2px;color:rgba(255,255,255,.92);line-height:1}
+  .wamb .wsub{font-size:14px;color:var(--soft);margin-top:10px;letter-spacing:.06em}
+  .wdock{position:absolute;left:0;right:0;bottom:0;height:64px;display:flex;align-items:center;gap:22px;padding:0 24px;background:rgba(12,16,24,.55);backdrop-filter:blur(24px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);z-index:3}
+  .wdock .worb{width:36px;height:36px;border-radius:50%;position:relative;flex:none}
+  .wdock .worb::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);filter:blur(.5px);animation:spin 6s linear infinite}
+  .wdock .worb::after{content:"";position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6))}
+  .wdock .wsep{flex:1}.wdock .wc{font-size:18px;color:rgba(238,241,244,.68)}
+
+  /* 灵动岛(入口) */
+  .island{position:absolute;top:28px;left:50%;transform:translateX(-50%);z-index:24;display:flex;align-items:center;gap:10px;padding:10px 15px 10px 12px;border-radius:24px;cursor:pointer;
+    background:rgba(18,24,36,.86);backdrop-filter:blur(20px) saturate(1.2);animation:islandpulse 3.4s ease-in-out infinite}
   .island .io{width:22px;height:22px;border-radius:50%;position:relative;flex:none}
   .island .io::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);filter:blur(.4px);animation:spin 6s linear infinite}
   .island .io::after{content:"";position:absolute;inset:5px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6))}
   .island .il{font-size:13px;font-weight:600;color:#eef1f4;white-space:nowrap}.island .il b{color:#bcd4ff}
-  .stage.bloomed .island{opacity:0;transform:translateX(-50%) translateY(-14px) scale(.9);pointer-events:none}
+  .island .iarrow{font-size:15px;color:rgba(190,212,255,.85);margin-left:1px}
+  @keyframes islandpulse{0%,100%{box-shadow:0 12px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.12),0 0 22px -8px rgba(120,150,235,.35)}50%{box-shadow:0 12px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.2),0 0 42px -4px rgba(140,170,255,.62)}}
   @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* 收回(空间 → 动态窗口) */
+  .wclose{position:absolute;top:30px;left:30px;z-index:25;display:none;align-items:center;gap:6px;border:0;cursor:pointer;font-family:inherit;font-size:13px;font-weight:650;color:#cfe0ff;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);padding:8px 14px;border-radius:12px;opacity:0;transition:opacity .4s ease .2s,background .2s}
+  .stage.bloomed .wclose{display:flex;opacity:1}
+  .stage.detail .wclose{opacity:0;pointer-events:none}
+  .wclose:hover{background:rgba(255,255,255,.16)}
 
   /* ── 转轮 ── */
   .wheel{position:absolute;inset:0;z-index:6}
@@ -217,7 +245,15 @@
     <div class="space"><canvas id="dust"></canvas></div>
     <div class="vignette"></div>
     <div class="hd" id="hd"><div class="t">沉淀下来的<b>记忆</b></div><div class="s">Stargate · Memory Space</div></div>
-    <div class="island" id="island"><span class="io"></span><span class="il">回看 · <b id="icnt">5</b> 颗记忆</span></div>
+    <!-- 动态窗口(基座:展开前 / 收回后) -->
+    <div class="window" id="window">
+      <div class="whome"></div>
+      <div class="wstatus"><span class="wav"></span><span class="wtime">21:36</span><span class="w5g">5G ▮▮▮</span></div>
+      <div class="wamb"><div class="wclock">21:36</div><div class="wsub">上海 · 中雨 14°　·　晚上好,翰超</div></div>
+      <div class="island" id="island"><span class="io"></span><span class="il">记忆空间 · <b id="icnt">5</b> 段新沉淀</span><span class="iarrow">›</span></div>
+      <div class="wdock"><span class="worb"></span><span class="wsep"></span><span class="wc">❄</span><span class="wc">🚗</span><span class="wc">360</span><span class="wc">📞</span><span class="wc">▦</span></div>
+    </div>
+    <button class="wclose" id="wclose">✕ 收回</button>
 
     <div class="wheel" id="wheel"></div>
 
@@ -232,8 +268,8 @@
 
 <div class="panel">
   <div class="ti"><i></i>Stargate 记忆空间</div>
-  <button class="ask" id="ask">▶ 重新绽放</button>
-  <div class="ph">点球 = 球体放大 + 内部内容展开<br><b>Hero v2</b> · 头脑特工队记忆球质感</div>
+  <button class="ask" id="ask">▶ 播放完整流程</button>
+  <div class="ph">动态窗口 → 绽放进空间 → 展开记忆 → 收回<br><b>完整流程</b> · 点灵动岛进入 · 点"收回"返回</div>
 </div>
 
 <script>
@@ -345,9 +381,26 @@ function openExp(i){const o=ORBS[i],big=$('orbBig');applyHue(big,o.type);
   $('expBody').innerHTML=o.body;$('exp').classList.add('show');stage.classList.add('detail');}
 function closeExp(){$('exp').classList.remove('show');stage.classList.remove('detail');}
 $('expBack').onclick=closeExp;$('expScrim').onclick=closeExp;
-$('island').onclick=()=>{if(!bloomed)bloom();};
 
-function play(){closeExp();focusF=Math.floor(N/2);stage.classList.remove('bloomed');bloomed=false;render();setTimeout(bloom,700);}
+/* 收回到动态窗口:记忆球飞回灵动岛,窗口归位 */
+function collapseToWindow(){closeExp();setT(false);
+  orbEls.forEach((el,i)=>{el.style.transition=`transform .7s cubic-bezier(.4,.2,.2,1) ${(N-1-i)*0.045}s,opacity .55s ease ${(N-1-i)*0.045}s,filter .5s ease`;el.style.transform='translate(0,-360px) scale(.12)';el.style.opacity='0';el.style.filter='blur(6px)';});
+  stage.classList.remove('bloomed');bloomed=false;}
+
+let playT=[];
+function clearPlay(){playT.forEach(clearTimeout);playT=[];}
+function at2(ms,fn){playT.push(setTimeout(fn,ms));}
+$('island').onclick=()=>{clearPlay();if(!bloomed)bloom();};
+$('wclose').onclick=()=>{clearPlay();collapseToWindow();};
+
+/* 完整流程自动演示:动态窗口 → 绽放进空间 → 展开一颗记忆 → 收回球 → 收回窗口 */
+function play(){clearPlay();closeExp();stage.classList.remove('bloomed');bloomed=false;focusF=Math.floor(N/2);
+  setT(false);orbEls.forEach(el=>{el.style.transform='translate(0,-360px) scale(.12)';el.style.opacity='0';el.style.filter='blur(6px)';});
+  at2(1600,()=>bloom());                            // ① 绽放进空间
+  at2(3500,()=>{focusF=4;render();openExp(4);});    // ② 展开「提车 100 天」
+  at2(6300,()=>closeExp());                         // ③ 收回该球到转轮
+  at2(7400,()=>collapseToWindow());                 // ④ 收回到动态窗口
+}
 $('ask').onclick=play;play();
 </script>
 <style>
