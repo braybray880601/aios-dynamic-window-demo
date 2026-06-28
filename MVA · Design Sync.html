@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="robots" content="noindex,nofollow" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Design Sync · MVA for I3 MAX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@100;200;300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg-deep:#080b10;
+    --bg:#0c1016;
+    --bg-up:#141b25;
+    --ink:#f3f6fa;
+    --steel:#9fb1c6;
+    --steel-dim:rgba(159,177,198,.60);
+    --body:rgba(214,223,233,.80);
+    --hair:rgba(159,177,198,.15);
+    --hair-strong:rgba(159,177,198,.28);
+    --chrome:linear-gradient(180deg,#ffffff 0%,#e6edf6 52%,#c4d1e1 100%);
+    --maxw:1160px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg-deep);
+    color:var(--body);
+    font-family:"Hanken Grotesk","PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,sans-serif;
+    font-weight:300;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.7;
+    overflow-x:hidden;
+  }
+
+  /* ── background layers ── */
+  .bg{position:fixed;inset:0;z-index:-3;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #1b2533 0%, #10161f 38%, #0a0e14 70%, #07090d 100%);
+  }
+  .bg-pool{position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(60% 42% at 50% 30%, rgba(150,180,216,.20), rgba(120,150,195,.07) 46%, transparent 70%),
+      radial-gradient(80% 60% at 50% 120%, rgba(150,178,214,.16), transparent 60%);
+  }
+  .bg-vignette{position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:radial-gradient(120% 110% at 50% 45%, transparent 55%, rgba(0,0,0,.45) 100%);}
+  .bg-grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.045;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+  /* ── scroll progress ── */
+  .progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:60;
+    background:var(--chrome);opacity:.85;box-shadow:0 0 14px rgba(190,210,238,.5)}
+
+  /* ── top bar ── */
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px clamp(20px,4vw,52px);
+    background:linear-gradient(180deg,rgba(8,11,16,.72),rgba(8,11,16,0));
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+  .brand{display:flex;align-items:center;gap:13px}
+  .brand svg{width:26px;height:26px;display:block;opacity:.95}
+  .brand .wm{font-weight:400;letter-spacing:.16em;font-size:14px;color:var(--ink);text-transform:uppercase}
+  .tag{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--steel-dim);font-weight:500}
+
+  /* ── layout ── */
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(22px,5vw,56px)}
+  section{position:relative}
+  .eyebrow{font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--steel);font-weight:600}
+
+  /* ── hero ── */
+  .hero{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:120px 0 80px;position:relative}
+  .hero .eyebrow{margin-bottom:30px;animation:rise 1.1s .1s both cubic-bezier(.2,.7,.2,1)}
+
+  /* abstract presence — an edgeless, drifting light field, deliberately NOT a defined orb */
+  .hero-aura{position:absolute;inset:-12% 0;z-index:-1;pointer-events:none}
+  .wisp{position:absolute;border-radius:50%;mix-blend-mode:screen;will-change:transform}
+  .wisp.w1{width:min(46vw,560px);height:min(32vw,380px);left:14%;top:20%;filter:blur(46px);
+    background:radial-gradient(closest-side,rgba(150,190,238,.50),transparent 70%);animation:drift1 22s ease-in-out infinite}
+  .wisp.w2{width:min(42vw,520px);height:min(42vw,520px);left:40%;top:12%;filter:blur(52px);
+    background:radial-gradient(closest-side,rgba(118,160,220,.42),transparent 70%);animation:drift2 27s ease-in-out infinite}
+  .wisp.w3{width:min(30vw,360px);height:min(24vw,300px);left:48%;top:34%;filter:blur(44px);
+    background:radial-gradient(closest-side,rgba(182,170,230,.36),transparent 70%);animation:drift3 31s ease-in-out infinite}
+  .wisp.w4{width:min(24vw,300px);height:min(24vw,300px);left:28%;top:32%;filter:blur(42px);
+    background:radial-gradient(closest-side,rgba(140,206,216,.30),transparent 70%);animation:drift3 25s ease-in-out infinite reverse}
+  /* translate-only: avoids re-rasterizing the blur each frame */
+  @keyframes drift1{0%,100%{transform:translate(0,0)}33%{transform:translate(4vw,-3vw)}66%{transform:translate(-3vw,2vw)}}
+  @keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-5vw,3vw)}}
+  @keyframes drift3{0%,100%{transform:translate(0,0)}40%{transform:translate(3vw,3vw)}80%{transform:translate(2vw,-2vw)}}
+
+  .hero h1{font-weight:200;font-size:clamp(52px,10vw,124px);line-height:1.04;letter-spacing:-.02em;
+    background:var(--chrome);-webkit-background-clip:text;background-clip:text;color:transparent;
+    margin-top:18px;animation:rise 1.2s .3s both cubic-bezier(.2,.7,.2,1)}
+  .hero .sub{margin-top:22px;font-size:clamp(15px,2vw,19px);color:var(--steel);font-weight:300;
+    letter-spacing:.02em;max-width:34ch;animation:rise 1.2s .45s both cubic-bezier(.2,.7,.2,1)}
+  .hero .meta{margin-top:34px;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--steel-dim);
+    display:flex;gap:18px;align-items:center;animation:rise 1.2s .6s both cubic-bezier(.2,.7,.2,1)}
+  .hero .meta i{width:4px;height:4px;border-radius:50%;background:var(--steel-dim);font-style:normal}
+  .scrollhint{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);
+    font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--steel-dim);
+    display:flex;flex-direction:column;align-items:center;gap:10px;animation:fade 1s 1.2s both}
+  .scrollhint span{width:1px;height:42px;background:linear-gradient(var(--steel-dim),transparent);animation:drop 2.4s ease-in-out infinite}
+
+  /* ── section scaffold ── */
+  .block{padding:clamp(70px,11vh,140px) 0}
+  .sec-head{margin-bottom:54px}
+  .sec-n{font-size:clamp(34px,5vw,62px);font-weight:100;color:var(--steel);opacity:.5;line-height:1;
+    letter-spacing:.04em;display:block}
+  .sec-head h2{font-weight:300;font-size:clamp(26px,3.6vw,42px);color:var(--ink);line-height:1.12;
+    letter-spacing:-.01em;margin:14px 0 0;max-width:24ch}
+  .sec-head .lead{margin-top:22px;font-size:clamp(15px,1.7vw,18px);color:var(--body);max-width:60ch}
+  .hairline{height:1px;background:var(--hair);width:100%}
+
+  /* ── 7 directions grid ── */
+  .dirs{display:grid;grid-template-columns:1fr 1fr;gap:0 clamp(34px,5vw,72px)}
+  .dir{display:grid;grid-template-columns:auto 1fr;gap:22px;padding:26px 0;border-top:1px solid var(--hair)}
+  .dir-n{font-weight:100;font-size:30px;color:var(--steel);opacity:.62;line-height:1.1;min-width:1.4em}
+  .dir h3{font-weight:600;font-size:17px;color:var(--ink);letter-spacing:.005em;margin-bottom:8px;line-height:1.3}
+  .dir p{font-size:16px;color:var(--body);font-weight:300;line-height:1.66}
+
+  /* ── transition connector ── */
+  .bridge{display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px;
+    padding:clamp(50px,8vh,96px) 0}
+  .bridge .stem{width:1px;height:44px;background:linear-gradient(var(--steel-dim),transparent)}
+  .bridge p{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:400;
+    font-size:clamp(19px,2.5vw,27px);color:var(--ink);line-height:1.4;max-width:46ch;opacity:.92}
+  .bridge .to{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--steel);font-weight:600;font-family:"Hanken Grotesk",sans-serif}
+
+  /* ── avatar intro ── */
+  .avatar-intro{font-size:clamp(16px,1.9vw,20px);color:var(--body);max-width:62ch;line-height:1.66}
+  .avatar-intro b{color:var(--ink);font-weight:500}
+  .cjk{font-weight:400}
+
+  /* ── pull quote ── */
+  .pullquote{margin:clamp(46px,7vh,80px) 0;padding-left:clamp(22px,3vw,40px);
+    border-left:1px solid var(--hair-strong);position:relative}
+  .pullquote::before{content:"";position:absolute;left:-1px;top:0;width:1px;height:42%;
+    background:linear-gradient(rgba(190,210,238,.7),transparent)}
+  .pullquote p{font-family:"Cormorant Garamond",serif;font-weight:300;font-style:italic;
+    font-size:clamp(23px,3.2vw,38px);line-height:1.34;color:var(--ink);letter-spacing:.005em}
+
+  /* ── argument groups ── */
+  .arg{margin-top:clamp(40px,6vh,72px)}
+  .grp-label{font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--steel);font-weight:600;
+    padding-bottom:18px;margin-bottom:8px;border-bottom:1px solid var(--hair);display:flex;align-items:center;gap:14px}
+  .grp-label .x{font-weight:100;font-size:18px;opacity:.6}
+  .points{list-style:none}
+  .points li{padding:20px 0;border-top:1px solid var(--hair);font-size:15.5px;color:var(--body);line-height:1.66;max-width:74ch}
+  .points li:first-child{border-top:0}
+  .points .k{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:500;font-size:18.5px;
+    color:var(--ink);margin-right:4px}
+  .points li .cjk{color:var(--steel);font-weight:400}
+
+  /* ── presentation note + demo button ── */
+  .presnote{font-size:15.5px;color:var(--body);line-height:1.7;max-width:74ch;margin-top:8px}
+  .presnote em{font-style:normal;color:var(--ink);font-weight:500}
+  .presnote .seal{display:block;margin-top:20px;font-family:"Cormorant Garamond",serif;font-style:italic;
+    font-size:clamp(18px,2.3vw,25px);color:var(--ink);letter-spacing:.005em}
+  .embed{margin-top:38px}
+  .screen{border:1px solid var(--hair-strong);border-radius:7px;overflow:hidden;background:#0a0e14;
+    box-shadow:0 34px 90px rgba(0,0,0,.55), 0 0 70px rgba(120,160,220,.08)}
+  .screen-bar{display:flex;align-items:center;gap:16px;padding:11px 16px;border-bottom:1px solid var(--hair);
+    background:linear-gradient(180deg,rgba(159,177,198,.06),rgba(159,177,198,.015))}
+  .screen-bar .live{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--steel);font-weight:600}
+  .screen-bar .live i{width:7px;height:7px;border-radius:50%;background:#bfe0ff;
+    box-shadow:0 0 10px rgba(150,200,255,.9);animation:breathe 3s ease-in-out infinite}
+  .screen-title{flex:1;font-size:12px;letter-spacing:.06em;color:var(--steel-dim);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .screen-open{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel);
+    text-decoration:none;padding:6px 13px;border:1px solid var(--hair-strong);border-radius:3px;
+    transition:all .3s;white-space:nowrap}
+  .screen-open:hover{color:var(--ink);border-color:rgba(190,210,238,.5);background:rgba(159,177,198,.06)}
+  .screen-body{position:relative;aspect-ratio:16/10;background:#06080c}
+  .screen-body iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+  .screen-play{position:absolute;inset:0;width:100%;height:100%;border:0;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    background:radial-gradient(60% 70% at 50% 42%, rgba(120,160,220,.16), transparent 70%), linear-gradient(180deg,#0c1119,#070a0e);
+    transition:background .4s}
+  .screen-play:hover{background:radial-gradient(60% 70% at 50% 42%, rgba(140,180,238,.26), transparent 70%), linear-gradient(180deg,#0e131c,#080b10)}
+  .screen-play .pbtn{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:19px;color:var(--ink);border:1px solid rgba(190,210,238,.4);background:rgba(159,177,198,.06);
+    padding-left:4px;transition:transform .35s,border-color .35s,box-shadow .35s}
+  .screen-play:hover .pbtn{transform:scale(1.08);border-color:rgba(190,210,238,.7);box-shadow:0 0 40px rgba(120,160,220,.3)}
+  .screen-play .ptext{font-size:13.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;color:var(--steel)}
+  .screen-play:hover .ptext{color:var(--ink)}
+  .screen-play .phint{font-size:11px;letter-spacing:.08em;color:var(--steel-dim)}
+  .embed figcaption{margin-top:16px;font-family:"Cormorant Garamond",serif;font-style:italic;
+    font-size:17px;color:var(--steel-dim);letter-spacing:.01em}
+
+  /* ── needs blocks ── */
+  .needs{margin-top:clamp(34px,5vh,60px);display:grid;gap:30px}
+  .need{border-top:1px solid var(--hair-strong);padding-top:30px}
+  .need-h{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:baseline;margin-bottom:20px}
+  .need-h .n{font-weight:100;font-size:34px;color:var(--steel);opacity:.6;line-height:.9}
+  .need-h h4{font-weight:500;font-size:clamp(18px,2.2vw,23px);color:var(--ink);line-height:1.3;letter-spacing:-.005em}
+  .need-h h4 small{display:block;font-size:13px;color:var(--steel-dim);font-weight:300;letter-spacing:.02em;margin-top:6px;text-transform:none}
+  .need ul{list-style:none;padding-left:54px}
+  .need>ul>li{position:relative;padding:9px 0 9px 22px;font-size:15px;color:var(--body);line-height:1.6}
+  .need>ul>li::before{content:"";position:absolute;left:0;top:17px;width:8px;height:1px;background:var(--steel)}
+  .need ul ul{padding-left:24px;margin-top:4px}
+  .need ul ul li{position:relative;padding:5px 0 5px 20px;font-size:14px;color:var(--steel);line-height:1.55}
+  .need ul ul li::before{content:"";position:absolute;left:0;top:14px;width:5px;height:5px;border:1px solid var(--steel-dim);border-radius:50%}
+  .need .genui{margin-top:14px;padding:16px 20px;border-left:1px solid var(--hair-strong);
+    font-size:14.5px;color:var(--ink);font-style:italic;font-family:"Cormorant Garamond",serif;font-size:18px;line-height:1.45;margin-left:0}
+
+  /* ── 03 diagram ── */
+  .diagram{margin:clamp(32px,5vh,56px) 0;overflow-x:auto;padding-bottom:6px}
+  .diagram svg{width:100%;min-width:900px;height:auto;display:block}
+  .diagram figcaption{margin-top:18px;font-family:"Cormorant Garamond",serif;font-style:italic;
+    font-size:17px;color:var(--steel-dim);letter-spacing:.01em}
+  .points li.redline{border-top-color:rgba(224,116,106,.42)}
+  .points li.redline .k{color:#ec9a93}
+  .tag-red{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+    color:#ec9a93;border:1px solid rgba(224,116,106,.5);border-radius:3px;padding:3px 9px;margin-right:13px;
+    vertical-align:2px;background:rgba(224,116,106,.06)}
+
+  /* ── next-step CTA ── */
+  .nextstep{margin-top:clamp(42px,6vh,74px);padding:clamp(28px,3.2vw,44px);
+    border:1px solid var(--hair-strong);border-radius:7px;background:rgba(120,160,220,.05)}
+  .ns-label{display:inline-block;font-size:12px;letter-spacing:.28em;text-transform:uppercase;
+    font-weight:600;color:#9fc0ea;margin-bottom:18px}
+  .ns-lead{font-size:clamp(20px,2.2vw,25px);color:var(--ink);font-weight:300;line-height:1.42;max-width:54ch}
+  .ns-pts{margin-top:26px;display:grid;gap:18px}
+  .ns-pt{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:baseline}
+  .ns-pt .ns-n{font-weight:200;font-size:24px;color:rgba(150,190,238,.85);line-height:1}
+  .ns-pt p{font-size:17.5px;color:var(--body);line-height:1.6;max-width:62ch}
+  .ns-pt b{color:var(--ink);font-weight:500}
+
+  /* ── industry demos · embedded screen recordings (portrait) ── */
+  .fxrow{margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,3vw,36px)}
+  .fxstage{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--hair);
+    background:radial-gradient(130% 100% at 50% 12%, #18202d 0%, #0c111a 56%, #080b11 100%);
+    display:flex;justify-content:center;align-items:center;padding:30px 0}
+  .vidp{height:440px;max-height:64vh;width:auto;max-width:90%;aspect-ratio:1290/2796;
+    border-radius:26px;background:#000;display:block;object-fit:cover;
+    box-shadow:0 26px 60px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06)}
+  .fxcard figcaption b{display:block;font-size:14.5px;color:var(--ink);font-weight:600;letter-spacing:.03em;margin-top:15px}
+  .fxcard figcaption span{display:block;font-size:13px;color:var(--steel-dim);margin-top:3px}
+  .fxcredit{margin-top:18px;font-family:"Cormorant Garamond",serif;font-style:italic;font-size:16px;color:var(--steel-dim)}
+  @media(max-width:680px){.fxrow{grid-template-columns:1fr}.vidp{height:380px}}
+
+  /* ── footer ── */
+  footer{padding:clamp(60px,10vh,120px) 0 70px;text-align:center;border-top:1px solid var(--hair);margin-top:40px}
+  footer .brand{justify-content:center;margin-bottom:20px}
+  footer .fnote{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--steel-dim);
+    display:flex;gap:16px;justify-content:center;align-items:center;flex-wrap:wrap}
+  footer .fnote i{width:4px;height:4px;border-radius:50%;background:var(--steel-dim);font-style:normal}
+
+  /* ── reveal ── */
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity 1s cubic-bezier(.2,.7,.2,1),transform 1s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  @keyframes rise{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes breathe{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.06);opacity:1}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes drop{0%{transform:scaleY(0);transform-origin:top}45%{transform:scaleY(1);transform-origin:top}55%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+  @media(max-width:760px){
+    .dirs{grid-template-columns:1fr}
+    .need ul{padding-left:0}
+    .need-h{grid-template-columns:1fr;gap:6px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important}
+    html{scroll-behavior:auto}
+    .reveal{opacity:1;transform:none}
+    .hero .eyebrow,.hero h1,.hero .sub,.hero .meta,.orb{animation:none!important;opacity:1!important;transform:none!important}
+  }
+
+  /* ── presentation sizing · larger body for projecting / presenting ── */
+  .hero .sub{font-size:clamp(17px,2.1vw,21px)}
+  .sec-head .lead{font-size:clamp(18px,1.9vw,22px)}
+  .avatar-intro{font-size:clamp(19px,2.1vw,23px);line-height:1.66}
+  .grp-label{font-size:13px}
+  .points li{font-size:18.5px;line-height:1.72;max-width:78ch}
+  .points .k{font-size:21px}
+  .presnote{font-size:18.5px;line-height:1.72;max-width:78ch}
+  .dir h3{font-size:18px}
+  .dir p{font-size:17px;line-height:1.7}
+  .need-h h4{font-size:clamp(20px,2.3vw,25px)}
+  .need-h h4 small{font-size:14.5px}
+  .need>ul>li{font-size:17.5px;line-height:1.62}
+  .need ul ul li{font-size:16px}
+  .need .genui{font-size:19.5px}
+  .diagram figcaption,.embed figcaption{font-size:18px}
+</style>
+<style id="__aiosgate_css">
+#__aiosgate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(130% 130% at 50% -10%,#141b27 0%,#0a0e15 48%,#05070b 100%);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+#__aiosgate *{box-sizing:border-box}
+#__aiosgate .gcard{width:340px;max-width:86vw;text-align:center;padding:40px 34px 30px}
+#__aiosgate .gorb{width:62px;height:62px;border-radius:50%;margin:0 auto 22px;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);box-shadow:0 0 30px rgba(140,180,255,.45),inset 0 0 16px rgba(255,255,255,.35);animation:__gspin 7s linear infinite}
+#__aiosgate .gt{font-size:19px;font-weight:680;letter-spacing:.2px;color:#fff;margin:0 0 6px}
+#__aiosgate .gs{font-size:12.5px;color:rgba(255,255,255,.5);margin:0 0 26px;letter-spacing:.04em}
+#__aiosgate .gin{width:100%;height:46px;border-radius:13px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;text-align:center;letter-spacing:.18em;outline:none;transition:border-color .2s,background .2s,box-shadow .2s}
+#__aiosgate .gin::placeholder{letter-spacing:.06em;color:rgba(255,255,255,.32)}
+#__aiosgate .gin:focus{border-color:rgba(127,200,255,.6);background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(91,140,255,.18)}
+#__aiosgate .gb{width:100%;height:46px;margin-top:12px;border:0;border-radius:13px;background:linear-gradient(150deg,#5b8cff,#7a5bff);color:#fff;font-size:14.5px;font-weight:640;letter-spacing:.04em;cursor:pointer;transition:filter .2s,transform .1s}
+#__aiosgate .gb:hover{filter:brightness(1.08)}
+#__aiosgate .gb:active{transform:scale(.985)}
+#__aiosgate .ge{height:16px;margin-top:13px;font-size:12px;color:#ff8086;opacity:0;transition:opacity .2s}
+#__aiosgate .gf{margin-top:22px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.26)}
+@keyframes __gspin{to{transform:rotate(360deg)}}
+@keyframes __gshake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(5px)}50%{transform:translateX(-7px)}}
+</style>
+<script>
+(function(){
+  var KEY='aios_demo_unlock_v1';
+  var HASH='cc35f579797e106bb3ea97001fc565e8eb7d6b0a385920f2fc6721ddcc606d59';
+  function ok(){try{return localStorage.getItem(KEY)===HASH;}catch(e){return false;}}
+  if(ok())return;
+  function sha(s){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ('0'+x.toString(16)).slice(-2);}).join('');});}
+  function build(){
+    if(document.getElementById('__aiosgate'))return;
+    var ov=document.createElement('div');
+    ov.id='__aiosgate';
+    ov.innerHTML='<div class="gcard"><div class="gorb"></div><div class="gt">AIOS Dynamic Window</div><div class="gs">Mercedes-Benz · MVA — Private preview</div><input class="gin" id="__gp" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter password"><button class="gb" id="__gb">Unlock</button><div class="ge" id="__ge">Incorrect password</div><div class="gf">Authorized access only</div></div>';
+    (document.body||document.documentElement).appendChild(ov);
+    var inp=document.getElementById('__gp'),btn=document.getElementById('__gb'),err=document.getElementById('__ge'),card=ov.querySelector('.gcard'),busy=false;
+    function go(){
+      if(busy)return;busy=true;
+      sha(inp.value||'').then(function(h){
+        busy=false;
+        if(h===HASH){try{localStorage.setItem(KEY,HASH);}catch(e){}ov.style.transition='opacity .4s ease';ov.style.opacity='0';setTimeout(function(){if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);},420);}
+        else{err.style.opacity='1';inp.value='';card.style.animation='__gshake .42s';setTimeout(function(){card.style.animation='';},440);try{inp.focus();}catch(e){}}
+      });
+    }
+    btn.addEventListener('click',go);
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter')go();else err.style.opacity='0';});
+    setTimeout(function(){try{inp.focus();}catch(e){}},120);
+  }
+  if(document.documentElement)build();else document.addEventListener('DOMContentLoaded',build);
+})();
+</script>
+</head>
+<body>
+<div class="bg"></div>
+<div class="bg-pool"></div>
+<div class="bg-vignette"></div>
+<div class="bg-grain"></div>
+<div class="progress" id="progress"></div>
+
+<!-- ── top bar ── -->
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 100 100" fill="none" aria-label="Mercedes-Benz">
+      <circle cx="50" cy="50" r="45" stroke="#e8eef5" stroke-width="3"/>
+      <path d="M50 50 L50 6 M50 50 L88 72 M50 50 L12 72" stroke="#e8eef5" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    <span class="wm">Mercedes-Benz</span>
+  </div>
+  <span class="tag">AIOS · Design Sync</span>
+</header>
+
+<!-- ── hero ── -->
+<section class="hero">
+  <span class="eyebrow">Mercedes-Benz · AIOS · MVA</span>
+  <div class="hero-aura" aria-hidden="true">
+    <div class="wisp w1"></div>
+    <div class="wisp w2"></div>
+    <div class="wisp w3"></div>
+    <div class="wisp w4"></div>
+  </div>
+  <h1>Design Sync</h1>
+  <p class="sub">MVA — product strategy, the assistant's form, and generative UI for I3 MAX.</p>
+  <div class="meta"><span>Product × Design</span><i></i><span>I3 MAX</span><i></i><span>For review</span></div>
+  <div class="scrollhint">Scroll<span></span></div>
+</section>
+
+<!-- ── 01 strategy ── -->
+<section class="block wrap">
+  <div class="sec-head reveal">
+    <span class="sec-n">01</span>
+    <h2>Overall MVA product strategy</h2>
+    <p class="lead">MVA is moving from a voice assistant to the intelligence layer of the whole cabin — it converses, acts, remembers, and orchestrates. Seven directions:</p>
+  </div>
+
+  <div class="dirs">
+    <div class="dir reveal"><span class="dir-n">01</span><div class="dir-c"><h3>Natural full-duplex dialogue</h3><p>LLM-driven, free and human-like: broader context, a more natural voice, stronger false-trigger rejection.</p></div></div>
+    <div class="dir reveal"><span class="dir-n">02</span><div class="dir-c"><h3>Collaborative task completion</h3><p>A GUI agent that breaks a spoken request into steps and runs them itself: find, download, open an app, jump to the exact page.</p></div></div>
+    <div class="dir reveal"><span class="dir-n">03</span><div class="dir-c"><h3>Cross-app orchestration</h3><p>Dispatches and combines the cabin's atomic capabilities across app boundaries, delivering the service or content directly instead of making the user app-hop.</p></div></div>
+    <div class="dir reveal"><span class="dir-n">04</span><div class="dir-c"><h3>Memory &amp; personalization</h3><p>Long- and short-term memory of behavior and preference; proactive prompts timed from real usage data, not guesses.</p></div></div>
+    <div class="dir reveal"><span class="dir-n">05</span><div class="dir-c"><h3>Adaptive form</h3><p>Different forms across interfaces and hardware, reshaping to the scene and generating the content that fits.</p></div></div>
+    <div class="dir reveal"><span class="dir-n">06</span><div class="dir-c"><h3>Multimodal perception</h3><p>Senses and reflects the world back (vision, text, audio, cabin state, fused through the LLM) for more direct feedback and mutual trust.</p></div></div>
+    <div class="dir reveal"><span class="dir-n">07</span><div class="dir-c"><h3>Expert orchestration</h3><p>Marshals domain expert agents, hands them tasks, and turns their expertise into one continuous conversation with the user.</p></div></div>
+  </div>
+</section>
+
+<!-- ── bridge ── -->
+<div class="bridge wrap reveal">
+  <span class="stem"></span>
+  <p>Direction 5 — adaptive form — turns straight into a design question: what should that intelligence actually look like on screen?</p>
+  <span class="to">↓ &nbsp;Topic 02</span>
+</div>
+
+<!-- ── 02 avatar ── -->
+<section class="block wrap">
+  <div class="sec-head reveal">
+    <span class="sec-n">02</span>
+    <h2>The MVA “avatar” for I3 MAX</h2>
+  </div>
+
+  <p class="avatar-intro reveal">As the visual representative of AIOS, MVA should be an <b>abstract form — like Siri and Gemini</b> — not a solid face or character. Our current Starlight (<span class="cjk">星辉</span>) and little-Benz (<span class="cjk">小奔</span>) are still too figurative; for I3 MAX we want to move past them to something fully abstract. Whether that abstraction is light, an orb, or something else is open — the point is abstract, not a character.</p>
+
+  <blockquote class="pullquote reveal">
+    <p>Starting from I2 MAX, we want the whole system to re-skin for holidays and campaigns, Tesla-style — avatar included. Once you commit to theming, the form has to stay abstract to be more flexible. Theming is one of the reasons to keep it abstract rather than a fixed character.</p>
+  </blockquote>
+
+  <!-- why abstract wins -->
+  <div class="arg reveal">
+    <div class="grp-label"><span class="x">✦</span> Why abstract wins · Theming — the strongest argument</div>
+    <ul class="points">
+      <li><span class="k">Parametric, not an asset.</span> An abstract form is a parameter set (color, motion, density) and a theme is just a preset. A character is a fixed asset — re-skinning means redraw + re-rig every time, or a hat slapped on while the character fights the theme underneath.</li>
+      <li><span class="k">The identity paradox.</span> A character's value is a stable, recognizable identity — but theming demands change, so the more you alter it the more you erode what justified it. An abstract form has no fixed identity to erode, so it re-skins infinitely — which is exactly what our planned celebrity-customized personas need: a base you can dress in a star's voice and visual signature, swap per user, and retire on demand. A fixed character can only ever be itself; an abstract presence can wear any star's cues — signature, palette, motion — e.g. <span class="cjk">张艺兴, 苏翊鸣, 王楚钦</span>.</li>
+      <li><span class="k">Coherence &amp; cadence.</span> An abstract form lives in the system's own material, so it themes in lockstep and ships at token speed — a dozen skins a year. A character is a foreign object, hand-matched per theme, two a year at best.</li>
+      <li><span class="k">The industry already turned.</span> Tesla — most committed to whole-system theming — has no avatar; its personality lives in motion, sound, and light. Siri, Gemini, ChatGPT, and Super Eva are all moving their assistants toward an abstract form.</li>
+    </ul>
+  </div>
+
+  <div class="arg reveal">
+    <div class="grp-label"><span class="x">✦</span> What “abstract” looks like in the wild</div>
+    <div class="fxrow">
+      <figure class="fxcard">
+        <div class="fxstage">
+          <video class="vidp" controls playsinline preload="metadata" poster="videos/siri-poster.png">
+            <source src="videos/siri.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <figcaption><b>Apple Intelligence · Siri</b><span>the screen-edge glow, in use</span></figcaption>
+      </figure>
+      <figure class="fxcard">
+        <div class="fxstage">
+          <video class="vidp" controls playsinline preload="metadata" poster="videos/gemini-poster.png">
+            <source src="videos/gemini.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <figcaption><b>Google · Gemini</b><span>Gemini Live, in use</span></figcaption>
+      </figure>
+    </div>
+    <p class="fxcredit">The assistants in use — presence rendered as light and gradient, not a character.</p>
+  </div>
+
+  <div class="arg reveal">
+    <div class="grp-label"><span class="x">✦</span> Supporting reasons</div>
+    <ul class="points">
+      <li><span class="k">Positioning.</span> An abstract presence reads as “the whole system is responding to you” — the OS-level register. A character demotes it to “a thing living inside the screen.”</li>
+      <li><span class="k">Craft goes up.</span> The work shifts from drawing a character to designing a living material and a motion system.</li>
+      <li><span class="k">Warmth through behavior, not a face.</span> Personality lives in how it breathes, anticipates, and responds — in motion, voice, and tone.</li>
+    </ul>
+  </div>
+
+  <div class="arg reveal">
+    <div class="grp-label"><span class="x">✦</span> We've already solved overall MVA presentation</div>
+    <p class="presnote">The Nebula window and the smart island beneath it are already the AI's body and status display — they carry activity, results, and state. A heavy, shape-shifting character on top spends the expressiveness budget twice and competes for the same attention. Cleaner split: the window and island carry the <em>what</em>; MVA only needs to signal <em>alive / listening</em> — one quiet, ambient cue, readable in peripheral vision, no extra focal point for the driver.
+      <span class="seal">Restraint here isn't compromise, it's maturity.</span>
+    </p>
+  </div>
+
+  <!-- all in all -->
+  <div class="arg reveal">
+    <div class="grp-label"><span class="x">▣</span> All in all — what we need for I3 MAX</div>
+    <div class="needs">
+      <div class="need">
+        <div class="need-h">
+          <span class="n">1</span>
+          <h4>An abstract avatar + Nebula window + smart island, designed as one<small>smart island = the former smart bar</small></h4>
+        </div>
+        <ul>
+          <li>One shared style and ambient-effect system.</li>
+          <li>Cohesive motion across all three — for example:
+            <ul>
+              <li>the avatar's expression reflects what the Nebula window is showing;</li>
+              <li>an AI recommendation surfaces in the smart island, then resolves into a card in the feed.</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <div class="need">
+        <div class="need-h">
+          <span class="n">2</span>
+          <h4>MVA lives inside the overall system design — not beside it or added on to it</h4>
+        </div>
+        <ul>
+          <li><b style="color:var(--ink);font-weight:500">Onboarding</b> — the avatar is present from first run.</li>
+          <li><b style="color:var(--ink);font-weight:500">Profile</b> — MVA customization ties to the user profile; MVA is exclusive per user, including an MVA “memory board” in the profile module.</li>
+          <li><b style="color:var(--ink);font-weight:500">Ambient language</b> — how MVA expresses itself across modules:
+            <ul>
+              <li>empowering any module (e.g. image optimization);</li>
+              <li>execution — a “say what you see” execution animation;</li>
+              <li>AI recommendation.</li>
+            </ul>
+          </li>
+        </ul>
+        <p class="genui">That ambient language is really Gen-UI applied across the system — which is where we'd like your input.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── bridge to 03 ── -->
+<div class="bridge wrap reveal">
+  <span class="stem"></span>
+  <p>That ambient language is really Gen-UI applied across the system. If we generate components, here's the pipeline — and where design sits in it.</p>
+  <span class="to">↓ &nbsp;Topic 03</span>
+</div>
+
+<!-- ── 03 gen-ui ── -->
+<section class="block wrap">
+  <div class="sec-head reveal">
+    <span class="sec-n">03</span>
+    <h2>Gen-UI &amp; widgets for I3 MAX</h2>
+    <p class="lead">Whatever design decides, the bar is the same: across two surfaces — <b>chat UI</b> and <b>vehicle-control components</b> — we need to satisfy diverse, scene-specific visual needs as flexibly as possible (the scenario list is tracked separately). If design chooses to <b>generate</b> some of those components with Gen-UI, this is the flow — and the two places design holds the wheel.</p>
+  </div>
+
+  <figure class="diagram reveal">
+    <svg viewBox="0 0 1240 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The Gen-UI pipeline: authored in-house, generated as A2UI JSON, composed from a finite component set on the client.">
+      <defs>
+        <marker id="ah" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L7,3 L0,6" fill="none" stroke="rgba(159,177,198,.6)" stroke-width="1.3"/>
+        </marker>
+        <marker id="ahb" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L7,3 L0,6" fill="none" stroke="rgba(150,190,238,.8)" stroke-width="1.3"/>
+        </marker>
+        <marker id="ahr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L7,3 L0,6" fill="none" stroke="rgba(224,116,106,.8)" stroke-width="1.3"/>
+        </marker>
+        <style>
+          .dh{fill:rgba(159,177,198,.82);font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:2.4px}
+          .nt{fill:#eef3f9;font:600 16px 'Hanken Grotesk',sans-serif}
+          .ns{fill:rgba(159,177,198,.66);font:300 12px 'Hanken Grotesk',sans-serif}
+          .qs{fill:rgba(214,223,233,.78);font:italic 300 12.5px 'Cormorant Garamond',serif}
+          .nl{fill:rgba(150,190,238,.72);font:500 11px 'Hanken Grotesk',sans-serif;letter-spacing:1.2px}
+          .nlx{fill:rgba(159,177,198,.6);font:400 11px 'Hanken Grotesk',sans-serif;letter-spacing:.6px}
+          .rl{fill:#ec9a93;font:500 12px 'Hanken Grotesk',sans-serif;letter-spacing:.4px}
+          .fbl{fill:rgba(150,190,238,.74);font:italic 400 13px 'Cormorant Garamond',serif}
+        </style>
+      </defs>
+
+      <!-- lane headers -->
+      <text class="dh" x="198" y="30" text-anchor="middle">AUTHOR · IN-HOUSE</text>
+      <text class="dh" x="618" y="30" text-anchor="middle">GENERATE · GEN-UI AGENT</text>
+      <text class="dh" x="1031" y="30" text-anchor="middle">RENDER · CLIENT · FINITE SET</text>
+      <line x1="40" y1="44" x2="1200" y2="44" stroke="rgba(159,177,198,.18)" stroke-width="1"/>
+      <line x1="408" y1="58" x2="408" y2="552" stroke="rgba(159,177,198,.10)" stroke-width="1"/>
+      <line x1="838" y1="58" x2="838" y2="552" stroke="rgba(159,177,198,.10)" stroke-width="1"/>
+
+      <!-- model / agent zone -->
+      <rect x="432" y="66" width="372" height="486" rx="9" fill="rgba(120,160,220,.035)" stroke="rgba(150,190,238,.34)" stroke-width="1.2" stroke-dasharray="5 6"/>
+      <text class="nlx" x="618" y="540" text-anchor="middle" style="fill:rgba(150,190,238,.6)">the model / agent — the component library never enters here</text>
+
+      <!-- Component Library (red line) -->
+      <rect x="70" y="82" width="256" height="74" rx="5" fill="rgba(159,177,198,.04)" stroke="rgba(224,116,106,.55)" stroke-width="1.3"/>
+      <text class="nt" x="86" y="115">Component Library</text>
+      <text class="ns" x="86" y="135">R&amp;D · the finite component set</text>
+      <text class="rl" x="70" y="176">●  Red line — never uploaded to the model</text>
+      <path d="M198,156 L198,230" fill="none" stroke="rgba(224,116,106,.55)" stroke-width="1.4" marker-end="url(#ahr)"/>
+      <text class="nlx" x="208" y="198">extract specs · by hand</text>
+
+      <!-- Catalog Skill -->
+      <rect x="70" y="232" width="256" height="74" rx="5" fill="rgba(120,160,220,.06)" stroke="rgba(150,190,238,.42)" stroke-width="1.2"/>
+      <text class="nt" x="86" y="265">Catalog Skill · A2UI</text>
+      <text class="ns" x="86" y="285">co-built · product · R&amp;D · design</text>
+      <path d="M198,306 L198,380" fill="none" stroke="rgba(159,177,198,.5)" stroke-width="1.4" marker-end="url(#ah)"/>
+      <text class="nlx" x="208" y="348">informs</text>
+
+      <!-- System Prompt -->
+      <rect x="70" y="382" width="256" height="74" rx="5" fill="rgba(120,160,220,.06)" stroke="rgba(150,190,238,.42)" stroke-width="1.2"/>
+      <text class="nt" x="86" y="415">System Prompt</text>
+      <text class="ns" x="86" y="435">product · R&amp;D · from the Skill</text>
+
+      <!-- cross-in arrows to the agent -->
+      <path d="M326,269 L466,278" fill="none" stroke="rgba(150,190,238,.6)" stroke-width="1.4" marker-end="url(#ahb)"/>
+      <path d="M326,419 C402,419 404,300 466,300" fill="none" stroke="rgba(150,190,238,.6)" stroke-width="1.4" marker-end="url(#ahb)"/>
+
+      <!-- Query -->
+      <rect x="470" y="90" width="296" height="58" rx="5" fill="rgba(120,160,220,.06)" stroke="rgba(150,190,238,.42)" stroke-width="1.2"/>
+      <text class="nt" x="486" y="116" style="font-size:15px">Query</text>
+      <text class="qs" x="486" y="135">“Generate an ambient-light control card”</text>
+      <path d="M618,148 L618,236" fill="none" stroke="rgba(150,190,238,.6)" stroke-width="1.4" marker-end="url(#ahb)"/>
+
+      <!-- Gen-UI Agent -->
+      <rect x="470" y="238" width="296" height="74" rx="5" fill="rgba(120,160,220,.11)" stroke="rgba(150,190,238,.6)" stroke-width="1.3"/>
+      <text class="nt" x="486" y="271">Gen-UI Agent</text>
+      <text class="ns" x="486" y="291">reads Catalog Skill + System Prompt</text>
+      <path d="M618,312 L618,398" fill="none" stroke="rgba(150,190,238,.6)" stroke-width="1.4" marker-end="url(#ahb)"/>
+      <text class="nl" x="628" y="360">evaluate · verify</text>
+
+      <!-- A2UI JSON -->
+      <rect x="470" y="400" width="296" height="74" rx="5" fill="rgba(120,160,220,.06)" stroke="rgba(150,190,238,.42)" stroke-width="1.2"/>
+      <text class="nt" x="486" y="433">A2UI JSON</text>
+      <text class="ns" x="486" y="453">structured UI — not code or pixels</text>
+
+      <!-- json -> sdk -->
+      <path d="M766,437 C842,437 850,326 898,326" fill="none" stroke="rgba(159,177,198,.5)" stroke-width="1.4" marker-end="url(#ah)"/>
+
+      <!-- Gen-UI SDK -->
+      <text class="nl" x="1031" y="284" text-anchor="middle" style="fill:rgba(159,177,198,.7)">compose, not generate</text>
+      <rect x="900" y="292" width="262" height="74" rx="5" fill="rgba(159,177,198,.04)" stroke="rgba(159,177,198,.3)" stroke-width="1.2"/>
+      <text class="nt" x="916" y="325">Gen-UI SDK</text>
+      <text class="ns" x="916" y="345">composes pre-built components</text>
+      <path d="M1031,366 L1031,422" fill="none" stroke="rgba(159,177,198,.5)" stroke-width="1.4" marker-end="url(#ah)"/>
+
+      <!-- Card -->
+      <rect x="900" y="424" width="262" height="74" rx="5" fill="rgba(159,177,198,.04)" stroke="rgba(159,177,198,.3)" stroke-width="1.2"/>
+      <text class="nt" x="916" y="457">Card</text>
+      <text class="ns" x="916" y="477">finite set · saved · drives car control</text>
+
+      <!-- feedback loop -->
+      <path d="M1031,498 L1031,576 L46,576 L46,269 L64,269" fill="none" stroke="rgba(150,190,238,.45)" stroke-width="1.3" stroke-dasharray="4 5" marker-end="url(#ahb)"/>
+      <text class="fbl" x="538" y="569" text-anchor="middle">design evaluates rendered cards  →  tunes the System Prompt &amp; Catalog Skill</text>
+    </svg>
+    <figcaption>The pipeline: authored in-house, generated as structured A2UI JSON, composed from a finite component set on the client — with design closing the loop.</figcaption>
+  </figure>
+
+  <div class="arg reveal">
+    <div class="grp-label"><span class="x">✦</span> How to read it — four things to hold onto</div>
+    <ul class="points">
+      <li class="redline"><span class="tag-red">Red line</span><span class="k">The component library never goes to the model.</span> It's built for R&amp;D and is the finite set of real components. Uploading it to the model does <b>not</b> happen — this is the hard line. The model only ever sees the Catalog Skill and the System Prompt.</li>
+      <li><span class="k">The Catalog Skill is the quality gate.</span> A document co-built by product · R&amp;D · design, in Google's A2UI form — it lifts the component library's design specs and cautions into a per-component schema the model can read. Generation quality lives or dies here.</li>
+      <li><span class="k">The System Prompt is the second lever.</span> Written by product · R&amp;D from the Skill — it also shapes what the model is allowed to produce.</li>
+      <li><span class="k">The SDK composes, it doesn't generate.</span> R&amp;D's Gen-UI SDK assembles pre-built components per scene from a finite set — composition, not free-form front-end. Because the set is bounded, design can <b>evaluate every result</b> and feed corrections back into the prompt and the Catalog Skill.</li>
+    </ul>
+  </div>
+
+  <blockquote class="pullquote reveal">
+    <p>Design holds the wheel at both ends — authoring the Catalog Skill that bounds what can be built, and judging the cards that tune it. Nothing is rendered live on the device: cards are composed from pre-built components, their JSON generated and saved back-stage — and every step of that pre-build is bounded by design.</p>
+  </blockquote>
+
+  <div class="nextstep reveal">
+    <span class="ns-label">Next step — the ask</span>
+    <p class="ns-lead">Product · R&amp;D and design run this pipeline together — one joint pass, end to end.</p>
+    <div class="ns-pts">
+      <div class="ns-pt"><span class="ns-n">01</span><p>Is the <b>flow feasible</b> in practice — does it hold together end to end?</p></div>
+      <div class="ns-pt"><span class="ns-n">02</span><p>Do the <b>generated results clear design's quality bar</b>?</p></div>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <div class="brand">
+    <svg viewBox="0 0 100 100" fill="none" aria-label="Mercedes-Benz">
+      <circle cx="50" cy="50" r="45" stroke="#e8eef5" stroke-width="3"/>
+      <path d="M50 50 L50 6 M50 50 L88 72 M50 50 L12 72" stroke="#e8eef5" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    <span class="wm">Mercedes-Benz</span>
+  </div>
+  <div class="fnote"><span>AIOS · MVA</span><i></i><span>Design Sync</span><i></i><span>Internal — for review</span></div>
+</footer>
+
+<script>
+  (function(){
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var reveals = document.querySelectorAll('.reveal');
+    if(reduce){
+      reveals.forEach(function(el){el.classList.add('in')});
+    } else {
+      var io = new IntersectionObserver(function(es){
+        es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+      },{threshold:0.12, rootMargin:'0px 0px -8% 0px'});
+      reveals.forEach(function(el){io.observe(el)});
+    }
+    var bar = document.getElementById('progress');
+    function onScroll(){
+      var h = document.documentElement.scrollHeight - window.innerHeight;
+      var p = h>0 ? (window.scrollY/h) : 0;
+      bar.style.width = (p*100).toFixed(2)+'%';
+    }
+    window.addEventListener('scroll', onScroll, {passive:true});
+    onScroll();
+
+    var pd = document.getElementById('playDemo');
+    if(pd){ pd.addEventListener('click', function(){
+      var body = pd.parentNode;
+      var f = document.createElement('iframe');
+      f.src = 'AIOS%20Demo%20%C2%B7%20Runner%20%E4%B8%B2%E5%9C%BA.html';
+      f.title = 'Nebula window demo';
+      f.setAttribute('allow', 'autoplay; fullscreen');
+      body.innerHTML = '';
+      body.appendChild(f);
+    }); }
+  })();
+</script>
+</body>
+</html>
