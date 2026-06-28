@@ -6,167 +6,159 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>奔驰 · Stargate 记忆空间</title>
 <!--
-  Stargate 记忆空间 · Hero(第一步)
-  灵动岛绽放 → 记忆球转轮(转轮 + 记忆星空)→ 点球就地展开 → 返回
-  四类球:过去卡片(天气/比赛) · 对话总结记忆 · 生成壁纸 · 特殊 moment(提车100天)
-  纯软件、单文件;球空间是 stage 上一层"绽放浮层";转轮=旋钮就绪(滑动=软旋钮)。
-  下一步再加:当下沉淀入岛 · 留存/消散手势 · 泊车/行车安全区自适应。
+  Stargate 记忆空间 · Hero(第一步 v2)
+  灵动岛绽放 → 记忆球转轮 → 点球:球体放大 + 内部内容展开(像窥入一颗记忆)→ 返回
+  球体走「头脑特工队记忆球」气质:单色调 · 自内发光 · 通透精致(无彩虹生硬感)
+  四类内容各有色:天气=青蓝 · 赛事=薄荷 · 对话记忆=暖金 · 壁纸=极光影像 · 提车100天=玫瑰金
 -->
 <style>
-  :root{
-    --ink:#eef1f4;--soft:rgba(238,241,244,.62);--faint:rgba(238,241,244,.4);
-    --ring:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);
-  }
+  :root{--ink:#eef1f4;--soft:rgba(238,241,244,.66);--faint:rgba(238,241,244,.42)}
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%;background:#04060a;overflow:hidden;color:var(--ink);
     font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
   .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
   .stage{position:relative;width:1300px;height:812px;overflow:hidden;transform-origin:center center;border-radius:20px;box-shadow:0 40px 120px rgba(0,0,0,.7)}
 
-  /* ── 深空背景(非平铺深蓝,带极淡星云冷暖)── */
+  /* 深空背景 */
   .space{position:absolute;inset:0;z-index:0;
     background:
-      radial-gradient(115% 80% at 50% 14%, rgba(64,96,150,.20), transparent 55%),
-      radial-gradient(85% 70% at 80% 82%, rgba(120,82,156,.17), transparent 60%),
-      radial-gradient(80% 80% at 16% 78%, rgba(38,112,124,.13), transparent 60%),
-      linear-gradient(180deg,#0a0e17,#070a12 58%,#05070d);
+      radial-gradient(115% 80% at 50% 12%, rgba(58,88,140,.18), transparent 56%),
+      radial-gradient(85% 70% at 82% 84%, rgba(116,80,150,.15), transparent 60%),
+      radial-gradient(80% 80% at 14% 80%, rgba(36,108,120,.12), transparent 60%),
+      linear-gradient(180deg,#0a0e16,#070a11 58%,#05070c);
     opacity:0;transition:opacity 1.1s ease}
   .stage.bloomed .space{opacity:1}
   #dust{position:absolute;inset:0;width:100%;height:100%}
-  .vignette{position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:radial-gradient(120% 100% at 50% 50%,transparent 58%,rgba(3,5,10,.55))}
+  .vignette{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(120% 100% at 50% 50%,transparent 56%,rgba(3,5,10,.58))}
 
-  /* ── 顶部标题 ── */
+  /* 标题 */
   .hd{position:absolute;top:40px;left:0;right:0;z-index:8;text-align:center;opacity:0;transform:translateY(-8px);transition:opacity .7s ease .25s,transform .7s ease .25s;pointer-events:none}
   .stage.bloomed .hd{opacity:1;transform:none}
-  .hd .t{font-size:21px;font-weight:300;letter-spacing:3px}
-  .hd .t b{font-weight:650}
+  .hd .t{font-size:21px;font-weight:300;letter-spacing:3px}.hd .t b{font-weight:650}
   .hd .s{margin-top:7px;font-size:12px;letter-spacing:.22em;color:var(--faint);text-transform:uppercase}
 
-  /* ── 灵动岛(入口/收束点)── */
-  .island{position:absolute;top:30px;left:50%;transform:translateX(-50%);z-index:20;
-    display:flex;align-items:center;gap:10px;padding:9px 17px 9px 11px;border-radius:24px;
-    background:rgba(16,20,30,.82);backdrop-filter:blur(20px) saturate(1.2);
-    box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.1);cursor:pointer;
+  /* 灵动岛 */
+  .island{position:absolute;top:30px;left:50%;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:10px;padding:9px 17px 9px 11px;border-radius:24px;
+    background:rgba(16,20,30,.82);backdrop-filter:blur(20px) saturate(1.2);box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.1);cursor:pointer;
     transition:opacity .5s ease,transform .6s cubic-bezier(.4,1.3,.5,1)}
   .island .io{width:22px;height:22px;border-radius:50%;position:relative;flex:none}
-  .island .io::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--ring);filter:blur(.4px);animation:spin 6s linear infinite}
+  .island .io::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);filter:blur(.4px);animation:spin 6s linear infinite}
   .island .io::after{content:"";position:absolute;inset:5px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6))}
-  .island .il{font-size:13px;font-weight:600;color:#eef1f4;white-space:nowrap}
-  .island .il b{color:#bcd4ff}
+  .island .il{font-size:13px;font-weight:600;color:#eef1f4;white-space:nowrap}.island .il b{color:#bcd4ff}
   .stage.bloomed .island{opacity:0;transform:translateX(-50%) translateY(-14px) scale(.9);pointer-events:none}
   @keyframes spin{to{transform:rotate(360deg)}}
 
   /* ── 转轮 ── */
   .wheel{position:absolute;inset:0;z-index:6}
-  .orb{position:absolute;left:50%;top:50%;width:230px;height:230px;margin:-115px 0 0 -115px;
-    will-change:transform,opacity,filter;touch-action:none}
-  .orb .float{width:100%;height:100%;position:relative;animation:bob 6s ease-in-out infinite}
-  /* 玻璃/记忆球体 */
+  .orb{position:absolute;left:50%;top:50%;width:228px;height:228px;margin:-114px 0 0 -114px;will-change:transform,opacity,filter;touch-action:none}
+  .orb .float{width:100%;height:100%;position:relative;animation:bob 6.5s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(-7px)}50%{transform:translateY(7px)}}
+
+  /* 记忆球体:单色调 · 自内发光 · 通透(头脑特工队气质) */
   .ball{position:absolute;inset:0;border-radius:50%;overflow:hidden;
     background:
-      radial-gradient(circle at 34% 26%, rgba(255,255,255,.22), rgba(255,255,255,.05) 38%, rgba(10,15,26,.42) 72%, rgba(6,10,18,.62)),
-      radial-gradient(circle at 68% 78%, rgba(120,160,220,.16), transparent 55%);
-    box-shadow:0 24px 60px rgba(0,0,0,.5), inset 0 2px 10px rgba(255,255,255,.18), inset 0 -16px 30px rgba(0,0,0,.4);
-    backdrop-filter:blur(2px)}
-  .ball::after{content:"";position:absolute;left:20%;top:13%;width:30%;height:22%;border-radius:50%;
-    background:radial-gradient(circle,rgba(255,255,255,.55),transparent 70%);filter:blur(3px);opacity:.7}
-  /* 光环(avatar 光)*/
-  .ring{position:absolute;inset:-7px;border-radius:50%;padding:7px;background:var(--ring);
-    -webkit-mask:radial-gradient(circle, transparent calc(50% - 0.5px), #000 50%);mask:radial-gradient(circle, transparent calc(50% - 0.5px), #000 50%);
-    filter:blur(.4px);opacity:.0;transition:opacity .5s ease}
-  .ringglow{position:absolute;inset:-6px;border-radius:50%;background:var(--ring);filter:blur(16px);opacity:0;transition:opacity .55s ease}
-  .orb.focus .ring{opacity:.95;animation:ringbreath 4.5s ease-in-out infinite}
-  .orb.focus .ringglow{opacity:.45;animation:glowbreath 4.5s ease-in-out infinite}
-  .orb:not(.focus) .ring{opacity:.3}
-  @keyframes ringbreath{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.025);opacity:1}}
-  @keyframes glowbreath{0%,100%{opacity:.34}50%{opacity:.6}}
-  @keyframes bob{0%,100%{transform:translateY(-6px)}50%{transform:translateY(6px)}}
-  /* 球内"封存"的一瞥 */
-  .glimpse{position:absolute;inset:0;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:7px;padding:30px}
-  .glimpse .em{font-size:42px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4))}
-  .glimpse .gl{font-size:15px;font-weight:600;color:#fff;opacity:0;transform:translateY(4px);transition:opacity .45s ease,transform .45s ease}
-  .glimpse .gs{font-size:11.5px;color:rgba(255,255,255,.66);opacity:0;transition:opacity .45s ease .04s}
-  .orb.focus .glimpse .gl,.orb.focus .glimpse .gs{opacity:1;transform:none}
-  .orb:not(.focus) .glimpse{filter:saturate(.7) brightness(.86)}
-  /* 影像球(壁纸):整颗是图 */
+      radial-gradient(circle at 36% 27%, rgba(255,255,255,.62), rgba(255,255,255,.16) 26%, transparent 52%),
+      radial-gradient(circle at 50% 60%, var(--hlt), var(--hmid) 52%, var(--hrim) 100%);
+    box-shadow:inset 0 3px 18px rgba(255,255,255,.5), inset 0 -26px 50px -14px var(--hsh), inset 0 0 0 1px rgba(255,255,255,.28), 0 22px 60px -16px var(--hglow);
+    transition:box-shadow .5s ease}
+  .ball .core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2}
+  .ball .core .em{font-size:44px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.22)) saturate(1.05)}
+  /* 自内辉光(随焦点增强) */
+  .ringglow{position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle,var(--hglow),transparent 68%);filter:blur(16px);opacity:.22;transition:opacity .55s ease}
+  .orb.focus .ringglow{opacity:.7;animation:glowbreath 5s ease-in-out infinite}
+  @keyframes glowbreath{0%,100%{opacity:.55}50%{opacity:.82}}
+  /* 焦点:细腻虹彩薄环(avatar 光的精致版,不喧宾夺主) */
+  .ring{position:absolute;inset:-2px;border-radius:50%;padding:2px;
+    background:conic-gradient(from 200deg,rgba(170,205,255,0),rgba(196,170,255,.85),rgba(255,182,212,.85),rgba(255,224,170,.85),rgba(150,224,198,.85),rgba(170,205,255,0));
+    -webkit-mask:radial-gradient(circle,transparent calc(50% - 0.5px),#000 50%);mask:radial-gradient(circle,transparent calc(50% - 0.5px),#000 50%);
+    opacity:0;transition:opacity .5s ease}
+  .orb.focus .ring{opacity:.75;animation:ringbreath 5s ease-in-out infinite}
+  @keyframes ringbreath{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.018);opacity:.85}}
+  /* 影像球(壁纸) */
   .ball.img{background:none}
-  .ball.img .pic{position:absolute;inset:0}
-  .ball.img::before{content:"";position:absolute;inset:0;border-radius:50%;z-index:2;
-    box-shadow:inset 0 2px 12px rgba(255,255,255,.28), inset 0 -18px 34px rgba(0,0,0,.45)}
-  .ball.img .glassveil{position:absolute;inset:0;z-index:1;background:radial-gradient(circle at 34% 26%,rgba(255,255,255,.28),transparent 42%)}
-  /* moment 球:更隆重 */
-  .orb.moment .ball{background:
-      radial-gradient(circle at 36% 28%, rgba(255,236,200,.3), rgba(255,205,150,.08) 40%, rgba(40,24,12,.5) 74%, rgba(20,12,8,.66)),
-      radial-gradient(circle at 70% 76%, rgba(255,170,90,.18), transparent 55%)}
-  .orb.moment .ring{--ring:conic-gradient(from 200deg,#ffd27a,#ffb066,#ff9bb0,#ffe1a6,#ffd27a)}
-  .orb.moment .spk{position:absolute;inset:0;border-radius:50%;pointer-events:none;overflow:hidden}
-  .orb.moment .spk i{position:absolute;width:3px;height:3px;border-radius:50%;background:#ffe7b8;box-shadow:0 0 6px #ffd27a;opacity:.0;animation:spark 3.2s ease-in-out infinite}
+  .ball.img .pic{position:absolute;inset:0;border-radius:50%}
+  .ball.img::before{content:"";position:absolute;inset:0;z-index:1;border-radius:50%;background:radial-gradient(circle at 36% 27%,rgba(255,255,255,.5),transparent 42%)}
+  .ball.img::after{content:"";position:absolute;inset:0;z-index:2;border-radius:50%;box-shadow:inset 0 3px 18px rgba(255,255,255,.42),inset 0 -26px 50px -14px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.3)}
+  /* moment 火花 */
+  .orb.moment .spk{position:absolute;inset:0;border-radius:50%;pointer-events:none;overflow:hidden;z-index:3}
+  .orb.moment .spk i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff1d8;box-shadow:0 0 7px #ffd9a6;opacity:0;animation:spark 3.6s ease-in-out infinite}
+  @keyframes spark{0%,100%{opacity:0;transform:translateY(2px) scale(.5)}45%{opacity:.95}70%{opacity:.5}100%{opacity:0;transform:translateY(-9px) scale(1)}}
+  /* 标题(球下方,焦点显示) */
+  .cap{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:16px;white-space:nowrap;text-align:center;opacity:0;transition:opacity .45s ease}
+  .orb.focus .cap{opacity:1}
+  .cap .gl{font-size:15.5px;font-weight:650;color:#fff;letter-spacing:.04em}
+  .cap .gs{display:block;font-size:11.5px;color:var(--soft);margin-top:3px}
 
   /* ── 底部"软旋钮"刻度 ── */
-  .dial{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);z-index:8;
-    display:flex;flex-direction:column;align-items:center;gap:13px;opacity:0;transition:opacity .6s ease .35s}
+  .dial{position:absolute;left:50%;bottom:50px;transform:translateX(-50%);z-index:8;display:flex;flex-direction:column;align-items:center;gap:13px;opacity:0;transition:opacity .6s ease .35s}
   .stage.bloomed .dial{opacity:1}
-  .ticks{position:relative;width:300px;height:26px;overflow:hidden;-webkit-mask:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);mask:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
-  .ticks .row{position:absolute;left:50%;top:50%;display:flex;gap:0;transform:translate(-50%,-50%);transition:transform .5s cubic-bezier(.2,.8,.2,1)}
-  .ticks .row span{display:block;width:34px;text-align:center;font-size:10px;color:rgba(255,255,255,.32);font-weight:600;letter-spacing:.05em}
+  .ticks{position:relative;width:300px;height:24px;overflow:hidden;-webkit-mask:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent);mask:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent)}
+  .ticks .row{position:absolute;left:50%;top:50%;display:flex;transform:translate(-50%,-50%);transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+  .ticks .row span{display:block;width:34px;text-align:center;font-size:10px;color:rgba(255,255,255,.3);font-weight:600;letter-spacing:.05em;transition:color .3s}
   .ticks .row span.on{color:#cfe0ff}
-  .ticks .mark{position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,#9fc2ff,transparent);border-radius:2px}
-  .dial .knob{width:40px;height:40px;border-radius:50%;position:relative;background:radial-gradient(circle at 38% 34%,#27313f,#10151d);box-shadow:0 6px 16px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.1)}
-  .dial .knob::before{content:"";position:absolute;inset:-2px;border-radius:50%;background:var(--ring);filter:blur(2px);opacity:.5;-webkit-mask:radial-gradient(circle,transparent 60%,#000 62%);mask:radial-gradient(circle,transparent 60%,#000 62%)}
-  .dial .knob i{position:absolute;left:50%;top:6px;width:3px;height:9px;border-radius:2px;background:#bcd4ff;transform:translateX(-50%);transform-origin:50% 14px;transition:transform .5s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 6px rgba(159,194,255,.8)}
-
-  .hint{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:8;font-size:11.5px;letter-spacing:.14em;color:var(--faint);opacity:0;transition:opacity .6s ease .5s}
+  .ticks .mark{position:absolute;left:50%;top:1px;bottom:1px;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,#9fc2ff,transparent);border-radius:2px}
+  .dial .knob{width:38px;height:38px;border-radius:50%;position:relative;background:radial-gradient(circle at 38% 34%,#27313f,#10151d);box-shadow:0 6px 16px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.1)}
+  .dial .knob i{position:absolute;left:50%;top:6px;width:3px;height:8px;border-radius:2px;background:#bcd4ff;transform:translateX(-50%);transform-origin:50% 13px;transition:transform .5s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 6px rgba(159,194,255,.8)}
+  .hint{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:8;font-size:11.5px;letter-spacing:.14em;color:var(--faint);opacity:0;transition:opacity .6s ease .5s}
   .stage.bloomed .hint{opacity:1}
 
-  /* ── 就地展开(覆盖球空间)── */
-  .exp{position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:54px}
+  /* ── 就地展开:球体放大 + 内部内容(像窥入记忆),转轮让位 ── */
+  .exp{position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center}
   .exp.show{display:flex}
-  .exp .scrim{position:absolute;inset:0;background:rgba(4,6,11,.34);opacity:0;transition:opacity .45s ease}
+  .exp .scrim{position:absolute;inset:0;background:rgba(4,6,11,.4);opacity:0;transition:opacity .5s ease}
   .exp.show .scrim{opacity:1}
-  .exp .card{position:relative;width:720px;max-width:90%;max-height:84%;overflow:auto;border-radius:30px;padding:34px 40px;color:#fff;opacity:0;transform:scale(.86);
-    transition:opacity .52s cubic-bezier(.2,.9,.25,1),transform .52s cubic-bezier(.2,.9,.25,1);
-    background:rgba(15,21,32,.78);backdrop-filter:blur(34px) saturate(1.2);box-shadow:0 50px 130px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1),0 0 80px rgba(120,150,230,.14)}
-  .exp.show .card{opacity:1;transform:none}
-  /* 展开 = 转轮就地隐去、内容替换整片空间(球"打开",非中央弹窗) */
-  .stage.detail .wheel,.stage.detail .dial,.stage.detail .hint,.stage.detail .hd{opacity:0!important;pointer-events:none;transition:opacity .4s ease}
-  .exp .back{position:absolute;top:18px;left:18px;z-index:3;display:flex;align-items:center;gap:6px;border:0;cursor:pointer;font-family:inherit;font-size:13px;font-weight:650;color:#cfe0ff;background:rgba(91,140,255,.16);box-shadow:inset 0 0 0 1px rgba(91,140,255,.3);padding:7px 13px 7px 11px;border-radius:11px}
-  .exp .back:hover{background:rgba(91,140,255,.3)}
+  .back{position:absolute;top:30px;left:30px;z-index:6;display:flex;align-items:center;gap:6px;border:0;cursor:pointer;font-family:inherit;font-size:13px;font-weight:650;color:#cfe0ff;background:rgba(91,140,255,.16);box-shadow:inset 0 0 0 1px rgba(91,140,255,.3);padding:8px 14px 8px 11px;border-radius:12px;opacity:0;transition:opacity .4s ease .15s,background .2s}
+  .exp.show .back{opacity:1}.back:hover{background:rgba(91,140,255,.3)}
+  .orbbig{position:relative;width:580px;height:580px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:
+      radial-gradient(circle at 40% 28%, rgba(255,255,255,.2), transparent 36%),
+      radial-gradient(circle at 50% 50%, rgba(11,15,24,.72), rgba(13,18,29,.52) 50%, var(--hmid) 84%, var(--hrim) 100%);
+    box-shadow:inset 0 3px 22px rgba(255,255,255,.28), inset 0 0 0 1px rgba(255,255,255,.16), inset 0 -34px 80px -22px rgba(0,0,0,.55), 0 50px 130px -24px var(--hglow), 0 0 110px -10px var(--hglow);
+    opacity:0;transform:scale(.34);transition:transform .64s cubic-bezier(.2,.92,.26,1),opacity .5s ease}
+  .exp.show .orbbig{opacity:1;transform:none}
+  .orbbig .bigring{position:absolute;inset:-2px;border-radius:50%;padding:2px;background:conic-gradient(from 200deg,rgba(170,205,255,0),rgba(196,170,255,.7),rgba(255,182,212,.7),rgba(255,224,170,.7),rgba(150,224,198,.7),rgba(170,205,255,0));
+    -webkit-mask:radial-gradient(circle,transparent calc(50% - .5px),#000 50%);mask:radial-gradient(circle,transparent calc(50% - .5px),#000 50%);opacity:.6;animation:ringbreath 6s ease-in-out infinite}
+  .orbbig .spec{position:absolute;left:24%;top:14%;width:24%;height:16%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.6),transparent 70%);filter:blur(5px)}
+  .inner{position:relative;z-index:3;width:74%;max-height:78%;overflow:auto;text-align:center;color:#fff;
+    opacity:0;transform:translateY(10px);transition:opacity .5s ease .22s,transform .5s ease .22s}
+  .exp.show .inner{opacity:1;transform:none}
+  .inner::-webkit-scrollbar{display:none}
+  .xtag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.04em;color:rgba(255,255,255,.82);background:rgba(255,255,255,.12);padding:4px 12px;border-radius:20px;margin-bottom:16px}
+  /* 影像球展开:整颗是图 */
+  .orbbig.imgbig{background:none;overflow:hidden}
+  .orbbig.imgbig .pic{position:absolute;inset:0;z-index:0}
+  .orbbig.imgbig::after{content:"";position:absolute;inset:0;z-index:1;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),inset 0 -60px 90px -30px rgba(0,0,0,.6)}
+  .orbbig.imgbig .inner{align-self:flex-end;margin-bottom:64px;width:70%}
 
-  /* 展开内容样式 */
-  .xw{position:relative}
-  .xtag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.04em;color:#cfe0ff;background:rgba(91,140,255,.16);padding:4px 11px;border-radius:20px;margin-bottom:14px}
-  .x-weather .big{font-size:64px;font-weight:200;line-height:.95}.x-weather .big sup{font-size:22px;vertical-align:top}
-  .x-weather .loc{font-size:15px;font-weight:600}.x-weather .sub{font-size:13px;color:var(--soft);margin-top:4px}
-  .x-weather .hrs{display:flex;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.14)}
-  .x-weather .hr{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--soft)}.x-weather .hr b{font-size:13px;color:#fff;font-weight:600}
-  .x-match .row{display:flex;align-items:center;gap:12px;padding:10px 0;font-size:14px}.x-match .row+.row{border-top:1px solid rgba(255,255,255,.07)}
-  .x-match .rk{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:rgba(255,255,255,.08)}.x-match .rk.top{background:#ffcf6a;color:#0b0a14}
-  .x-match .tm{flex:1;font-weight:600}.x-match .pt{font-weight:800;font-size:16px}
-  .x-mem{font-size:17px;line-height:1.7;font-weight:400;color:#f3f5f8}.x-mem .q{font-size:19px;line-height:1.6}.x-mem .meta{margin-top:16px;font-size:12.5px;color:var(--faint);letter-spacing:.04em}
-  .x-wall{position:relative;border-radius:18px;overflow:hidden;height:300px;display:flex;align-items:flex-end}
-  .x-wall .ph{position:absolute;inset:0}.x-wall .cap{position:relative;padding:18px;font-size:14px;font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.5)}.x-wall .cap span{display:block;font-size:11.5px;color:rgba(255,255,255,.8);font-weight:400;margin-top:3px}
-  .x-moment{text-align:center}
-  .x-moment .num{font-size:74px;font-weight:200;line-height:1;background:linear-gradient(120deg,#ffe1a6,#ffb066);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .x-moment .ttl{font-size:15px;letter-spacing:.2em;color:#ffd9a0;margin-top:4px}
-  .x-moment .stats{display:flex;justify-content:center;gap:26px;margin:20px 0 16px}
-  .x-moment .st b{display:block;font-size:24px;font-weight:300}.x-moment .st span{font-size:11.5px;color:var(--soft)}
-  .x-moment .bless{font-size:15px;color:#fff;line-height:1.7}
+  /* 展开内容(居中、适配圆形) */
+  .x-weather .big{font-size:72px;font-weight:200;line-height:.92}.x-weather .big sup{font-size:24px;vertical-align:top;font-weight:300}
+  .x-weather .loc{font-size:15px;font-weight:600}.x-weather .sub{font-size:13px;color:var(--soft);margin-top:6px}
+  .x-weather .hrs{display:flex;justify-content:center;gap:20px;margin-top:20px}
+  .x-weather .hr{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11.5px;color:var(--soft)}.x-weather .hr b{font-size:13px;color:#fff;font-weight:600}
+  .x-match .mt{font-size:15px;font-weight:700;margin-bottom:6px}
+  .x-match .row{display:flex;align-items:center;gap:11px;padding:9px 4px;font-size:14px}.x-match .row+.row{border-top:1px solid rgba(255,255,255,.09)}
+  .x-match .rk{width:21px;height:21px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;background:rgba(255,255,255,.12)}.x-match .rk.top{background:#ffcf6a;color:#0b0a14}
+  .x-match .tm{flex:1;text-align:left;font-weight:600}.x-match .pt{font-weight:800;font-size:16px}
+  .x-mem .q{font-size:19px;line-height:1.66;font-weight:400;color:#fff}.x-mem .meta{margin-top:18px;font-size:12px;color:rgba(255,255,255,.6);letter-spacing:.04em}
+  .x-moment .num{font-size:78px;font-weight:200;line-height:1;background:linear-gradient(120deg,#fff0d6,#ffb98a);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .x-moment .ttl{font-size:14px;letter-spacing:.24em;color:#ffdcb0;margin-top:4px}
+  .x-moment .stats{display:flex;justify-content:center;gap:24px;margin:20px 0 16px}
+  .x-moment .st b{display:block;font-size:23px;font-weight:300}.x-moment .st span{font-size:11px;color:var(--soft)}
+  .x-moment .bless{font-size:15px;line-height:1.7;color:#fff}
+  .x-wall .cap2{font-size:15px;font-weight:600;text-shadow:0 2px 12px rgba(0,0,0,.6)}.x-wall .cap2 span{display:block;font-size:11.5px;color:rgba(255,255,255,.82);font-weight:400;margin-top:4px}
 
-  /* 极光壁纸(纯 CSS 生成感)*/
   .aurora{background:
-    radial-gradient(80% 60% at 20% 30%, rgba(120,220,200,.6), transparent 60%),
-    radial-gradient(70% 70% at 80% 25%, rgba(150,130,255,.55), transparent 60%),
-    radial-gradient(90% 80% at 60% 90%, rgba(255,140,190,.45), transparent 60%),
-    linear-gradient(160deg,#0a1f2a,#1a1430 60%,#2a1430)}
+    radial-gradient(80% 60% at 22% 30%, rgba(122,222,202,.62), transparent 60%),
+    radial-gradient(70% 70% at 80% 24%, rgba(150,130,255,.56), transparent 60%),
+    radial-gradient(95% 80% at 60% 92%, rgba(255,140,190,.46), transparent 60%),
+    linear-gradient(160deg,#0a1f2a,#1a1430 58%,#2a1430)}
 
-  /* ── 开发面板 ── */
+  /* 开发面板 */
   .panel{position:fixed;top:18px;right:18px;width:230px;z-index:100;background:rgba(20,22,26,.9);backdrop-filter:blur(20px);border-radius:16px;padding:15px;color:#e8eaee;font-size:12.5px;box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08);opacity:.3;transform:scale(.86);transform-origin:top right;transition:.3s}
   .panel:hover{opacity:1;transform:none}
-  .panel .ti{font-size:13.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;margin-bottom:11px}.panel .ti i{width:8px;height:8px;border-radius:50%;background:var(--ring)}
+  .panel .ti{font-size:13.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;margin-bottom:11px}.panel .ti i{width:8px;height:8px;border-radius:50%;background:conic-gradient(from 0deg,#5b8cff,#ff6b9b,#ffab5b,#5b8cff)}
   .panel .ask{width:100%;border:0;border-radius:12px;cursor:pointer;font-family:inherit;font-weight:600;font-size:13.5px;padding:12px;color:#fff;background:linear-gradient(135deg,#5b8cff,#7a5bff)}
   .panel .ph{margin-top:10px;font-size:11px;color:#8b9098;border-top:1px solid rgba(255,255,255,.08);padding-top:9px}.panel .ph b{color:#9fe7b8}
-  @keyframes spark{0%,100%{opacity:0;transform:translateY(0) scale(.6)}40%{opacity:.9}60%{opacity:.7}100%{opacity:0;transform:translateY(-10px) scale(1)}}
 </style>
 <style id="__aiosgate_css">
 #__aiosgate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(130% 130% at 50% -10%,#141b27 0%,#0a0e15 48%,#05070b 100%);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
@@ -221,27 +213,24 @@
   <div class="stage" id="stage">
     <div class="space"><canvas id="dust"></canvas></div>
     <div class="vignette"></div>
-
     <div class="hd" id="hd"><div class="t">沉淀下来的<b>记忆</b></div><div class="s">Stargate · Memory Space</div></div>
-
     <div class="island" id="island"><span class="io"></span><span class="il">回看 · <b id="icnt">5</b> 颗记忆</span></div>
 
     <div class="wheel" id="wheel"></div>
 
-    <div class="dial" id="dial">
-      <div class="ticks"><div class="row" id="tickRow"></div><div class="mark"></div></div>
-      <div class="knob"><i id="knobI"></i></div>
-    </div>
+    <div class="dial" id="dial"><div class="ticks"><div class="row" id="tickRow"></div><div class="mark"></div></div><div class="knob"><i id="knobI"></i></div></div>
     <div class="hint" id="hint">← 滑动切换 · 点击展开 →</div>
 
-    <div class="exp" id="exp"><div class="scrim" id="expScrim"></div><div class="card" id="expCard"><button class="back" id="expBack">← 返回</button><div id="expBody"></div></div></div>
+    <div class="exp" id="exp"><div class="scrim" id="expScrim"></div><button class="back" id="expBack">← 返回</button>
+      <div class="orbbig" id="orbBig"><div class="bigring"></div><div class="spec"></div><div class="inner" id="expBody"></div></div>
+    </div>
   </div>
 </div>
 
 <div class="panel">
   <div class="ti"><i></i>Stargate 记忆空间</div>
   <button class="ask" id="ask">▶ 重新绽放</button>
-  <div class="ph">灵动岛绽放 → 记忆球转轮 → 点球就地展开<br><b>Hero 第一步</b> · 下一步加沉淀/留存/泊车行车</div>
+  <div class="ph">点球 = 球体放大 + 内部内容展开<br><b>Hero v2</b> · 头脑特工队记忆球质感</div>
 </div>
 
 <script>
@@ -249,123 +238,115 @@ const stage=document.getElementById('stage'), $=id=>document.getElementById(id);
 function fit(){stage.style.transform=`scale(${Math.min(innerWidth/1300,innerHeight/812)*0.985})`;}
 addEventListener('resize',fit);fit();
 
-/* ── 星尘 ── */
-(function(){const c=$('dust');const x=c.getContext('2d');let W,H,d,ps=[];
+/* 星尘 */
+(function(){const c=$('dust'),x=c.getContext('2d');let W,H,d,ps=[];
   function rs(){d=Math.min(devicePixelRatio||1,2);W=c.clientWidth;H=c.clientHeight;c.width=W*d;c.height=H*d;x.setTransform(d,0,0,d,0,0);
-    ps=[];const n=Math.round(W*H/9000);for(let i=0;i<n;i++)ps.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.3+.3,a:Math.random()*.5+.15,tw:Math.random()*Math.PI*2,sp:.2+Math.random()*.5,vx:(Math.random()-.5)*.06,vy:(Math.random()-.5)*.05});}
-  function f(){x.clearRect(0,0,W,H);for(const p of ps){p.tw+=0.02*p.sp;p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x+=W;if(p.x>W)p.x-=W;if(p.y<0)p.y+=H;if(p.y>H)p.y-=H;const a=p.a*(0.5+0.5*Math.sin(p.tw));x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fillStyle=`rgba(200,220,255,${a})`;x.fill();}requestAnimationFrame(f);}
+    ps=[];const n=Math.round(W*H/9000);for(let i=0;i<n;i++)ps.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.3+.3,a:Math.random()*.5+.15,tw:Math.random()*6.28,sp:.2+Math.random()*.5,vx:(Math.random()-.5)*.06,vy:(Math.random()-.5)*.05});}
+  function f(){x.clearRect(0,0,W,H);for(const p of ps){p.tw+=.02*p.sp;p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x+=W;if(p.x>W)p.x-=W;if(p.y<0)p.y+=H;if(p.y>H)p.y-=H;const a=p.a*(.5+.5*Math.sin(p.tw));x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fillStyle=`rgba(200,220,255,${a})`;x.fill();}requestAnimationFrame(f);}
   rs();f();addEventListener('resize',rs);})();
 
-/* ── 记忆球数据(四类)── */
+/* 色调(头脑特工队记忆球:单色调 luminous) */
+const HUE={
+  weather:{lt:'rgba(228,244,255,.92)',mid:'rgba(150,200,245,.82)',rim:'rgba(108,162,224,.72)',sh:'rgba(40,82,142,.42)',glow:'rgba(120,180,240,.55)'},
+  match:  {lt:'rgba(228,255,242,.92)',mid:'rgba(140,226,186,.8)', rim:'rgba(94,196,150,.72)', sh:'rgba(28,120,86,.42)', glow:'rgba(116,222,176,.5)'},
+  mem:    {lt:'rgba(255,246,228,.94)',mid:'rgba(255,212,150,.82)',rim:'rgba(236,176,116,.72)',sh:'rgba(150,92,38,.42)', glow:'rgba(255,200,135,.55)'},
+  wall:   {lt:'rgba(232,236,255,.9)', mid:'rgba(150,170,235,.6)', rim:'rgba(140,160,225,.6)', sh:'rgba(60,60,130,.4)',  glow:'rgba(150,160,235,.5)'},
+  moment: {lt:'rgba(255,242,234,.95)',mid:'rgba(255,196,176,.82)',rim:'rgba(240,158,140,.72)',sh:'rgba(158,80,60,.42)', glow:'rgba(255,178,156,.55)'}
+};
+function applyHue(el,t){const h=HUE[t];el.style.setProperty('--hlt',h.lt);el.style.setProperty('--hmid',h.mid);el.style.setProperty('--hrim',h.rim);el.style.setProperty('--hsh',h.sh);el.style.setProperty('--hglow',h.glow);}
+
+/* 记忆球数据 */
 const ORBS=[
-  {type:'weather',em:'🌧',gl:'今夜天气',gs:'中雨 · 14°',tag:'🌧 过去卡片 · 6月8日',
-   body:`<div class="xw x-weather"><span class="xtag">🌧 过去卡片 · 6 月 8 日</span><div class="loc">上海 · 今夜</div><div class="big">14<sup>°</sup></div><div class="sub">中雨 · 体感 12° · 降水 80% · 东风 3 级</div>
-   <div class="hrs">${[['现在','16°'],['22点','13°'],['23点','12°'],['0点','11°'],['1点','11°']].map(h=>`<div class="hr"><span>${h[0]}</span><b>${h[1]}</b></div>`).join('')}</div></div>`},
-  {type:'match',em:'⚽',gl:'世界杯 A 组',gs:'阿根廷领跑',tag:'⚽ 过去卡片 · 第 3 轮后',
-   body:`<div class="xw x-match"><span class="xtag">⚽ 过去卡片 · A 组积分榜</span>${[['1','阿根廷','7',1],['2','法国','6',0],['3','巴西','4',0],['4','西班牙','0',0]].map(r=>`<div class="row"><span class="rk${r[3]?' top':''}">${r[0]}</span><span class="tm">${r[1]}</span><span class="pt">${r[2]}</span></div>`).join('')}</div>`},
-  {type:'mem',em:'🧠',gl:'一段对话',gs:'那晚 · 很轻',tag:'🧠 对话记忆',
-   body:`<div class="xw x-mem"><span class="xtag">🧠 对话总结 · 记忆</span><div class="q">「那晚你说有点累,我们没聊正事——<br>就一起听完了一首《十年》,到家。」</div><div class="meta">6 月 8 日 21:36 · 由这段对话沉淀</div></div>`},
-  {type:'wall',em:'🖼',gl:'生成壁纸',gs:'极光 · 04',tag:'🖼 为你生成',img:1,
-   body:`<div class="xw"><span class="xtag">🖼 为你生成的壁纸</span><div class="x-wall"><div class="ph aurora"></div><div class="cap">极光 · 04<span>根据你常去的海边,为你生成 · 点击设为车机壁纸</span></div></div></div>`},
-  {type:'moment',em:'🎉',gl:'提车 100 天',gs:'一路有你',tag:'✨ 特别时刻',moment:1,
-   body:`<div class="xw x-moment"><span class="xtag">✨ 特别时刻 · 为你献上</span><div class="num">100</div><div class="ttl">提车 100 天</div>
-   <div class="stats"><div class="st"><b>8,240</b><span>公里</span></div><div class="st"><b>127</b><span>次出行</span></div><div class="st"><b>31</b><span>个新去处</span></div></div>
+  {type:'weather',em:'🌧',gl:'今夜天气',gs:'中雨 · 14°',
+   body:`<div class="x-weather"><span class="xtag">🌧 过去卡片 · 6 月 8 日</span><div class="loc">上海 · 今夜</div><div class="big">14<sup>°</sup></div><div class="sub">中雨 · 体感 12° · 降水 80%</div>
+   <div class="hrs">${[['现在','16°'],['22点','13°'],['23点','12°'],['0点','11°']].map(h=>`<div class="hr"><span>${h[0]}</span><b>${h[1]}</b></div>`).join('')}</div></div>`},
+  {type:'match',em:'⚽',gl:'世界杯 A 组',gs:'阿根廷领跑',
+   body:`<div class="x-match"><span class="xtag">⚽ 过去卡片 · A 组积分榜</span><div class="mt">第 3 轮后</div>${[['1','阿根廷','7',1],['2','法国','6',0],['3','巴西','4',0],['4','西班牙','0',0]].map(r=>`<div class="row"><span class="rk${r[3]?' top':''}">${r[0]}</span><span class="tm">${r[1]}</span><span class="pt">${r[2]}</span></div>`).join('')}</div>`},
+  {type:'mem',em:'🧠',gl:'一段对话',gs:'那晚 · 很轻',
+   body:`<div class="x-mem"><span class="xtag">🧠 对话总结 · 记忆</span><div class="q">「那晚你说有点累,<br>我们没聊正事——<br>就一起听完一首《十年》,到家。」</div><div class="meta">6 月 8 日 21:36 · 由这段对话沉淀</div></div>`},
+  {type:'wall',em:'🖼',gl:'生成壁纸',gs:'极光 · 04',img:1,
+   body:`<div class="x-wall"><span class="xtag">🖼 为你生成的壁纸</span><div class="cap2">极光 · 04<span>根据你常去的海边为你生成 · 可设为车机壁纸</span></div></div>`},
+  {type:'moment',em:'🎉',gl:'提车 100 天',gs:'一路有你',moment:1,
+   body:`<div class="x-moment"><span class="xtag">✨ 特别时刻 · 为你献上</span><div class="num">100</div><div class="ttl">提车 100 天</div>
+   <div class="stats"><div class="st"><b>8,240</b><span>公里</span></div><div class="st"><b>127</b><span>次出行</span></div><div class="st"><b>31</b><span>新去处</span></div></div>
    <div class="bless">这 100 天,从清晨到深夜,<br>很高兴一路都有你。🥂</div></div>`}
 ];
 const N=ORBS.length;
-let focusF=Math.floor(N/2);   // 起始焦点
-let bloomed=false;
+let focusF=Math.floor(N/2), bloomed=false;
 
 /* 建球 */
-const wheel=$('wheel'), orbEls=[];
+const wheel=$('wheel'),orbEls=[];
 ORBS.forEach((o,i)=>{
-  const el=document.createElement('div');el.className='orb '+o.type;
-  const inner=o.img
-    ? `<div class="ball img"><div class="pic aurora"></div><div class="glassveil"></div></div>`
-    : `<div class="ball"></div>`;
-  el.innerHTML=`<div class="float"><div class="ringglow"></div><div class="ring"></div>${inner}${o.moment?'<div class="spk"></div>':''}
-     <div class="glimpse"><div class="em">${o.img?'':o.em}</div><div class="gl">${o.gl}</div><div class="gs">${o.gs}</div></div></div>`;
-  el.querySelector('.float').style.animationDelay=(-i*1.3)+'s';
-  if(o.moment){const spk=el.querySelector('.spk');for(let k=0;k<7;k++){const s=document.createElement('i');s.style.left=(20+Math.random()*60)+'%';s.style.top=(20+Math.random()*60)+'%';s.style.animationDelay=(Math.random()*3)+'s';spk.appendChild(s);}}
+  const el=document.createElement('div');el.className='orb '+o.type;applyHue(el,o.type);
+  const ball=o.img?`<div class="ball img"><div class="pic aurora"></div></div>`
+                  :`<div class="ball"><div class="core"><span class="em">${o.em}</span></div></div>`;
+  el.innerHTML=`<div class="float"><div class="ringglow"></div>${ball}<div class="ring"></div>${o.moment?'<div class="spk"></div>':''}<div class="cap"><span class="gl">${o.gl}</span><span class="gs">${o.gs}</span></div></div>`;
+  el.querySelector('.float').style.animationDelay=(-i*1.4)+'s';
+  if(o.moment){const spk=el.querySelector('.spk');for(let k=0;k<7;k++){const s=document.createElement('i');s.style.left=(22+Math.random()*56)+'%';s.style.top=(24+Math.random()*52)+'%';s.style.animationDelay=(Math.random()*3.4)+'s';spk.appendChild(s);}}
   el.addEventListener('click',()=>onOrbClick(i));
   wheel.appendChild(el);orbEls.push(el);
 });
-
-/* 刻度 */
-$('tickRow').innerHTML=ORBS.map((o,i)=>`<span data-i="${i}">${['天气','赛事','记忆','壁纸','时刻'][i]||'·'}</span>`).join('');
+$('tickRow').innerHTML=['天气','赛事','记忆','壁纸','时刻'].map(s=>`<span>${s}</span>`).join('');
 const tickSpans=[...$('tickRow').querySelectorAll('span')];
 
-/* 转轮布局:每颗球按 (i - focusF) 的角偏移落在弧线上 */
-const RX=430, RY=150, STEP=0.46, CY=24;
-function render(transition){
+/* 转轮布局 */
+const RX=440,RY=150,STEP=0.47,CY=18;
+function render(){
   orbEls.forEach((el,i)=>{
-    const off=i-focusF;
-    const ang=off*STEP;
-    const depth=Math.cos(ang);               // 1=焦点
-    const x=Math.sin(ang)*RX;
-    const y=(1-depth)*RY + CY;
-    const s=0.46+Math.max(0,depth)*0.54;
-    const op=Math.max(0, Math.min(1, (depth-0.45)/0.5));
-    const blur=Math.max(0,(1-depth))*5;
-    el.style.transition=transition?'transform .55s cubic-bezier(.2,.85,.25,1),opacity .55s ease,filter .55s ease':'none';
-    el.style.transform=`translate(${x}px,${y}px) scale(${s.toFixed(3)})`;
-    el.style.opacity=op.toFixed(2);
-    el.style.filter=`blur(${blur.toFixed(1)}px)`;
-    el.style.zIndex=String(100+Math.round(depth*100));
-    el.classList.toggle('focus', Math.abs(off)<0.5);
-    el.style.pointerEvents=op>0.15?'auto':'none';
+    const off=i-focusF,ang=off*STEP,depth=Math.cos(ang);
+    const x=Math.sin(ang)*RX,y=(1-depth)*RY+CY,s=0.45+Math.max(0,depth)*0.55;
+    const op=Math.max(0,Math.min(1,(depth-0.46)/0.5)),blur=Math.max(0,(1-depth))*5;
+    el.style.transform=`translate(${x}px,${y}px) scale(${s.toFixed(3)})`;el.style.opacity=op.toFixed(2);
+    el.style.filter=`blur(${blur.toFixed(1)}px)`;el.style.zIndex=String(100+Math.round(depth*100));
+    el.classList.toggle('focus',Math.abs(off)<0.5);el.style.pointerEvents=op>0.15?'auto':'none';
   });
-  // 刻度 + 旋钮
   const fr=Math.max(0,Math.min(N-1,focusF));
-  $('tickRow').style.transform=`translate(${-fr*34 - 17}px,-50%)`;
+  $('tickRow').style.transform=`translate(${-fr*34-17}px,-50%)`;
   tickSpans.forEach((s,i)=>s.classList.toggle('on',Math.round(fr)===i));
   $('knobI').style.transform=`translateX(-50%) rotate(${focusF*32}deg)`;
 }
+function setT(t){orbEls.forEach(el=>el.style.transition=t?'transform .55s cubic-bezier(.2,.85,.25,1),opacity .55s ease,filter .55s ease':'none');}
 
 /* 绽放 */
 function bloom(){
-  // 起始:所有球聚在灵动岛(顶部中心)、极小
-  orbEls.forEach(el=>{el.style.transition='none';el.style.transform='translate(0,-360px) scale(.12)';el.style.opacity='0';el.style.filter='blur(6px)';});
+  setT(false);orbEls.forEach(el=>{el.style.transform='translate(0,-360px) scale(.12)';el.style.opacity='0';el.style.filter='blur(6px)';});
   stage.classList.add('bloomed');bloomed=true;
-  // 逐颗"沉淀"到弧线位
-  requestAnimationFrame(()=>{orbEls.forEach((el,i)=>{
-    const off=i-focusF, ang=off*STEP, depth=Math.cos(ang);
-    const x=Math.sin(ang)*RX, y=(1-depth)*RY+CY, s=0.46+Math.max(0,depth)*0.54, op=Math.max(0,Math.min(1,(depth-0.45)/0.5)), blur=Math.max(0,(1-depth))*5;
-    el.style.transition=`transform .9s cubic-bezier(.2,.9,.28,1) ${i*0.08}s, opacity .8s ease ${i*0.08}s, filter .8s ease ${i*0.08}s`;
+  requestAnimationFrame(()=>orbEls.forEach((el,i)=>{
+    const off=i-focusF,ang=off*STEP,depth=Math.cos(ang),x=Math.sin(ang)*RX,y=(1-depth)*RY+CY,s=0.45+Math.max(0,depth)*0.55,op=Math.max(0,Math.min(1,(depth-0.46)/0.5)),blur=Math.max(0,(1-depth))*5;
+    el.style.transition=`transform .95s cubic-bezier(.2,.9,.28,1) ${i*0.085}s, opacity .85s ease ${i*0.085}s, filter .85s ease ${i*0.085}s`;
     el.style.transform=`translate(${x}px,${y}px) scale(${s.toFixed(3)})`;el.style.opacity=op.toFixed(2);el.style.filter=`blur(${blur.toFixed(1)}px)`;
     el.style.zIndex=String(100+Math.round(depth*100));el.classList.toggle('focus',Math.abs(off)<0.5);
-  });});
-  setTimeout(()=>render(false),1200);   // 交回普通渲染
+  }));
+  setTimeout(()=>{setT(false);render();},1300);
 }
-function collapse(){stage.classList.remove('bloomed');bloomed=false;}
 
-/* 拖拽切换(软旋钮)*/
-let drag=null;
-wheel.addEventListener('pointerdown',e=>{if($('exp').classList.contains('show'))return;drag={x:e.clientX,f0:focusF,moved:0};wheel.setPointerCapture(e.pointerId);});
-wheel.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x;drag.moved=Math.max(drag.moved,Math.abs(dx));focusF=Math.max(-0.4,Math.min(N-0.6, drag.f0 - dx/240));render(false);});
-function endDrag(){if(!drag)return;const wasDrag=drag.moved>6;drag=null;snapTo(Math.round(focusF));return wasDrag;}
+/* 拖拽 + 吸附 */
+let drag=null,snapRAF=null;
+wheel.addEventListener('pointerdown',e=>{if($('exp').classList.contains('show'))return;cancelAnimationFrame(snapRAF);drag={x:e.clientX,f0:focusF,moved:0};wheel.setPointerCapture(e.pointerId);});
+wheel.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x;drag.moved=Math.max(drag.moved,Math.abs(dx));focusF=Math.max(-0.4,Math.min(N-0.6,drag.f0-dx/240));render();});
+function endDrag(){if(!drag)return;drag=null;snapTo(Math.round(focusF));}
 wheel.addEventListener('pointerup',endDrag);wheel.addEventListener('pointercancel',endDrag);
+function snapTo(t){t=Math.max(0,Math.min(N-1,t));cancelAnimationFrame(snapRAF);const s0=focusF,t0=performance.now();
+  (function step(now){const p=Math.min(1,(now-t0)/460),e=1-Math.pow(1-p,3);focusF=s0+(t-s0)*e;render();if(p<1)snapRAF=requestAnimationFrame(step);})(performance.now());}
 
-let snapRAF=null;
-function snapTo(target){target=Math.max(0,Math.min(N-1,target));cancelAnimationFrame(snapRAF);
-  const start=focusF, t0=performance.now(), dur=460;
-  (function step(now){const p=Math.min(1,(now-t0)/dur);const e=1-Math.pow(1-p,3);focusF=start+(target-start)*e;render(false);if(p<1)snapRAF=requestAnimationFrame(step);})(performance.now());}
+function onOrbClick(i){if(drag&&drag.moved>6)return;if(Math.abs(i-focusF)<0.5)openExp(i);else snapTo(i);}
 
-function onOrbClick(i){
-  if(drag&&drag.moved>6)return;
-  if(Math.abs(i-focusF)<0.5){ openExp(i); }   // 点焦点球 → 展开
-  else { snapTo(i); }                          // 点侧球 → 转到焦点
-}
-
-/* 就地展开 */
-function openExp(i){const o=ORBS[i];$('expBody').innerHTML=o.body;$('exp').classList.add('show');stage.classList.add('detail');}
+/* 就地展开:球体放大 + 内部内容 */
+function openExp(i){const o=ORBS[i],big=$('orbBig');applyHue(big,o.type);
+  big.classList.toggle('imgbig',!!o.img);
+  big.querySelector('.pic')&&big.querySelector('.pic').remove();
+  if(o.img){const p=document.createElement('div');p.className='pic aurora';big.insertBefore(p,big.firstChild);}
+  $('expBody').innerHTML=o.body;$('exp').classList.add('show');stage.classList.add('detail');}
 function closeExp(){$('exp').classList.remove('show');stage.classList.remove('detail');}
 $('expBack').onclick=closeExp;$('expScrim').onclick=closeExp;
 $('island').onclick=()=>{if(!bloomed)bloom();};
 
-function play(){closeExp();focusF=Math.floor(N/2);collapse();render(false);setTimeout(bloom,700);}
-$('ask').onclick=play;
-play();
+function play(){closeExp();focusF=Math.floor(N/2);stage.classList.remove('bloomed');bloomed=false;render();setTimeout(bloom,700);}
+$('ask').onclick=play;play();
 </script>
+<style>
+  /* 展开时转轮就地隐去(内容替换整片空间,非中央弹窗) */
+  .stage.detail .wheel,.stage.detail .dial,.stage.detail .hint,.stage.detail .hd{opacity:0!important;pointer-events:none;transition:opacity .4s ease}
+</style>
 </body>
 </html>
