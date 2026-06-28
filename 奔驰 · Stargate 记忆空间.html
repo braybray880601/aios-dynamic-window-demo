@@ -37,27 +37,43 @@
   .hd .t{font-size:21px;font-weight:300;letter-spacing:3px}.hd .t b{font-weight:650}
   .hd .s{margin-top:7px;font-size:12px;letter-spacing:.22em;color:var(--faint);text-transform:uppercase}
 
-  /* ── 动态窗口(基座层:展开前 / 收回后的车机首页)── */
+  /* ── 基座:车机动态窗口(原有「查比赛」交互的动态小窗)── */
   .window{position:absolute;inset:0;z-index:22;transition:opacity .7s ease,transform .75s cubic-bezier(.4,.8,.2,1)}
   .stage.bloomed .window{opacity:0;transform:scale(1.09);pointer-events:none}
   .whome{position:absolute;inset:0;background:
-    radial-gradient(120% 90% at 50% 0%,rgba(42,58,86,.32),transparent 55%),
-    radial-gradient(100% 80% at 82% 100%,rgba(62,46,88,.22),transparent 60%),
-    linear-gradient(180deg,#0c1018,#080b12 60%,#06080e)}
-  .whome::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 100% at 50% 50%,transparent 56%,rgba(3,5,10,.5))}
-  .wstatus{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;gap:12px;padding:0 26px;color:#dfe3e8;z-index:3}
-  .wstatus .wav{width:30px;height:30px;border-radius:50%;position:relative;flex:none}
-  .wstatus .wav::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);filter:blur(.4px);animation:spin 6s linear infinite}
+    radial-gradient(120% 90% at 50% 0%,rgba(40,54,80,.3),transparent 55%),
+    radial-gradient(100% 80% at 82% 100%,rgba(34,54,46,.2),transparent 60%),
+    linear-gradient(180deg,#10151d,#0b0f16 60%,#080b11)}
+  .whome::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 100% at 50% 45%,transparent 52%,rgba(3,5,10,.5))}
+  .wstatus{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;gap:13px;padding:0 26px;z-index:3}
+  .wstatus .wav{width:34px;height:34px;border-radius:50%;position:relative;flex:none}
+  .wstatus .wav::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);filter:blur(.4px);animation:spin 5s linear infinite}
   .wstatus .wav::after{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6))}
-  .wstatus .wtime{font-size:18px;font-weight:500}.wstatus .w5g{margin-left:auto;font-size:11px;font-weight:700;letter-spacing:1px;color:#aeb6c0}
-  .wamb{position:absolute;top:45%;left:0;right:0;text-align:center;transform:translateY(-50%);z-index:2}
-  .wamb .wclock{font-size:98px;font-weight:200;letter-spacing:2px;color:rgba(255,255,255,.92);line-height:1}
-  .wamb .wsub{font-size:14px;color:var(--soft);margin-top:10px;letter-spacing:.06em}
-  .wdock{position:absolute;left:0;right:0;bottom:0;height:64px;display:flex;align-items:center;gap:22px;padding:0 24px;background:rgba(12,16,24,.55);backdrop-filter:blur(24px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);z-index:3}
+  .wvoice{display:flex;flex-direction:column;min-width:0}
+  .wvoice .wq{font-size:12.5px;color:#62e08c;font-weight:600}
+  .wvoice .wreply{font-size:15px;color:#fff;font-weight:600;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:560px}
+  .wstatus .w5g{margin-left:auto;font-size:14px;font-weight:500;color:#dfe3e8;white-space:nowrap}
+  .wweather{position:absolute;top:62px;right:40px;text-align:right;z-index:2}
+  .wweather .wt{font-size:54px;font-weight:200;line-height:.9;color:#fff}.wweather .wt sup{font-size:18px;vertical-align:top}
+  .wweather .wl{font-size:13px;color:var(--soft);margin-top:6px}
+  .wvz{position:absolute;left:40px;top:66px;width:438px;z-index:5}
+  .vzcard{border-radius:20px;padding:16px 18px;color:#fff;background:rgba(20,26,38,.72);backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 16px 44px rgba(0,0,0,.42),inset 0 0 0 1px rgba(255,255,255,.1);animation:vzin .5s cubic-bezier(.2,.9,.25,1)}
+  @keyframes vzin{from{opacity:0;transform:translateY(-8px) scale(.99)}to{opacity:1;transform:none}}
+  .vzc-h{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:12px}.vzc-h span{margin-left:auto;font-size:11px;font-weight:600;color:var(--soft)}
+  .vzc-th{display:flex;font-size:10.5px;color:var(--faint);padding:0 2px 7px;font-weight:600}
+  .vzc-th span:first-child{width:26px}.vzc-th span:nth-child(2){flex:1}.vzc-th span:nth-child(3){width:64px;text-align:center}.vzc-th span:last-child{width:34px;text-align:right}
+  .vzc-r{display:flex;align-items:center;font-size:14px;padding:9px 2px}.vzc-r+.vzc-r{border-top:1px solid rgba(255,255,255,.08)}
+  .vzc-r .rk{width:26px}.vzc-r .rk b{display:inline-flex;width:21px;height:21px;border-radius:6px;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;background:rgba(255,255,255,.1)}
+  .vzc-r.top .rk b{background:#ffcf6a;color:#0b0a14}
+  .vzc-r .nm{flex:1;font-weight:600}.vzc-r .rec{width:64px;text-align:center;color:var(--soft);font-size:12px;font-variant-numeric:tabular-nums}.vzc-r .pt{width:34px;text-align:right;font-weight:800;font-size:16px}
+  .wdock{position:absolute;left:0;right:0;bottom:0;height:64px;display:flex;align-items:center;gap:14px;padding:0 22px;background:rgba(12,16,24,.6);backdrop-filter:blur(26px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);z-index:3}
   .wdock .worb{width:36px;height:36px;border-radius:50%;position:relative;flex:none}
   .wdock .worb::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);filter:blur(.5px);animation:spin 6s linear infinite}
   .wdock .worb::after{content:"";position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,rgba(255,255,255,.6))}
-  .wdock .wsep{flex:1}.wdock .wc{font-size:18px;color:rgba(238,241,244,.68)}
+  .wnp{display:flex;align-items:center;gap:9px;padding:5px 12px 5px 6px;border-radius:14px;background:rgba(255,255,255,.06)}
+  .wnp .wcov{width:34px;height:34px;border-radius:8px;flex:none;background:#2a3340 center/cover no-repeat}
+  .wnp .wti{font-size:12.5px;font-weight:700}.wnp .war{font-size:10.5px;color:var(--soft);margin-top:1px}
+  .wdock .wsep{flex:1}.wdock .wc{font-size:15px;color:rgba(238,241,244,.7)}
 
   /* 灵动岛(入口) */
   .island{position:absolute;top:28px;left:50%;transform:translateX(-50%);z-index:24;display:flex;align-items:center;gap:10px;padding:10px 15px 10px 12px;border-radius:24px;cursor:pointer;
@@ -245,13 +261,21 @@
     <div class="space"><canvas id="dust"></canvas></div>
     <div class="vignette"></div>
     <div class="hd" id="hd"><div class="t">沉淀下来的<b>记忆</b></div><div class="s">Stargate · Memory Space</div></div>
-    <!-- 动态窗口(基座:展开前 / 收回后) -->
+    <!-- 基座:车机动态窗口(原有「查比赛」交互的动态小窗) -->
     <div class="window" id="window">
       <div class="whome"></div>
-      <div class="wstatus"><span class="wav"></span><span class="wtime">21:36</span><span class="w5g">5G ▮▮▮</span></div>
-      <div class="wamb"><div class="wclock">21:36</div><div class="wsub">上海 · 中雨 14°　·　晚上好,翰超</div></div>
+      <div class="wstatus"><span class="wav"></span><span class="wvoice"><span class="wq">「看下世界杯 A 组积分榜」</span><span class="wreply">A 组:阿根廷 7 分领跑、法国 6 分紧随</span></span><span class="w5g">5G ▮▮▮　21:36</span></div>
+      <div class="wweather"><div class="wt">14<sup>°</sup></div><div class="wl">上海 · 中雨</div></div>
+      <div class="wvz"><div class="vzcard">
+        <div class="vzc-h">⚽ 世界杯 · A 组积分榜 <span>第 3 轮后</span></div>
+        <div class="vzc-th"><span>#</span><span>球队</span><span>胜平负</span><span>积分</span></div>
+        <div class="vzc-r top"><span class="rk"><b>1</b></span><span class="nm">阿根廷</span><span class="rec">2-1-0</span><span class="pt">7</span></div>
+        <div class="vzc-r"><span class="rk"><b>2</b></span><span class="nm">法国</span><span class="rec">2-0-1</span><span class="pt">6</span></div>
+        <div class="vzc-r"><span class="rk"><b>3</b></span><span class="nm">巴西</span><span class="rec">1-1-1</span><span class="pt">4</span></div>
+        <div class="vzc-r"><span class="rk"><b>4</b></span><span class="nm">西班牙</span><span class="rec">0-0-3</span><span class="pt">0</span></div>
+      </div></div>
       <div class="island" id="island"><span class="io"></span><span class="il">记忆空间 · <b id="icnt">5</b> 段新沉淀</span><span class="iarrow">›</span></div>
-      <div class="wdock"><span class="worb"></span><span class="wsep"></span><span class="wc">❄</span><span class="wc">🚗</span><span class="wc">360</span><span class="wc">📞</span><span class="wc">▦</span></div>
+      <div class="wdock"><span class="worb"></span><div class="wnp"><span class="wcov" style="background-image:url('cover-shinian.jpg')"></span><div><div class="wti">十年</div><div class="war">陈奕迅</div></div></div><span class="wsep"></span><span class="wc">❄</span><span class="wc">23.5°</span><span class="wc">🚘</span><span class="wc">360</span><span class="wc">📞</span></div>
     </div>
     <button class="wclose" id="wclose">✕ 收回</button>
 
