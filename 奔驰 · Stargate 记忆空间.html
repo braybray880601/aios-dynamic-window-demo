@@ -57,12 +57,15 @@
   /* 记忆球体:单色调 · 自内发光 · 通透(头脑特工队气质) */
   .ball{position:absolute;inset:0;border-radius:50%;overflow:hidden;
     background:
-      radial-gradient(circle at 36% 27%, rgba(255,255,255,.62), rgba(255,255,255,.16) 26%, transparent 52%),
-      radial-gradient(circle at 50% 60%, var(--hlt), var(--hmid) 52%, var(--hrim) 100%);
-    box-shadow:inset 0 3px 18px rgba(255,255,255,.5), inset 0 -26px 50px -14px var(--hsh), inset 0 0 0 1px rgba(255,255,255,.28), 0 22px 60px -16px var(--hglow);
+      radial-gradient(circle at 33% 24%, rgba(255,255,255,.5), rgba(255,255,255,.04) 16%, transparent 40%),
+      radial-gradient(circle at 50% 116%, var(--hrim), transparent 56%),
+      radial-gradient(circle at 50% 44%, rgba(24,30,46,.30), rgba(12,16,26,.5) 66%, rgba(7,10,17,.62));
+    backdrop-filter:blur(3px) saturate(1.08);
+    box-shadow:inset 0 1px 10px rgba(255,255,255,.32), inset 0 -12px 30px rgba(0,0,0,.42), inset 0 0 26px var(--hin), 0 18px 54px -18px var(--hglow);
     transition:box-shadow .5s ease}
+  .ball::after{content:"";position:absolute;left:27%;top:17%;width:15%;height:10%;border-radius:50%;background:rgba(255,255,255,.85);filter:blur(2px);opacity:.72}
   .ball .core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2}
-  .ball .core .em{font-size:44px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.22)) saturate(1.05)}
+  .ball .core .em{font-size:33px;line-height:1;opacity:.88;filter:drop-shadow(0 3px 9px rgba(0,0,0,.42))}
   /* 自内辉光(随焦点增强) */
   .ringglow{position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle,var(--hglow),transparent 68%);filter:blur(16px);opacity:.22;transition:opacity .55s ease}
   .orb.focus .ringglow{opacity:.7;animation:glowbreath 5s ease-in-out infinite}
@@ -247,13 +250,13 @@ addEventListener('resize',fit);fit();
 
 /* 色调(头脑特工队记忆球:单色调 luminous) */
 const HUE={
-  weather:{lt:'rgba(228,244,255,.92)',mid:'rgba(150,200,245,.82)',rim:'rgba(108,162,224,.72)',sh:'rgba(40,82,142,.42)',glow:'rgba(120,180,240,.55)'},
-  match:  {lt:'rgba(228,255,242,.92)',mid:'rgba(140,226,186,.8)', rim:'rgba(94,196,150,.72)', sh:'rgba(28,120,86,.42)', glow:'rgba(116,222,176,.5)'},
-  mem:    {lt:'rgba(255,246,228,.94)',mid:'rgba(255,212,150,.82)',rim:'rgba(236,176,116,.72)',sh:'rgba(150,92,38,.42)', glow:'rgba(255,200,135,.55)'},
-  wall:   {lt:'rgba(232,236,255,.9)', mid:'rgba(150,170,235,.6)', rim:'rgba(140,160,225,.6)', sh:'rgba(60,60,130,.4)',  glow:'rgba(150,160,235,.5)'},
-  moment: {lt:'rgba(255,242,234,.95)',mid:'rgba(255,196,176,.82)',rim:'rgba(240,158,140,.72)',sh:'rgba(158,80,60,.42)', glow:'rgba(255,178,156,.55)'}
+  weather:{rim:'rgba(124,168,218,.55)',in:'rgba(92,140,200,.17)',glow:'rgba(98,148,208,.4)', mid:'rgba(74,112,164,.5)'},
+  match:  {rim:'rgba(120,190,160,.55)',in:'rgba(82,168,138,.16)',glow:'rgba(96,180,150,.38)',mid:'rgba(62,142,112,.5)'},
+  mem:    {rim:'rgba(232,186,128,.55)',in:'rgba(210,162,104,.17)',glow:'rgba(222,176,116,.4)',mid:'rgba(174,122,70,.5)'},
+  wall:   {rim:'rgba(154,168,228,.5)', in:'rgba(124,144,214,.15)',glow:'rgba(144,162,226,.38)',mid:'rgba(100,112,174,.5)'},
+  moment: {rim:'rgba(240,170,148,.55)',in:'rgba(226,146,126,.17)',glow:'rgba(236,160,138,.4)',mid:'rgba(180,100,80,.5)'}
 };
-function applyHue(el,t){const h=HUE[t];el.style.setProperty('--hlt',h.lt);el.style.setProperty('--hmid',h.mid);el.style.setProperty('--hrim',h.rim);el.style.setProperty('--hsh',h.sh);el.style.setProperty('--hglow',h.glow);}
+function applyHue(el,t){const h=HUE[t];el.style.setProperty('--hrim',h.rim);el.style.setProperty('--hin',h.in);el.style.setProperty('--hglow',h.glow);el.style.setProperty('--hmid',h.mid);}
 
 /* 记忆球数据 */
 const ORBS=[
@@ -283,19 +286,18 @@ ORBS.forEach((o,i)=>{
   el.innerHTML=`<div class="float"><div class="ringglow"></div>${ball}<div class="ring"></div>${o.moment?'<div class="spk"></div>':''}<div class="cap"><span class="gl">${o.gl}</span><span class="gs">${o.gs}</span></div></div>`;
   el.querySelector('.float').style.animationDelay=(-i*1.4)+'s';
   if(o.moment){const spk=el.querySelector('.spk');for(let k=0;k<7;k++){const s=document.createElement('i');s.style.left=(22+Math.random()*56)+'%';s.style.top=(24+Math.random()*52)+'%';s.style.animationDelay=(Math.random()*3.4)+'s';spk.appendChild(s);}}
-  el.addEventListener('click',()=>onOrbClick(i));
   wheel.appendChild(el);orbEls.push(el);
 });
 $('tickRow').innerHTML=['天气','赛事','记忆','壁纸','时刻'].map(s=>`<span>${s}</span>`).join('');
 const tickSpans=[...$('tickRow').querySelectorAll('span')];
 
 /* 转轮布局 */
-const RX=440,RY=150,STEP=0.47,CY=18;
+const RX=458,RY=146,STEP=0.55,CY=18;
 function render(){
   orbEls.forEach((el,i)=>{
     const off=i-focusF,ang=off*STEP,depth=Math.cos(ang);
-    const x=Math.sin(ang)*RX,y=(1-depth)*RY+CY,s=0.45+Math.max(0,depth)*0.55;
-    const op=Math.max(0,Math.min(1,(depth-0.46)/0.5)),blur=Math.max(0,(1-depth))*5;
+    const x=Math.sin(ang)*RX,y=(1-depth)*RY+CY,s=0.46+Math.max(0,depth)*0.54;
+    const op=Math.max(0,Math.min(1,(depth-0.32)/0.62)),blur=Math.max(0,(1-depth))*4;
     el.style.transform=`translate(${x}px,${y}px) scale(${s.toFixed(3)})`;el.style.opacity=op.toFixed(2);
     el.style.filter=`blur(${blur.toFixed(1)}px)`;el.style.zIndex=String(100+Math.round(depth*100));
     el.classList.toggle('focus',Math.abs(off)<0.5);el.style.pointerEvents=op>0.15?'auto':'none';
@@ -312,7 +314,7 @@ function bloom(){
   setT(false);orbEls.forEach(el=>{el.style.transform='translate(0,-360px) scale(.12)';el.style.opacity='0';el.style.filter='blur(6px)';});
   stage.classList.add('bloomed');bloomed=true;
   requestAnimationFrame(()=>orbEls.forEach((el,i)=>{
-    const off=i-focusF,ang=off*STEP,depth=Math.cos(ang),x=Math.sin(ang)*RX,y=(1-depth)*RY+CY,s=0.45+Math.max(0,depth)*0.55,op=Math.max(0,Math.min(1,(depth-0.46)/0.5)),blur=Math.max(0,(1-depth))*5;
+    const off=i-focusF,ang=off*STEP,depth=Math.cos(ang),x=Math.sin(ang)*RX,y=(1-depth)*RY+CY,s=0.46+Math.max(0,depth)*0.54,op=Math.max(0,Math.min(1,(depth-0.32)/0.62)),blur=Math.max(0,(1-depth))*4;
     el.style.transition=`transform .95s cubic-bezier(.2,.9,.28,1) ${i*0.085}s, opacity .85s ease ${i*0.085}s, filter .85s ease ${i*0.085}s`;
     el.style.transform=`translate(${x}px,${y}px) scale(${s.toFixed(3)})`;el.style.opacity=op.toFixed(2);el.style.filter=`blur(${blur.toFixed(1)}px)`;
     el.style.zIndex=String(100+Math.round(depth*100));el.classList.toggle('focus',Math.abs(off)<0.5);
@@ -322,14 +324,18 @@ function bloom(){
 
 /* 拖拽 + 吸附 */
 let drag=null,snapRAF=null;
-wheel.addEventListener('pointerdown',e=>{if($('exp').classList.contains('show'))return;cancelAnimationFrame(snapRAF);drag={x:e.clientX,f0:focusF,moved:0};wheel.setPointerCapture(e.pointerId);});
+function findOrb(x,y){const t=document.elementFromPoint(x,y),o=t&&t.closest&&t.closest('.orb');return o?orbEls.indexOf(o):-1;}
+wheel.addEventListener('pointerdown',e=>{if($('exp').classList.contains('show'))return;cancelAnimationFrame(snapRAF);drag={x:e.clientX,f0:focusF,moved:0};});
 wheel.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x;drag.moved=Math.max(drag.moved,Math.abs(dx));focusF=Math.max(-0.4,Math.min(N-0.6,drag.f0-dx/240));render();});
-function endDrag(){if(!drag)return;drag=null;snapTo(Math.round(focusF));}
-wheel.addEventListener('pointerup',endDrag);wheel.addEventListener('pointercancel',endDrag);
+function endDrag(e){if(!drag)return;const tap=drag.moved<7;drag=null;
+  if(tap){const idx=findOrb(e.clientX,e.clientY);if(idx>=0){onOrbClick(idx);return;}}
+  snapTo(Math.round(focusF));}
+wheel.addEventListener('pointerup',endDrag);
+wheel.addEventListener('pointercancel',()=>{if(drag){drag=null;snapTo(Math.round(focusF));}});
 function snapTo(t){t=Math.max(0,Math.min(N-1,t));cancelAnimationFrame(snapRAF);const s0=focusF,t0=performance.now();
   (function step(now){const p=Math.min(1,(now-t0)/460),e=1-Math.pow(1-p,3);focusF=s0+(t-s0)*e;render();if(p<1)snapRAF=requestAnimationFrame(step);})(performance.now());}
 
-function onOrbClick(i){if(drag&&drag.moved>6)return;if(Math.abs(i-focusF)<0.5)openExp(i);else snapTo(i);}
+function onOrbClick(i){focusF=i;render();openExp(i);}   // 点任意球 → 该球居中并就地展开
 
 /* 就地展开:球体放大 + 内部内容 */
 function openExp(i){const o=ORBS[i],big=$('orbBig');applyHue(big,o.type);
