@@ -217,8 +217,23 @@
     backdrop-filter:blur(3px) saturate(1.08);
     box-shadow:inset 0 1px 10px rgba(255,255,255,.32), inset 0 -12px 30px rgba(0,0,0,.42), inset 0 0 26px var(--hin), 0 18px 54px -18px var(--hglow);transition:box-shadow .5s ease}
   .ball::after{content:"";position:absolute;left:27%;top:17%;width:15%;height:10%;border-radius:50%;background:rgba(255,255,255,.85);filter:blur(2px);opacity:.72}
-  .ball .core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2}
-  .ball .core .em{font-size:33px;line-height:1;opacity:.88;filter:drop-shadow(0 3px 9px rgba(0,0,0,.42))}
+  .ball .core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3}
+  .ball .core .em{font-size:27px;line-height:1;opacity:.5;filter:drop-shadow(0 0 10px rgba(255,255,255,.55)) drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+  /* ── Siri 球内光:玻璃球内的暖白光叶绕冷色核心涡旋(参考 visionOS Siri 球)── */
+  .lumens{position:absolute;inset:8%;border-radius:50%;overflow:hidden;z-index:2;pointer-events:none;contain:paint;opacity:.92}
+  .lumens .swirl{position:absolute;inset:0;animation:lswirl 19s linear infinite}
+  .lumens i{position:absolute;width:38%;height:38%;border-radius:50%;mix-blend-mode:screen;filter:blur(6px);will-change:transform}
+  .lumens i.l1{left:31%;top:4%;background:radial-gradient(circle,#fff 4%,var(--hpetal) 38%,transparent 64%);animation:lb1 6.5s ease-in-out infinite}
+  .lumens i.l2{right:5%;top:32%;background:radial-gradient(circle,#fff 4%,var(--hpetal) 38%,transparent 64%);animation:lb2 7.8s ease-in-out infinite}
+  .lumens i.l3{right:24%;bottom:5%;background:radial-gradient(circle,#fff 4%,var(--hpetal) 40%,transparent 66%);animation:lb3 7s ease-in-out infinite}
+  .lumens i.l4{left:5%;top:34%;background:radial-gradient(circle,#fff 4%,var(--hpetal) 38%,transparent 64%);animation:lb4 8.5s ease-in-out infinite}
+  .lumens .lcore{position:absolute;left:31%;top:31%;width:38%;height:38%;border-radius:50%;mix-blend-mode:screen;filter:blur(5px);background:radial-gradient(circle,#fff 6%,var(--hcore) 44%,transparent 68%);animation:lcore 5s ease-in-out infinite}
+  @keyframes lswirl{to{transform:rotate(360deg)}}
+  @keyframes lb1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(14%,-9%) scale(1.13)}}
+  @keyframes lb2{0%,100%{transform:translate(0,0) scale(1.06)}50%{transform:translate(-11%,11%) scale(.9)}}
+  @keyframes lb3{0%,100%{transform:translate(0,0) scale(.94)}50%{transform:translate(9%,-13%) scale(1.12)}}
+  @keyframes lb4{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-13%,-7%) scale(1.16)}}
+  @keyframes lcore{0%,100%{opacity:.8;transform:scale(1)}50%{opacity:1;transform:scale(1.13)}}
   .ringglow{position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle,var(--hglow),transparent 68%);filter:blur(16px);opacity:.22;transition:opacity .55s ease}
   .orb.focus .ringglow{opacity:.7;animation:glowbreath 5s ease-in-out infinite}
   @keyframes glowbreath{0%,100%{opacity:.55}50%{opacity:.82}}
@@ -264,7 +279,11 @@
   .exp.show .orbbig{opacity:1;transform:none}
   .orbbig .bigring{position:absolute;inset:-2px;border-radius:50%;padding:2px;background:conic-gradient(from 200deg,rgba(170,205,255,0),rgba(196,170,255,.7),rgba(255,182,212,.7),rgba(255,224,170,.7),rgba(150,224,198,.7),rgba(170,205,255,0));
     -webkit-mask:radial-gradient(circle,transparent calc(50% - .5px),#000 50%);mask:radial-gradient(circle,transparent calc(50% - .5px),#000 50%);opacity:.6;animation:ringbreath 6s ease-in-out infinite}
-  .orbbig .spec{position:absolute;left:24%;top:14%;width:24%;height:16%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.6),transparent 70%);filter:blur(5px)}
+  .orbbig .spec{position:absolute;left:24%;top:14%;width:24%;height:16%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.6),transparent 70%);filter:blur(5px);z-index:2}
+  .orbbig .lumens{inset:2%;opacity:.34;z-index:1}
+  .orbbig .lumens i{filter:blur(22px)}.orbbig .lumens .lcore{filter:blur(20px)}
+  .orbbig .inner{text-shadow:0 1px 14px rgba(4,7,13,.85),0 0 30px rgba(4,7,13,.6)}
+  .orbbig.imgbig .lumens{display:none}
   .inner{position:relative;z-index:3;width:74%;max-height:78%;overflow:auto;text-align:center;color:#fff;opacity:0;transform:translateY(10px);transition:opacity .5s ease .22s,transform .5s ease .22s}
   .exp.show .inner{opacity:1;transform:none}
   .inner::-webkit-scrollbar{display:none}
@@ -371,7 +390,7 @@
       <div class="dial" id="dial"><div class="ticks"><div class="row" id="tickRow"></div><div class="mark"></div></div><div class="knob"><i id="knobI"></i></div></div>
       <div class="hint" id="hint">← 滑动切换 · 点击展开 →</div>
       <div class="exp" id="exp"><div class="scrim" id="expScrim"></div><button class="back" id="expBack">← 返回</button>
-        <div class="orbbig" id="orbBig"><div class="bigring"></div><div class="spec"></div><div class="inner" id="expBody"></div></div>
+        <div class="orbbig" id="orbBig"><div class="bigring"></div><div class="spec"></div><div class="lumens"><div class="swirl"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i></div><b class="lcore"></b></div><div class="inner" id="expBody"></div></div>
       </div>
     </div>
   </div>
@@ -576,13 +595,13 @@ setTimeout(playAll,700);
 
 /* 色调(单色调 luminous) */
 const SG_HUE={
-  weather:{rim:'rgba(124,168,218,.55)',in:'rgba(92,140,200,.17)',glow:'rgba(98,148,208,.4)', mid:'rgba(74,112,164,.5)'},
-  match:  {rim:'rgba(120,190,160,.55)',in:'rgba(82,168,138,.16)',glow:'rgba(96,180,150,.38)',mid:'rgba(62,142,112,.5)'},
-  mem:    {rim:'rgba(232,186,128,.55)',in:'rgba(210,162,104,.17)',glow:'rgba(222,176,116,.4)',mid:'rgba(174,122,70,.5)'},
-  wall:   {rim:'rgba(154,168,228,.5)', in:'rgba(124,144,214,.15)',glow:'rgba(144,162,226,.38)',mid:'rgba(100,112,174,.5)'},
-  moment: {rim:'rgba(240,170,148,.55)',in:'rgba(226,146,126,.17)',glow:'rgba(236,160,138,.4)',mid:'rgba(180,100,80,.5)'}
+  weather:{rim:'rgba(124,168,218,.55)',in:'rgba(92,140,200,.17)',glow:'rgba(98,148,208,.4)', mid:'rgba(74,112,164,.5)', core:'rgba(150,200,255,.95)'},
+  match:  {rim:'rgba(120,190,160,.55)',in:'rgba(82,168,138,.16)',glow:'rgba(96,180,150,.38)',mid:'rgba(62,142,112,.5)', core:'rgba(150,238,196,.95)'},
+  mem:    {rim:'rgba(232,186,128,.55)',in:'rgba(210,162,104,.17)',glow:'rgba(222,176,116,.4)',mid:'rgba(174,122,70,.5)', core:'rgba(255,212,150,.95)'},
+  wall:   {rim:'rgba(154,168,228,.5)', in:'rgba(124,144,214,.15)',glow:'rgba(144,162,226,.38)',mid:'rgba(100,112,174,.5)', core:'rgba(176,190,255,.95)'},
+  moment: {rim:'rgba(240,170,148,.55)',in:'rgba(226,146,126,.17)',glow:'rgba(236,160,138,.4)',mid:'rgba(180,100,80,.5)', core:'rgba(255,188,166,.95)'}
 };
-function sgApplyHue(el,t){const h=SG_HUE[t];el.style.setProperty('--hrim',h.rim);el.style.setProperty('--hin',h.in);el.style.setProperty('--hglow',h.glow);el.style.setProperty('--hmid',h.mid);}
+function sgApplyHue(el,t){const h=SG_HUE[t];el.style.setProperty('--hrim',h.rim);el.style.setProperty('--hin',h.in);el.style.setProperty('--hglow',h.glow);el.style.setProperty('--hmid',h.mid);el.style.setProperty('--hpetal',h.core||h.rim);el.style.setProperty('--hcore','rgba(244,250,255,.92)');}
 
 /* 记忆球:前两颗=叠放的天气/世界杯卡,后三颗=已沉淀的对话记忆/生成壁纸/提车时刻 */
 const SG_ORBS=[
@@ -607,7 +626,8 @@ let sgFocus=Math.floor(SGN/2), bloomed=false;
 const sgWheel=$('wheel'),orbEls=[];
 SG_ORBS.forEach((o,i)=>{
   const el=document.createElement('div');el.className='orb '+o.type;sgApplyHue(el,o.type);
-  const ball=o.img?`<div class="ball img"><div class="pic aurora"></div></div>`:`<div class="ball"><div class="core"><span class="em">${o.em}</span></div></div>`;
+  const lumens='<div class="lumens"><div class="swirl"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i></div><b class="lcore"></b></div>';
+  const ball=o.img?`<div class="ball img"><div class="pic aurora"></div></div>`:`<div class="ball">${lumens}<div class="core"><span class="em">${o.em}</span></div></div>`;
   el.innerHTML=`<div class="float"><div class="ringglow"></div>${ball}<div class="ring"></div>${o.moment?'<div class="spk"></div>':''}<div class="cap"><span class="gl">${o.gl}</span><span class="gs">${o.gs}</span></div></div>`;
   el.querySelector('.float').style.animationDelay=(-i*1.4)+'s';
   if(o.moment){const spk=el.querySelector('.spk');for(let k=0;k<7;k++){const s=document.createElement('i');s.style.left=(22+Math.random()*56)+'%';s.style.top=(24+Math.random()*52)+'%';s.style.animationDelay=(Math.random()*3.4)+'s';spk.appendChild(s);}}
