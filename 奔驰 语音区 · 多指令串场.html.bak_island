@@ -223,12 +223,12 @@
   .orb{position:absolute;left:50%;top:50%;width:228px;height:228px;margin:-114px 0 0 -114px;will-change:transform,opacity,filter;touch-action:none}
   .orb .float{width:100%;height:100%;position:relative;animation:bob 6.5s ease-in-out infinite}
   @keyframes bob{0%,100%{transform:translateY(-7px)}50%{transform:translateY(7px)}}
-  /* Siri 球:乳白磨砂半透"实心"球(次表面光)+ 强体积塑形(左上受光/右下转暗/边缘收暗)*/
+  /* Siri 球:WebGL 真实折射玻璃球(透明 · 背景穿过折射 · 球面法线着色)*/
   .ball{position:absolute;inset:0;border-radius:50%;overflow:hidden;
-    background:radial-gradient(circle at 33% 25%, rgba(232,239,252,.82), rgba(166,180,208,.62) 38%, rgba(98,114,148,.48) 70%, rgba(52,66,96,.44) 91%, rgba(30,42,70,.42) 100%);
-    box-shadow:inset 15px 16px 34px -11px rgba(255,255,255,.85), inset -28px -32px 64px -12px rgba(8,15,36,.74), inset 0 0 0 1px rgba(255,255,255,.1), 0 30px 64px -22px rgba(0,0,0,.62), 0 0 42px -14px rgba(150,178,232,.4);transition:box-shadow .5s ease}
-  .ball::after{content:"";position:absolute;left:23%;top:16%;width:26%;height:19%;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.92),rgba(255,255,255,.22) 52%,transparent 72%);filter:blur(5px);opacity:.88;z-index:2}
-  .ring,.ringglow{display:none}   /* 去掉:外圈彩虹轮廓、外圈色晕(保留内嵌光点环)*/
+    box-shadow:0 26px 56px -22px rgba(0,0,0,.55), 0 0 32px -14px rgba(150,180,235,.4);
+    background:radial-gradient(circle at 36% 30%, rgba(150,170,210,.1), transparent 60%)}   /* WebGL 失败时的极简兜底 */
+  .ball .glasscv{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;display:block}
+  .ring,.ringglow,.lumens{display:none}   /* 去掉:外圈彩虹轮廓、色晕、内部光点(改由 WebGL 玻璃渲染)*/
   .orbbig .bigring{display:none}   /* 大球也去掉彩虹圈 */
   .ball .core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3}
   .ball .core .em{font-size:27px;line-height:1;opacity:.5;filter:drop-shadow(0 0 10px rgba(255,255,255,.55)) drop-shadow(0 2px 6px rgba(0,0,0,.4))}
@@ -636,16 +636,71 @@ const SG_ORBS=[
 const SGN=SG_ORBS.length;
 let sgFocus=Math.floor(SGN/2), bloomed=false;
 
+/* ── WebGL 折射玻璃球:逐像素求球面法线 → 折射深空环境 → 菲涅尔边 + 高光(真实 3D 透明玻璃)── */
+const GLASS_VS='attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
+const GLASS_FS=[
+'precision highp float;',
+'uniform vec2 uRes; uniform float uT; uniform vec3 uTint; uniform float uTintAmt;',
+'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}',
+'vec3 env(vec2 d){',
+'  vec3 c=mix(vec3(0.04,0.06,0.11), vec3(0.10,0.13,0.22), clamp(0.5-0.45*d.y,0.0,1.0));',
+'  c+=vec3(0.12,0.10,0.18)*smoothstep(0.9,0.0,length(d-vec2(0.45,0.55)));',
+'  vec2 g=d*5.0; vec2 id=floor(g),f=fract(g); float s=h(id);',
+'  if(s>0.90){float dd=length(f-0.5);float tw=0.7+0.3*sin(uT*1.5+s*40.0);c+=vec3(0.85,0.9,1.0)*smoothstep(0.16,0.0,dd)*tw*1.2;}',
+'  return c;',
+'}',
+'void main(){',
+'  vec2 uv=(gl_FragCoord.xy/uRes)*2.0-1.0; uv.y=-uv.y;',
+'  float r=length(uv);',
+'  float aa=2.5/uRes.y;',
+'  float alpha=smoothstep(1.0,1.0-aa*2.0,r);',
+'  if(alpha<=0.001) discard;',
+'  float z=sqrt(max(0.0,1.0-min(r,1.0)*min(r,1.0)));',
+'  vec3 N=vec3(uv,z); vec3 V=vec3(0.0,0.0,1.0);',
+'  vec3 Rr=refract(-V,N,1.0/1.52);',
+'  vec2 base=-uv*0.86 + Rr.xy*0.72;',
+'  float ca=0.014*r;',
+'  vec3 bg; bg.r=env(base+vec2(ca,0.0)).r; bg.g=env(base).g; bg.b=env(base-vec2(ca,0.0)).b;',
+'  float fres=pow(1.0-z,2.6);',
+'  vec3 refl=mix(vec3(0.0),vec3(0.66,0.78,1.05),fres);',
+'  vec3 L=normalize(vec3(-0.55,0.6,0.6));',
+'  float sp=pow(max(0.0,dot(reflect(-L,N),V)),70.0);',
+'  float sp2=pow(max(0.0,dot(reflect(-L,N),V)),12.0)*0.18;',
+'  float rim=smoothstep(0.80,0.965,r)*(1.0-smoothstep(0.985,1.0,r));',
+'  vec3 col=bg*(1.12-0.5*fres)+refl+vec3(1.0)*sp+vec3(0.85,0.9,1.0)*sp2+vec3(0.62,0.74,1.0)*rim*0.6;',
+'  col*=mix(1.0,0.82,smoothstep(0.6,1.0,r));',
+'  col=mix(col, col*uTint*1.15+uTint*0.1, uTintAmt);',
+'  gl_FragColor=vec4(col,alpha);',
+'}'].join('\n');
+const glassInstances=[];
+function makeGlass(canvas){
+  let gl; try{gl=canvas.getContext('webgl',{premultipliedAlpha:false,alpha:true,antialias:true})||canvas.getContext('experimental-webgl');}catch(e){}
+  if(!gl)return null;
+  function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)){console.warn('glass shader',gl.getShaderInfoLog(o));return null;}return o;}
+  const vs=sh(gl.VERTEX_SHADER,GLASS_VS),fs=sh(gl.FRAGMENT_SHADER,GLASS_FS);if(!vs||!fs)return null;
+  const prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){console.warn('glass link',gl.getProgramInfoLog(prog));return null;}
+  gl.useProgram(prog);
+  const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const pl=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(pl);gl.vertexAttribPointer(pl,2,gl.FLOAT,false,0,0);
+  const uRes=gl.getUniformLocation(prog,'uRes'),uT=gl.getUniformLocation(prog,'uT'),uTint=gl.getUniformLocation(prog,'uTint'),uTintAmt=gl.getUniformLocation(prog,'uTintAmt');
+  gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(0,0,0,0);
+  let tint=[1,1,1],tintAmt=0;
+  function size(){const dpr=Math.min(devicePixelRatio||1,2);const w=(canvas.clientWidth||114)*dpr,hh=(canvas.clientHeight||114)*dpr;if(canvas.width!==w||canvas.height!==hh){canvas.width=w;canvas.height=hh;}gl.viewport(0,0,canvas.width,canvas.height);}
+  return {draw(t){size();gl.clear(gl.COLOR_BUFFER_BIT);gl.uniform2f(uRes,canvas.width,canvas.height);gl.uniform1f(uT,t);gl.uniform3fv(uTint,tint);gl.uniform1f(uTintAmt,tintAmt);gl.drawArrays(gl.TRIANGLES,0,3);},setTint(c,a){tint=c;tintAmt=a;}};
+}
+requestAnimationFrame(function gloop(now){const t=(now||0)*0.001;if(bloomed){for(let k=0;k<glassInstances.length;k++)glassInstances[k].draw(t);}requestAnimationFrame(gloop);});
+
 /* 建球 */
 const sgWheel=$('wheel'),orbEls=[];
 SG_ORBS.forEach((o,i)=>{
   const el=document.createElement('div');el.className='orb '+o.type;sgApplySiri(el);
-  const lumens='<div class="lumens"><div class="swirl"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><i class="l5"></i><i class="l6"></i></div><b class="lcore"></b></div>';
-  const ball=`<div class="ball">${lumens}<div class="core"><span class="em">${o.em}</span></div></div>`;
+  const ball=`<div class="ball"><canvas class="glasscv"></canvas><div class="core"><span class="em">${o.em}</span></div></div>`;
   el.innerHTML=`<div class="float"><div class="ringglow"></div>${ball}<div class="ring"></div>${o.moment?'<div class="spk"></div>':''}<div class="cap"><span class="gl">${o.gl}</span><span class="gs">${o.gs}</span></div></div>`;
   el.querySelector('.float').style.animationDelay=(-i*1.4)+'s';
   if(o.moment){const spk=el.querySelector('.spk');for(let k=0;k<7;k++){const s=document.createElement('i');s.style.left=(22+Math.random()*56)+'%';s.style.top=(24+Math.random()*52)+'%';s.style.animationDelay=(Math.random()*3.4)+'s';spk.appendChild(s);}}
   sgWheel.appendChild(el);orbEls.push(el);
+  const gcv=el.querySelector('.glasscv');if(gcv){const gi=makeGlass(gcv);if(gi)glassInstances.push(gi);}
 });
 $('tickRow').innerHTML=['天气','赛事','记忆','壁纸','时刻'].map(s=>`<span>${s}</span>`).join('');
 const sgTickSpans=[...$('tickRow').querySelectorAll('span')];
