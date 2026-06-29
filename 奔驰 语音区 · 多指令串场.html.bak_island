@@ -188,14 +188,13 @@
   /* ═══════════ 星河空间(从动态窗口绽放;入口=语音区的叠放卡)═══════════ */
   .sgspace{position:absolute;inset:0;z-index:400;pointer-events:none}
   .stage.bloomed .sgspace{pointer-events:auto}
-  /* 绽放时:动态窗口整体后撤隐去 */
-  .stage.bloomed .statusbar,.stage.bloomed .voice-zone,.stage.bloomed .dock,.stage.bloomed .home,.stage.bloomed .map,.stage.bloomed .map-scrim,.stage.bloomed #pins{
-    opacity:0!important;pointer-events:none!important;transition:opacity .7s ease,transform .75s cubic-bezier(.4,.8,.2,1)}
-  .stage.bloomed .voice-zone{transform:scale(1.06)}
+  /* 绽放时:不隐去,只锁交互——靠上面的蒙层把动态窗口压暗(底下仍隐约可见)*/
+  .stage.bloomed .statusbar,.stage.bloomed .voice-zone,.stage.bloomed .dock,.stage.bloomed .home,.stage.bloomed #pins{pointer-events:none!important}
 
+  /* 蒙层:半透深空,压暗动态窗口而非完全遮盖(底下隐约可见)*/
   .space{position:absolute;inset:0;z-index:0;
-    background:radial-gradient(115% 80% at 50% 12%, rgba(58,88,140,.18), transparent 56%),radial-gradient(85% 70% at 82% 84%, rgba(116,80,150,.15), transparent 60%),radial-gradient(80% 80% at 14% 80%, rgba(36,108,120,.12), transparent 60%),linear-gradient(180deg,#0a0e16,#070a11 58%,#05070c);
-    opacity:0;transition:opacity 1.1s ease}
+    background:radial-gradient(115% 80% at 50% 12%, rgba(58,88,140,.17), transparent 56%),radial-gradient(85% 70% at 82% 84%, rgba(116,80,150,.14), transparent 60%),radial-gradient(80% 80% at 14% 80%, rgba(36,108,120,.11), transparent 60%),linear-gradient(180deg,rgba(8,11,18,.74),rgba(6,9,15,.82) 58%,rgba(4,6,11,.88));
+    opacity:0;transition:opacity .9s ease}
   .stage.bloomed .space{opacity:1}
   #dust{position:absolute;inset:0;width:100%;height:100%}
   .vignette{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(120% 100% at 50% 50%,transparent 56%,rgba(3,5,10,.58))}
@@ -303,6 +302,9 @@
   .hcount.sg-on .iarrow{font-size:15px;color:rgba(190,212,255,.85);margin-left:1px}
   .hstack.locked~.hcount.sg-on,#vz.gen .hcount.sg-on{opacity:.4}
   @keyframes sgpulse{0%,100%{box-shadow:0 10px 28px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.12),0 0 18px -8px rgba(120,150,235,.3)}50%{box-shadow:0 10px 28px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.2),0 0 36px -4px rgba(140,170,255,.55)}}
+  /* 入口唯一化:隐藏可见叠放卡,星河胶囊即唯一入口(避免入口重复)*/
+  #vz .hwrap{display:none}
+  .hcount.sg-on.shake{animation:hsShake .42s}
 </style>
 </head>
 <body>
@@ -419,8 +421,8 @@ function resetDOM(){stopRain();
   $('svAsr').className='sv-asr';$('svAsr').style.display='';$('asrText').textContent='';$('svAsr').scrollLeft=0;$('asrCur').style.display='';
   $('svReply').className='sv-reply';$('svReply').textContent='';$('execChip').className='exec-chip';$('execChip').textContent='';
   history=[];activeCmd=null;generating=false;
-  hstack.innerHTML='';hstack.classList.remove('locked','shake');hlock.style.display='none';activeBox.innerHTML='';hcount.innerHTML='';hcount.className='hcount';hcount.onclick=null;$('vz').classList.remove('gen');
-  traceClose(true);if(typeof sgReset==='function')sgReset();
+  hstack.innerHTML='';hstack.classList.remove('locked','shake');hlock.style.display='none';activeBox.innerHTML='';$('vz').classList.remove('gen');
+  traceClose(true);if(typeof sgReset==='function')sgReset();renderStack(false);
   $('dock').classList.remove('playing');$('dockTt').textContent='🏠 桌面';$('phlabel').textContent='待机';}
 function reset(){clearT();resetDOM();}
 
@@ -474,19 +476,18 @@ function renderStack(animateNew){
     d.onclick=()=>{if(generating){bumpLocked();return;}enterSpace(cmd.orb);};   // 点叠放卡 → 绽放进星河,直达该球
     hstack.appendChild(d);
   });
-  const n=history.length;
-  if(n){const total=3+n;hcount.className='hcount sg-on';hcount.innerHTML=`<span class="io"></span><span class="il">星河 · <b>${total}</b> 段沉淀</span><span class="iarrow">›</span>`;hcount.onclick=()=>{if(generating){bumpLocked();return;}enterSpace();};}
-  else{hcount.className='hcount';hcount.innerHTML='';hcount.onclick=null;}
+  const total=3+history.length;hcount.className='hcount sg-on';hcount.innerHTML=`<span class="io"></span><span class="il">星河 · <b>${total}</b> 段沉淀</span><span class="iarrow">›</span>`;hcount.onclick=()=>{if(generating){bumpLocked();return;}enterSpace();};
   hstack.classList.toggle('locked',generating);
 }
 function setGen(on){generating=on;hstack.classList.toggle('locked',on);$('vz').classList.toggle('gen',on);hlock.style.display=(on&&history.length)?'flex':'none';}
 function collapseToStack(){
   if(!activeCmd)return;
-  const willDrop=history.length>=MAX_STACK;
   const finish=()=>{if(activeCmd.onHide)activeCmd.onHide();history.push(activeCmd);activeCmd=null;activeBox.innerHTML='';renderStack(true);};
-  if(willDrop){const top=hstack.firstElementChild;if(top){top.classList.add('drop');setTimeout(finish,300);}else finish();}else finish();
+  const card=activeBox.firstElementChild;   // 当前结果卡「沉淀」上浮进星河胶囊
+  if(card){card.style.transition='transform .42s cubic-bezier(.4,0,.4,1),opacity .42s ease,filter .42s ease';card.style.transform='translateY(-40px) scale(.85)';card.style.opacity='0';card.style.filter='blur(2px)';setTimeout(finish,380);}
+  else finish();
 }
-function bumpLocked(){hstack.classList.remove('shake');void hstack.offsetWidth;hstack.classList.add('shake');hlock.classList.remove('pulse');void hlock.offsetWidth;hlock.classList.add('pulse');}
+function bumpLocked(){hcount.classList.remove('shake');void hcount.offsetWidth;hcount.classList.add('shake');}
 const vzEl=$('vz');
 function traceOpen(cmd){$('vdTitle').textContent=cmd.title;$('vdBody').innerHTML=cmd.html;vzEl.classList.add('detail-open');$('phlabel').textContent='回溯 · '+cmd.title+' · 完整替换语音区';}
 function traceClose(silent){vzEl.classList.remove('detail-open');if(!silent)$('phlabel').textContent='历史可回溯 · 串场结束';}
