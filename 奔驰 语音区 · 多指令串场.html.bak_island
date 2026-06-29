@@ -212,7 +212,7 @@
   .ambient{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .9s ease;
     background:radial-gradient(82% 56% at 50% 64%,var(--ahue,transparent),transparent 66%)}
   .stage.bloomed .ambient{opacity:.55}
-  .stage.detail .ambient{opacity:.32}
+  .stage.detail .ambient{opacity:.5}
   /* 光台:焦点球下方的发光光池(参考轮播视频的光台)*/
   .pedestal{position:absolute;left:50%;top:50%;width:392px;height:132px;border-radius:50%;z-index:5;pointer-events:none;
     transform:translate(-50%,108px);filter:blur(28px);opacity:0;transition:opacity .6s ease;
@@ -251,7 +251,7 @@
   .ring{position:absolute;inset:-2px;border-radius:50%;padding:2px;
     background:conic-gradient(from 200deg,rgba(170,205,255,0),rgba(196,170,255,.85),rgba(255,182,212,.85),rgba(255,224,170,.85),rgba(150,224,198,.85),rgba(170,205,255,0));
     -webkit-mask:radial-gradient(circle,transparent calc(50% - 0.5px),#000 50%);mask:radial-gradient(circle,transparent calc(50% - 0.5px),#000 50%);opacity:0;transition:opacity .5s ease}
-  .orb.focus .ring{opacity:.75;animation:ringbreath 5s ease-in-out infinite}
+  .orb.focus .ring{opacity:.4;animation:ringbreath 5s ease-in-out infinite}
   @keyframes ringbreath{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.018);opacity:.85}}
   .ball.img{background:none}
   .ball.img .pic{position:absolute;inset:0;border-radius:50%}
@@ -615,6 +615,8 @@ const SG_HUE={
   moment: {rim:'rgba(240,170,148,.55)',in:'rgba(226,146,126,.17)',glow:'rgba(236,160,138,.4)',mid:'rgba(180,100,80,.5)', core:'rgba(255,188,166,.95)'}
 };
 function sgApplyHue(el,t){const h=SG_HUE[t];el.style.setProperty('--hrim',h.rim);el.style.setProperty('--hin',h.in);el.style.setProperty('--hglow',h.glow);el.style.setProperty('--hmid',h.mid);el.style.setProperty('--hpetal',h.core||h.rim);el.style.setProperty('--hcore','rgba(244,250,255,.92)');}
+/* 转轮统一 Siri 质感:暖白光叶 + 冷蓝核心 + 冷调玻璃,几乎无彩色(色彩只在展开时涌现)*/
+function sgApplySiri(el){el.style.setProperty('--hrim','rgba(152,178,222,.5)');el.style.setProperty('--hin','rgba(120,148,198,.13)');el.style.setProperty('--hglow','rgba(150,180,230,.3)');el.style.setProperty('--hmid','rgba(96,120,165,.5)');el.style.setProperty('--hpetal','rgba(255,247,234,.92)');el.style.setProperty('--hcore','rgba(150,196,255,.95)');}
 
 /* 记忆球:前两颗=叠放的天气/世界杯卡,后三颗=已沉淀的对话记忆/生成壁纸/提车时刻 */
 const SG_ORBS=[
@@ -638,9 +640,9 @@ let sgFocus=Math.floor(SGN/2), bloomed=false;
 /* 建球 */
 const sgWheel=$('wheel'),orbEls=[];
 SG_ORBS.forEach((o,i)=>{
-  const el=document.createElement('div');el.className='orb '+o.type;sgApplyHue(el,o.type);
+  const el=document.createElement('div');el.className='orb '+o.type;sgApplySiri(el);
   const lumens='<div class="lumens"><div class="swirl"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i></div><b class="lcore"></b></div>';
-  const ball=o.img?`<div class="ball img"><div class="pic aurora"></div></div>`:`<div class="ball">${lumens}<div class="core"><span class="em">${o.em}</span></div></div>`;
+  const ball=`<div class="ball">${lumens}<div class="core"><span class="em">${o.em}</span></div></div>`;
   el.innerHTML=`<div class="float"><div class="ringglow"></div>${ball}<div class="ring"></div>${o.moment?'<div class="spk"></div>':''}<div class="cap"><span class="gl">${o.gl}</span><span class="gs">${o.gs}</span></div></div>`;
   el.querySelector('.float').style.animationDelay=(-i*1.4)+'s';
   if(o.moment){const spk=el.querySelector('.spk');for(let k=0;k<7;k++){const s=document.createElement('i');s.style.left=(22+Math.random()*56)+'%';s.style.top=(24+Math.random()*52)+'%';s.style.animationDelay=(Math.random()*3.4)+'s';spk.appendChild(s);}}
@@ -665,8 +667,8 @@ function sgRender(){
   $('tickRow').style.transform=`translate(${-fr*34-17}px,-50%)`;
   sgTickSpans.forEach((s,i)=>s.classList.toggle('on',Math.round(fr)===i));
   $('knobI').style.transform=`translateX(-50%) rotate(${sgFocus*32}deg)`;
-  const fi=Math.max(0,Math.min(SGN-1,Math.round(sgFocus))),fh=SG_HUE[SG_ORBS[fi].type];
-  if(fh){var pe=$('pedestal'),am=$('ambient');if(pe)pe.style.setProperty('--phue',fh.core);if(am)am.style.setProperty('--ahue',fh.glow);}
+  var pe=$('pedestal');if(pe)pe.style.setProperty('--phue','rgba(176,198,240,.5)');   // 光台中性冷白(转轮里几乎无彩色)
+  var am=$('ambient');if(am&&!stage.classList.contains('detail'))am.style.setProperty('--ahue','transparent');   // 氛围色仅在展开时涌现
 }
 function sgSetT(t){orbEls.forEach(el=>el.style.transition=t?'transform .55s cubic-bezier(.2,.85,.25,1),opacity .55s ease,filter .55s ease':'none');}
 
@@ -698,11 +700,12 @@ function sgSnapTo(t){t=Math.max(0,Math.min(SGN-1,t));cancelAnimationFrame(sgSnap
 
 /* 就地展开:球体放大 + 内部内容 */
 function openExp(i){const o=SG_ORBS[i],big=$('orbBig');sgApplyHue(big,o.type);
+  var am=$('ambient');if(am)am.style.setProperty('--ahue',SG_HUE[o.type].glow);   // 展开:该类色彩涌入背景
   big.classList.toggle('imgbig',!!o.img);
   big.querySelector('.pic')&&big.querySelector('.pic').remove();
   if(o.img){const p=document.createElement('div');p.className='pic aurora';big.insertBefore(p,big.firstChild);}
   $('expBody').innerHTML=o.body;$('exp').classList.add('show');stage.classList.add('detail');}
-function closeExp(){$('exp').classList.remove('show');stage.classList.remove('detail');}
+function closeExp(){$('exp').classList.remove('show');stage.classList.remove('detail');var am=$('ambient');if(am)am.style.setProperty('--ahue','transparent');}
 $('expBack').onclick=closeExp;$('expScrim').onclick=closeExp;
 
 /* 收回:球飞回叠放卡,动态窗口归位 */
