@@ -223,11 +223,15 @@
   .orb{position:absolute;left:50%;top:50%;width:228px;height:228px;margin:-114px 0 0 -114px;will-change:transform,opacity,filter;touch-action:none}
   .orb .float{width:100%;height:100%;position:relative;animation:bob 6.5s ease-in-out infinite}
   @keyframes bob{0%,100%{transform:translateY(-7px)}50%{transform:translateY(7px)}}
+  /* 透明 3D 玻璃球:背景透过折射 + Fresnel 亮边 + 体积高光/暗部 + 落影(无填充、无彩虹圈)*/
   .ball{position:absolute;inset:0;border-radius:50%;overflow:hidden;
-    background:radial-gradient(circle at 33% 24%, rgba(255,255,255,.5), rgba(255,255,255,.04) 16%, transparent 40%),radial-gradient(circle at 50% 116%, var(--hrim), transparent 56%),radial-gradient(circle at 50% 44%, rgba(24,30,46,.30), rgba(12,16,26,.5) 66%, rgba(7,10,17,.62));
-    backdrop-filter:blur(3px) saturate(1.08);
-    box-shadow:inset 0 1px 10px rgba(255,255,255,.32), inset 0 -12px 30px rgba(0,0,0,.42), inset 0 0 26px var(--hin), 0 18px 54px -18px var(--hglow);transition:box-shadow .5s ease}
-  .ball::after{content:"";position:absolute;left:27%;top:17%;width:15%;height:10%;border-radius:50%;background:rgba(255,255,255,.85);filter:blur(2px);opacity:.72}
+    background:radial-gradient(circle at 50% 46%, rgba(206,226,255,.12), transparent 52%),radial-gradient(circle at 50% 50%, transparent 56%, rgba(255,255,255,.1) 80%, rgba(255,255,255,.52) 95%, rgba(255,255,255,.12) 100%);
+    -webkit-backdrop-filter:blur(2.5px) brightness(1.16) saturate(1.06);backdrop-filter:blur(2.5px) brightness(1.16) saturate(1.06);
+    box-shadow:inset 0 3px 13px rgba(255,255,255,.52), inset 9px 11px 22px -6px rgba(255,255,255,.3), inset -9px -14px 30px -7px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.14), 0 24px 54px -20px rgba(0,0,0,.62), 0 0 22px -10px var(--hglow);transition:box-shadow .5s ease}
+  .ball::after{content:"";position:absolute;left:21%;top:13%;width:31%;height:23%;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.96),rgba(255,255,255,.3) 44%,transparent 70%);filter:blur(2.5px);opacity:.96;z-index:1}
+  .ball::before{content:"";position:absolute;left:60%;top:67%;width:15%;height:11%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.5),transparent 72%);filter:blur(2px);z-index:1}
+  .ring,.ringglow,.ball .lumens{display:none}   /* 去掉:外圈彩虹轮廓、外圈色晕、内部糊糊转动的光团 */
+  .orbbig .bigring{display:none}                 /* 大球也去掉彩虹圈 */
   .ball .core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3}
   .ball .core .em{font-size:27px;line-height:1;opacity:.5;filter:drop-shadow(0 0 10px rgba(255,255,255,.55)) drop-shadow(0 2px 6px rgba(0,0,0,.4))}
   /* ── Siri 球内光:玻璃球内的暖白光叶绕冷色核心涡旋(参考 visionOS Siri 球)── */
@@ -291,8 +295,7 @@
   .orbbig .bigring{position:absolute;inset:-2px;border-radius:50%;padding:2px;background:conic-gradient(from 200deg,rgba(170,205,255,0),rgba(196,170,255,.7),rgba(255,182,212,.7),rgba(255,224,170,.7),rgba(150,224,198,.7),rgba(170,205,255,0));
     -webkit-mask:radial-gradient(circle,transparent calc(50% - .5px),#000 50%);mask:radial-gradient(circle,transparent calc(50% - .5px),#000 50%);opacity:.6;animation:ringbreath 6s ease-in-out infinite}
   .orbbig .spec{position:absolute;left:24%;top:14%;width:24%;height:16%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.6),transparent 70%);filter:blur(5px);z-index:2}
-  .orbbig .lumens{inset:2%;opacity:.34;z-index:1}
-  .orbbig .lumens i{filter:blur(22px)}.orbbig .lumens .lcore{filter:blur(20px)}
+  .orbbig .lumens{display:none}
   .orbbig .inner{text-shadow:0 1px 14px rgba(4,7,13,.85),0 0 30px rgba(4,7,13,.6)}
   .orbbig.imgbig .lumens{display:none}
   .inner{position:relative;z-index:3;width:74%;max-height:78%;overflow:auto;text-align:center;color:#fff;opacity:0;transform:translateY(10px);transition:opacity .5s ease .22s,transform .5s ease .22s}
