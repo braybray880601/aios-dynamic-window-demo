@@ -191,9 +191,10 @@
   /* 绽放时:不隐去,只锁交互——靠上面的蒙层把动态窗口压暗(底下仍隐约可见)*/
   .stage.bloomed .statusbar,.stage.bloomed .voice-zone,.stage.bloomed .dock,.stage.bloomed .home,.stage.bloomed #pins{pointer-events:none!important}
 
-  /* 蒙层:半透深空,压暗动态窗口而非完全遮盖(底下隐约可见)*/
+  /* 蒙层:半透深空 + 毛玻璃模糊,压暗并虚化动态窗口(底下隐约可见、虚焦)*/
   .space{position:absolute;inset:0;z-index:0;
-    background:radial-gradient(115% 80% at 50% 12%, rgba(58,88,140,.17), transparent 56%),radial-gradient(85% 70% at 82% 84%, rgba(116,80,150,.14), transparent 60%),radial-gradient(80% 80% at 14% 80%, rgba(36,108,120,.11), transparent 60%),linear-gradient(180deg,rgba(8,11,18,.74),rgba(6,9,15,.82) 58%,rgba(4,6,11,.88));
+    background:radial-gradient(115% 80% at 50% 12%, rgba(58,88,140,.17), transparent 56%),radial-gradient(85% 70% at 82% 84%, rgba(116,80,150,.14), transparent 60%),radial-gradient(80% 80% at 14% 80%, rgba(36,108,120,.11), transparent 60%),linear-gradient(180deg,rgba(8,11,18,.55),rgba(6,9,15,.66) 58%,rgba(4,6,11,.74));
+    backdrop-filter:blur(26px) saturate(.95);-webkit-backdrop-filter:blur(26px) saturate(.95);
     opacity:0;transition:opacity .9s ease}
   .stage.bloomed .space{opacity:1}
   #dust{position:absolute;inset:0;width:100%;height:100%}
@@ -482,10 +483,25 @@ function renderStack(animateNew){
 function setGen(on){generating=on;hstack.classList.toggle('locked',on);$('vz').classList.toggle('gen',on);hlock.style.display=(on&&history.length)?'flex':'none';}
 function collapseToStack(){
   if(!activeCmd)return;
-  const finish=()=>{if(activeCmd.onHide)activeCmd.onHide();history.push(activeCmd);activeCmd=null;activeBox.innerHTML='';renderStack(true);};
-  const card=activeBox.firstElementChild;   // 当前结果卡「沉淀」上浮进星河胶囊
-  if(card){card.style.transition='transform .42s cubic-bezier(.4,0,.4,1),opacity .42s ease,filter .42s ease';card.style.transform='translateY(-40px) scale(.85)';card.style.opacity='0';card.style.filter='blur(2px)';setTimeout(finish,380);}
-  else finish();
+  if(activeCmd.onHide)activeCmd.onHide();
+  history.push(activeCmd);activeCmd=null;
+  sedimentFly(activeBox.firstElementChild);   // 结果卡克隆成浮层「沉淀」飞进星河胶囊
+  activeBox.innerHTML='';                        // 同步清空,下一步(生成/导航)内容才不会被覆盖
+  renderStack(true);
+}
+function sedimentFly(card){
+  if(!card)return;
+  try{
+    const sc=Math.min(innerWidth/1300,innerHeight/812)*0.985;
+    const cr=card.getBoundingClientRect(),sr=stage.getBoundingClientRect(),pr=hcount.getBoundingClientRect();
+    const x0=(cr.left-sr.left)/sc,y0=(cr.top-sr.top)/sc,w=cr.width/sc;
+    const px=(pr.left-sr.left)/sc+18,py=(pr.top-sr.top)/sc+8;
+    const fly=card.cloneNode(true);
+    fly.style.cssText='position:absolute;left:'+x0+'px;top:'+y0+'px;width:'+w+'px;margin:0;z-index:70;pointer-events:none;transition:transform .55s cubic-bezier(.4,0,.25,1),opacity .5s ease,filter .5s ease';
+    stage.appendChild(fly);
+    requestAnimationFrame(()=>{fly.style.transform='translate('+(px-x0)+'px,'+(py-y0)+'px) scale(.16)';fly.style.opacity='0';fly.style.filter='blur(3px)';});
+    setTimeout(()=>{if(fly.parentNode)fly.parentNode.removeChild(fly);},600);
+  }catch(e){}
 }
 function bumpLocked(){hcount.classList.remove('shake');void hcount.offsetWidth;hcount.classList.add('shake');}
 const vzEl=$('vz');
@@ -526,7 +542,7 @@ function navStage(t0){
     requestAnimationFrame(()=>{sd.classList.add('in');if(line)line.style.height=(trip.scrollHeight-28)+'px';});
     $('pin'+i).classList.add('show');const sp=seg(PTS[i-1],PTS[i]);requestAnimationFrame(()=>{sp.getBoundingClientRect();sp.style.strokeDashoffset='0';});
     shown.push(PTS[i]);fitCam(shown,PLAN_R,true,1.6);});});
-  at(base+3*gap+500,()=>{const g=$('go');if(g)g.classList.add('show');fitCam(shown,PLAN_R,true,1.5);setGen(false);$('phlabel').textContent='✅ 多目的地已规划 · 点上方卡片可回溯';reply('多目的地路线已就绪,出发吧 🚗');$('dockTt').textContent='🗺️ 多目的地 · 已规划';});
+  at(base+3*gap+500,()=>{const g=$('go');if(g)g.classList.add('show');fitCam(shown,PLAN_R,true,1.5);setGen(false);$('phlabel').textContent='✅ 多目的地已规划 · 点星河胶囊回看';reply('多目的地路线已就绪,出发吧 🚗');$('dockTt').textContent='🗺️ 多目的地 · 已规划';});
 }
 
 function playAll(){if(window.__seqRunning)return;window.__seqRunning=true;clearT();resetDOM();
