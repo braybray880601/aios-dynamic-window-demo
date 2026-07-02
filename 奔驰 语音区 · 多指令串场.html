@@ -231,7 +231,7 @@
   .ball .glasscv{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;display:block}
   .ring,.ringglow,.lumens{display:none}   /* 去掉:外圈彩虹轮廓、色晕、内部光点(改由 WebGL 玻璃渲染)*/
   .orbbig .bigring{display:none}   /* 大球也去掉彩虹圈 */
-  .ball .core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3}
+  .ball .core{display:none}   /* 内容已在球里呈现,不再叠 emoji */
   .ball .core .em{font-size:27px;line-height:1;opacity:.5;filter:drop-shadow(0 0 10px rgba(255,255,255,.55)) drop-shadow(0 2px 6px rgba(0,0,0,.4))}
   /* ── Siri 球内光:玻璃球内的暖白光叶绕冷色核心涡旋(参考 visionOS Siri 球)── */
   .lumens{position:absolute;inset:15%;border-radius:50%;z-index:1;pointer-events:none;contain:paint}
@@ -284,14 +284,18 @@
   .exp.show .scrim{opacity:1}
   .back{position:absolute;top:30px;left:30px;z-index:6;display:flex;align-items:center;gap:6px;border:0;cursor:pointer;font-family:inherit;font-size:13px;font-weight:650;color:#cfe0ff;background:rgba(91,140,255,.16);box-shadow:inset 0 0 0 1px rgba(91,140,255,.3);padding:8px 14px 8px 11px;border-radius:12px;opacity:0;transition:opacity .4s ease .15s,background .2s}
   .exp.show .back{opacity:1}.back:hover{background:rgba(91,140,255,.3)}
-  .orbbig{position:relative;width:580px;height:580px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    background:radial-gradient(circle at 40% 28%, rgba(255,255,255,.2), transparent 36%),radial-gradient(circle at 50% 50%, rgba(11,15,24,.72), rgba(13,18,29,.52) 50%, var(--hmid) 84%, var(--hrim) 100%);
-    box-shadow:inset 0 3px 22px rgba(255,255,255,.28), inset 0 0 0 1px rgba(255,255,255,.16), inset 0 -34px 80px -22px rgba(0,0,0,.55), 0 50px 130px -24px var(--hglow), 0 0 110px -10px var(--hglow);
+  .orbbig{position:relative;width:580px;height:580px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;
+    background:radial-gradient(circle at 50% 50%, #0b0f18, #090c14 72%);   /* WebGL 失败兜底 */
+    box-shadow:0 50px 130px -24px var(--hglow), 0 0 110px -10px var(--hglow);   /* 保留:该类色的外发光氛围 */
     opacity:0;transform:scale(.34);transition:transform .64s cubic-bezier(.2,.92,.26,1),opacity .5s ease}
+  .orbbig .bigcv{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;z-index:0;display:block}   /* WebGL 玻璃 */
+  .orbbig .well{position:absolute;inset:0;border-radius:50%;z-index:1;pointer-events:none;
+    background:radial-gradient(circle at 50% 46%, rgba(6,9,15,.5), rgba(6,9,15,.12) 52%, transparent 68%)}   /* 中心压暗保证文字可读 */
+  .orbbig.imgbig .bigcv,.orbbig.imgbig .well{display:none}   /* 壁纸球:显示生成图,不套玻璃 */
   .exp.show .orbbig{opacity:1;transform:none}
   .orbbig .bigring{position:absolute;inset:-2px;border-radius:50%;padding:2px;background:conic-gradient(from 200deg,rgba(170,205,255,0),rgba(196,170,255,.7),rgba(255,182,212,.7),rgba(255,224,170,.7),rgba(150,224,198,.7),rgba(170,205,255,0));
     -webkit-mask:radial-gradient(circle,transparent calc(50% - .5px),#000 50%);mask:radial-gradient(circle,transparent calc(50% - .5px),#000 50%);opacity:.6;animation:ringbreath 6s ease-in-out infinite}
-  .orbbig .spec{position:absolute;left:24%;top:14%;width:24%;height:16%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.6),transparent 70%);filter:blur(5px);z-index:2}
+  .orbbig .spec{display:none}   /* 高光改由 WebGL 玻璃提供,避免双高光 */
   .orbbig .lumens{display:none}
   .orbbig .inner{text-shadow:0 1px 14px rgba(4,7,13,.85),0 0 30px rgba(4,7,13,.6)}
   .orbbig.imgbig .lumens{display:none}
@@ -450,7 +454,7 @@
       <div class="dial" id="dial"><div class="ticks"><div class="row" id="tickRow"></div><div class="mark"></div></div><div class="knob"><i id="knobI"></i></div></div>
       <div class="hint" id="hint">← 滑动切换 · 点击展开 →</div>
       <div class="exp" id="exp"><div class="scrim" id="expScrim"></div><button class="back" id="expBack">← 返回</button>
-        <div class="orbbig" id="orbBig"><div class="bigring"></div><div class="spec"></div><div class="lumens"><div class="swirl"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i></div><b class="lcore"></b></div><div class="inner" id="expBody"></div></div>
+        <div class="orbbig" id="orbBig"><canvas class="bigcv" id="bigcv"></canvas><div class="bigring"></div><div class="spec"></div><div class="lumens"><div class="swirl"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i></div><b class="lcore"></b></div><div class="well"></div><div class="inner" id="expBody"></div></div>
       </div>
     </div>
   </div>
@@ -661,6 +665,14 @@ const SG_HUE={
   wall:   {rim:'rgba(154,168,228,.5)', in:'rgba(124,144,214,.15)',glow:'rgba(144,162,226,.38)',mid:'rgba(100,112,174,.5)', core:'rgba(176,190,255,.95)'},
   moment: {rim:'rgba(240,170,148,.55)',in:'rgba(226,146,126,.17)',glow:'rgba(236,160,138,.4)',mid:'rgba(180,100,80,.5)', core:'rgba(255,188,166,.95)'}
 };
+/* 展开时涌入玻璃体的色相(WebGL uTint 乘子,对应各类型) */
+const SG_TINT={
+  weather:[0.62,0.82,1.20],   // 冷蓝
+  match:  [0.60,1.14,0.86],   // 冷绿
+  mem:    [1.20,0.92,0.58],   // 暖琥珀
+  wall:   [0.86,0.90,1.26],   // 靛蓝
+  moment: [1.28,0.80,0.64]    // 暖橙
+};
 function sgApplyHue(el,t){const h=SG_HUE[t];el.style.setProperty('--hrim',h.rim);el.style.setProperty('--hin',h.in);el.style.setProperty('--hglow',h.glow);el.style.setProperty('--hmid',h.mid);el.style.setProperty('--hpetal',h.core||h.rim);el.style.setProperty('--hcore','rgba(244,250,255,.92)');}
 /* 转轮统一 Siri 质感:暖白光叶 + 冷蓝核心 + 冷调玻璃,几乎无彩色(色彩只在展开时涌现)*/
 function sgApplySiri(el){el.style.setProperty('--hrim','rgba(152,178,222,.5)');el.style.setProperty('--hin','rgba(120,148,198,.13)');el.style.setProperty('--hglow','rgba(150,180,230,.3)');el.style.setProperty('--hmid','rgba(96,120,165,.5)');el.style.setProperty('--hpetal','rgba(255,247,234,.92)');el.style.setProperty('--hcore','rgba(150,196,255,.95)');}
@@ -684,58 +696,117 @@ const SG_ORBS=[
 const SGN=SG_ORBS.length;
 let sgFocus=Math.floor(SGN/2), bloomed=false;
 
-/* ── WebGL 折射玻璃球:逐像素求球面法线 → 折射深空环境 → 菲涅尔边 + 高光(真实 3D 透明玻璃)── */
+/* ── 毛玻璃内容球:每颗球里是各自的内容(下雨/球队/记忆意象/生成图),边缘转磨砂,3D 圆顶 ── */
+/* 内容场景:画进 256 离屏 canvas 作为纹理 */
+function sgSky(x,a,b){const g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,a);g.addColorStop(1,b);x.fillStyle=g;x.fillRect(0,0,256,256);}
+function scWeather(x,t){ // 天气:阴雨蓝灰 + 城市剪影 + 温度 + 斜雨(动)
+  sgSky(x,'#3a4a63','#141c2b');
+  let rg=x.createRadialGradient(180,90,4,180,90,70);rg.addColorStop(0,'rgba(255,225,170,.5)');rg.addColorStop(1,'transparent');x.fillStyle=rg;x.fillRect(0,0,256,256);
+  x.fillStyle='rgba(10,16,26,.82)';const bs=[[6,182,36,62],[44,158,26,88],[74,172,30,74],[106,146,30,100],[138,182,26,62],[166,164,34,84],[202,176,30,70],[232,156,24,92]];
+  bs.forEach(b=>{x.fillRect(b[0],b[1],b[2],b[3]);});
+  x.fillStyle='rgba(255,214,150,.42)';for(let i=0;i<24;i++){const bx=bs[i%bs.length];x.fillRect(bx[0]+4+((i*7)%(bx[2]-8)),bx[1]+6+((i*13)%(bx[3]-12)),2.5,2.5);}
+  x.fillStyle='rgba(240,246,255,.9)';x.font='300 46px -apple-system';x.textAlign='center';x.fillText('14°',128,86);
+  x.font='14px -apple-system';x.fillStyle='rgba(220,232,255,.65)';x.fillText('上海 · 中雨',128,110);
+  x.strokeStyle='rgba(200,220,255,.5)';x.lineWidth=1.4;
+  for(let i=0;i<120;i++){const seed=i*97.13;const px=(seed*1.7+t*40)%270-14;const off=((seed*0.3+t*260)%286)-14;x.beginPath();x.moveTo(px,off);x.lineTo(px-7,off+18);x.stroke();}
+}
+function scMatch(x){ // 赛事:体育场夜景氛围 + 比分
+  sgSky(x,'#0f5c3e','#052015');
+  let f=x.createRadialGradient(128,10,4,128,10,150);f.addColorStop(0,'rgba(224,255,236,.5)');f.addColorStop(1,'transparent');x.fillStyle=f;x.fillRect(0,0,256,256);
+  let b=x.createLinearGradient(0,0,0,88);b.addColorStop(0,'rgba(120,180,255,.5)');b.addColorStop(1,'transparent');x.fillStyle=b;x.fillRect(0,0,256,88);
+  let s=x.createRadialGradient(128,150,8,128,150,96);s.addColorStop(0,'rgba(180,255,214,.28)');s.addColorStop(1,'transparent');x.fillStyle=s;x.fillRect(0,60,256,196);
+  x.fillStyle='rgba(255,240,200,.45)';for(let i=0;i<44;i++){x.fillRect((i*53.7)%256,(i*29.3)%64,1.6,1.6);}
+  x.fillStyle='rgba(255,255,255,.92)';x.font='600 30px -apple-system';x.textAlign='center';x.fillText('阿根廷 7',128,172);
+  x.font='13px -apple-system';x.fillStyle='rgba(255,255,255,.62)';x.fillText('A 组领跑',128,196);
+}
+function scMem(x){ // 记忆:暖夜 + 月晕 + 光斑 + 歌词意象
+  sgSky(x,'#2a2036','#120d17');
+  let m=x.createRadialGradient(170,70,4,170,70,90);m.addColorStop(0,'rgba(255,224,180,.85)');m.addColorStop(.4,'rgba(255,206,150,.35)');m.addColorStop(1,'transparent');x.fillStyle=m;x.fillRect(0,0,256,256);
+  for(let i=0;i<7;i++){const bx=30+i*33,by=150+((i*53)%80);let b=x.createRadialGradient(bx,by,1,bx,by,14);b.addColorStop(0,'rgba(255,210,170,.6)');b.addColorStop(1,'transparent');x.fillStyle=b;x.fillRect(bx-16,by-16,32,32);}
+  x.fillStyle='rgba(255,236,214,.9)';x.font='italic 20px Georgia';x.textAlign='center';x.fillText('《十年》',128,205);
+  x.font='16px -apple-system';x.fillStyle='rgba(255,230,200,.68)';x.fillText('那晚 · 很轻',128,230);
+}
+function scWall(x){ // 壁纸:直接展示生成的极光图
+  sgSky(x,'#0a1420','#0a0f1a');
+  const cols=[['rgba(90,220,180,.7)',60],['rgba(120,180,255,.6)',110],['rgba(180,130,255,.6)',160],['rgba(255,150,200,.5)',205]];
+  cols.forEach(c=>{let g=x.createLinearGradient(0,c[1]-60,0,c[1]+60);g.addColorStop(0,'transparent');g.addColorStop(.5,c[0]);g.addColorStop(1,'transparent');x.fillStyle=g;x.save();x.translate(128,c[1]);x.rotate(-0.12);x.fillRect(-160,-70,320,140);x.restore();});
+  x.fillStyle='rgba(255,255,255,.8)';for(let i=0;i<40;i++){x.fillRect((i*61.7)%256,(i*37.3)%120,1.5,1.5);}
+}
+function scMoment(x){ // 提车100天:暖庆 + 彩纸 + 100
+  sgSky(x,'#2b1f14','#140d08');
+  let g=x.createRadialGradient(128,118,10,128,118,132);g.addColorStop(0,'rgba(255,214,150,.5)');g.addColorStop(1,'transparent');x.fillStyle=g;x.fillRect(0,0,256,256);
+  const cs=['#ff9aa2','#ffd67a','#9ad0ff','#b6f0c8','#e0b0ff'];for(let i=0;i<38;i++){x.fillStyle=cs[i%5];x.save();x.translate((i*61.3)%256,(i*37.7)%170+8);x.rotate(i);x.fillRect(-3,-2,6,4);x.restore();}
+  x.fillStyle='rgba(255,255,255,.95)';x.font='300 62px -apple-system';x.textAlign='center';x.fillText('100',128,138);
+  x.font='15px -apple-system';x.fillStyle='rgba(255,235,205,.82)';x.fillText('提车 100 天',128,170);
+}
+const SG_SCENES={weather:scWeather,match:scMatch,mem:scMem,wall:scWall,moment:scMoment};
+const SG_FROST={weather:0.12,match:0.14,mem:0.16,wall:0.10,moment:0.14};
+const SG_ANIM={weather:true};   // 只有天气球逐帧下雨
+
 const GLASS_VS='attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
-const GLASS_FS=[
-'precision highp float;',
-'uniform vec2 uRes; uniform float uT; uniform vec3 uTint; uniform float uTintAmt;',
-'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}',
-'vec3 env(vec2 d){',
-'  vec3 c=mix(vec3(0.04,0.06,0.11), vec3(0.10,0.13,0.22), clamp(0.5-0.45*d.y,0.0,1.0));',
-'  c+=vec3(0.12,0.10,0.18)*smoothstep(0.9,0.0,length(d-vec2(0.45,0.55)));',
-'  vec2 g=d*5.0; vec2 id=floor(g),f=fract(g); float s=h(id);',
-'  if(s>0.90){float dd=length(f-0.5);float tw=0.7+0.3*sin(uT*1.5+s*40.0);c+=vec3(0.85,0.9,1.0)*smoothstep(0.16,0.0,dd)*tw*1.2;}',
-'  return c;',
-'}',
-'void main(){',
-'  vec2 uv=(gl_FragCoord.xy/uRes)*2.0-1.0; uv.y=-uv.y;',
-'  float r=length(uv);',
-'  float aa=2.5/uRes.y;',
-'  float alpha=smoothstep(1.0,1.0-aa*2.0,r);',
-'  if(alpha<=0.001) discard;',
-'  float z=sqrt(max(0.0,1.0-min(r,1.0)*min(r,1.0)));',
-'  vec3 N=vec3(uv,z); vec3 V=vec3(0.0,0.0,1.0);',
-'  vec3 Rr=refract(-V,N,1.0/1.52);',
-'  vec2 base=-uv*0.86 + Rr.xy*0.72;',
-'  float ca=0.014*r;',
-'  vec3 bg; bg.r=env(base+vec2(ca,0.0)).r; bg.g=env(base).g; bg.b=env(base-vec2(ca,0.0)).b;',
-'  float fres=pow(1.0-z,2.6);',
-'  vec3 refl=mix(vec3(0.0),vec3(0.66,0.78,1.05),fres);',
-'  vec3 L=normalize(vec3(-0.55,0.6,0.6));',
-'  float sp=pow(max(0.0,dot(reflect(-L,N),V)),70.0);',
-'  float sp2=pow(max(0.0,dot(reflect(-L,N),V)),12.0)*0.18;',
-'  float rim=smoothstep(0.80,0.965,r)*(1.0-smoothstep(0.985,1.0,r));',
-'  vec3 col=bg*(1.12-0.5*fres)+refl+vec3(1.0)*sp+vec3(0.85,0.9,1.0)*sp2+vec3(0.62,0.74,1.0)*rim*0.6;',
-'  col*=mix(1.0,0.82,smoothstep(0.6,1.0,r));',
-'  col=mix(col, col*uTint*1.15+uTint*0.1, uTintAmt);',
-'  gl_FragColor=vec4(col,alpha);',
-'}'].join('\n');
+/* 毛玻璃球:内容纹理 → 球面圆顶(鱼眼鼓起)+ 边缘磨砂扩散 + 亮边 + 左上高光 */
+const GLASS_FS=`precision highp float;
+uniform vec2 uRes; uniform float uT; uniform sampler2D uTex; uniform float uFrost;
+void main(){
+  vec2 c=(gl_FragCoord.xy/uRes)*2.0-1.0;   // y 朝上
+  float r=length(c);
+  float aa=2.0/uRes.y;
+  float alpha=smoothstep(1.0,1.0-aa*2.0,r);
+  if(alpha<=0.001) discard;
+  float z=sqrt(max(0.0,1.0-min(r,1.0)*min(r,1.0)));
+  vec3 N=vec3(c.x,c.y,z);
+  vec2 tuv=c/(0.86+0.34*z); tuv=tuv*0.5+0.5;   // 圆顶取样;UNPACK_FLIP_Y=true → 内容正立
+  float fres=pow(1.0-z,3.0);
+  float frost=clamp(uFrost+fres*0.55,0.0,1.0);  // 中心清晰,仅边缘转磨砂
+  vec3 sharp=texture2D(uTex,tuv).rgb;
+  float o=0.008+0.03*frost;
+  vec3 blur=vec3(0.0);
+  blur+=texture2D(uTex,tuv+vec2(o,0.0)).rgb;
+  blur+=texture2D(uTex,tuv+vec2(-o,0.0)).rgb;
+  blur+=texture2D(uTex,tuv+vec2(0.0,o)).rgb;
+  blur+=texture2D(uTex,tuv+vec2(0.0,-o)).rgb;
+  blur+=texture2D(uTex,tuv+vec2(o,o)*0.7).rgb;
+  blur+=texture2D(uTex,tuv+vec2(-o,-o)*0.7).rgb;
+  blur+=texture2D(uTex,tuv+vec2(o,-o)*0.7).rgb;
+  blur+=texture2D(uTex,tuv+vec2(-o,o)*0.7).rgb;
+  blur/=8.0;
+  vec3 col=mix(sharp,blur,frost);
+  col=mix(col, col*0.62+vec3(0.80,0.84,0.92)*0.4, frost*0.42);   // 磨砂乳白薄膜(克制)
+  float rim=smoothstep(0.72,0.97,r)*(1.0-smoothstep(0.99,1.0,r));
+  col+=vec3(0.92,0.95,1.0)*rim*0.34;                              // 亮玻璃边
+  vec3 L=normalize(vec3(-0.5,0.55,0.72));
+  float sp=pow(max(0.0,dot(reflect(-L,N),vec3(0.0,0.0,1.0))),64.0);
+  col+=vec3(1.0)*sp*0.85;                                         // 左上高光
+  col*=0.9+0.16*smoothstep(-0.4,1.0,dot(normalize(N),L));         // 轻体积
+  col*=mix(1.0,0.72,smoothstep(0.93,1.0,r));                      // 暗轮廓
+  gl_FragColor=vec4(col,alpha);
+}`;
 const glassInstances=[];
-function makeGlass(canvas){
+function makeFrostOrb(canvas,initialType){
   let gl; try{gl=canvas.getContext('webgl',{premultipliedAlpha:false,alpha:true,antialias:true})||canvas.getContext('experimental-webgl');}catch(e){}
   if(!gl)return null;
-  function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)){console.warn('glass shader',gl.getShaderInfoLog(o));return null;}return o;}
+  function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)){console.warn('frost shader',gl.getShaderInfoLog(o));return null;}return o;}
   const vs=sh(gl.VERTEX_SHADER,GLASS_VS),fs=sh(gl.FRAGMENT_SHADER,GLASS_FS);if(!vs||!fs)return null;
   const prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);
-  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){console.warn('glass link',gl.getProgramInfoLog(prog));return null;}
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){console.warn('frost link',gl.getProgramInfoLog(prog));return null;}
   gl.useProgram(prog);
   const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
   const pl=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(pl);gl.vertexAttribPointer(pl,2,gl.FLOAT,false,0,0);
-  const uRes=gl.getUniformLocation(prog,'uRes'),uT=gl.getUniformLocation(prog,'uT'),uTint=gl.getUniformLocation(prog,'uTint'),uTintAmt=gl.getUniformLocation(prog,'uTintAmt');
+  const uRes=gl.getUniformLocation(prog,'uRes'),uT=gl.getUniformLocation(prog,'uT'),uTex=gl.getUniformLocation(prog,'uTex'),uFrost=gl.getUniformLocation(prog,'uFrost');
   gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(0,0,0,0);
-  let tint=[1,1,1],tintAmt=0;
+  const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+  const content=document.createElement('canvas');content.width=content.height=256;const cx=content.getContext('2d');
+  let type=initialType||'weather',frost=SG_FROST[type]||0.14,animated=!!SG_ANIM[type];
+  function paint(t){(SG_SCENES[type]||scWall)(cx,t||0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,content);}
+  paint(0);
   function size(){const dpr=Math.min(devicePixelRatio||1,2);const w=(canvas.clientWidth||114)*dpr,hh=(canvas.clientHeight||114)*dpr;if(canvas.width!==w||canvas.height!==hh){canvas.width=w;canvas.height=hh;}gl.viewport(0,0,canvas.width,canvas.height);}
-  return {draw(t){size();gl.clear(gl.COLOR_BUFFER_BIT);gl.uniform2f(uRes,canvas.width,canvas.height);gl.uniform1f(uT,t);gl.uniform3fv(uTint,tint);gl.uniform1f(uTintAmt,tintAmt);gl.drawArrays(gl.TRIANGLES,0,3);},setTint(c,a){tint=c;tintAmt=a;}};
+  return {
+    draw(t){if(animated)paint(t);size();gl.clear(gl.COLOR_BUFFER_BIT);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(uTex,0);gl.uniform2f(uRes,canvas.width,canvas.height);gl.uniform1f(uT,t);gl.uniform1f(uFrost,frost);gl.drawArrays(gl.TRIANGLES,0,3);},
+    setScene(newType,frostOverride){type=newType;frost=(frostOverride!=null?frostOverride:(SG_FROST[type]||0.14));animated=!!SG_ANIM[type];paint(0);}
+  };
 }
 requestAnimationFrame(function gloop(now){const t=(now||0)*0.001;if(bloomed){for(let k=0;k<glassInstances.length;k++)glassInstances[k].draw(t);}requestAnimationFrame(gloop);});
 
@@ -748,8 +819,10 @@ SG_ORBS.forEach((o,i)=>{
   el.querySelector('.float').style.animationDelay=(-i*1.4)+'s';
   if(o.moment){const spk=el.querySelector('.spk');for(let k=0;k<7;k++){const s=document.createElement('i');s.style.left=(22+Math.random()*56)+'%';s.style.top=(24+Math.random()*52)+'%';s.style.animationDelay=(Math.random()*3.4)+'s';spk.appendChild(s);}}
   sgWheel.appendChild(el);orbEls.push(el);
-  const gcv=el.querySelector('.glasscv');if(gcv){const gi=makeGlass(gcv);if(gi)glassInstances.push(gi);}
+  const gcv=el.querySelector('.glasscv');if(gcv){const gi=makeFrostOrb(gcv,o.type);if(gi)glassInstances.push(gi);}
 });
+/* 展开大球:同一毛玻璃内容球(尺寸更大),展开时切到该类内容 */
+const bigGlass=(function(){const cv=$('bigcv');if(!cv)return null;const gi=makeFrostOrb(cv,SG_ORBS[0].type);if(gi)glassInstances.push(gi);return gi;})();
 $('tickRow').innerHTML=['天气','赛事','记忆','壁纸','时刻'].map(s=>`<span>${s}</span>`).join('');
 const sgTickSpans=[...$('tickRow').querySelectorAll('span')];
 
@@ -803,9 +876,9 @@ function sgSnapTo(t){t=Math.max(0,Math.min(SGN-1,t));cancelAnimationFrame(sgSnap
 /* 就地展开:球体放大 + 内部内容 */
 function openExp(i){const o=SG_ORBS[i],big=$('orbBig');sgApplyHue(big,o.type);
   var am=$('ambient');if(am)am.style.setProperty('--ahue',SG_HUE[o.type].glow);   // 展开:该类色彩涌入背景
-  big.classList.toggle('imgbig',!!o.img);
+  if(bigGlass)bigGlass.setScene(o.type, o.img?0.14:0.44);   // 展开:内容化作柔和氛围底,卡片文字在上层清晰(壁纸球保持清晰直接展示图)
+  big.classList.remove('imgbig');
   big.querySelector('.pic')&&big.querySelector('.pic').remove();
-  if(o.img){const p=document.createElement('div');p.className='pic aurora';big.insertBefore(p,big.firstChild);}
   $('expBody').innerHTML=o.body;$('exp').classList.add('show');stage.classList.add('detail');}
 function closeExp(){$('exp').classList.remove('show');stage.classList.remove('detail');var am=$('ambient');if(am)am.style.setProperty('--ahue','transparent');}
 $('expBack').onclick=closeExp;$('expScrim').onclick=closeExp;
