@@ -648,52 +648,14 @@ const SG_ORBS=[
 const SGN=SG_ORBS.length;
 let sgFocus=Math.floor(SGN/2), bloomed=false;
 
-/* ── 毛玻璃内容球:每颗球里是各自的内容(下雨/球队/记忆意象/生成图),边缘转磨砂,3D 圆顶 ── */
-/* 内容场景:画进 256 离屏 canvas 作为纹理 */
-function sgSky(x,a,b){const g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,a);g.addColorStop(1,b);x.fillStyle=g;x.fillRect(0,0,256,256);}
-function scWeather(x,t){ // 天气:阴雨蓝灰 + 城市剪影 + 温度 + 斜雨(动)
-  sgSky(x,'#3a4a63','#141c2b');
-  let rg=x.createRadialGradient(180,90,4,180,90,70);rg.addColorStop(0,'rgba(255,225,170,.5)');rg.addColorStop(1,'transparent');x.fillStyle=rg;x.fillRect(0,0,256,256);
-  x.fillStyle='rgba(10,16,26,.82)';const bs=[[6,182,36,62],[44,158,26,88],[74,172,30,74],[106,146,30,100],[138,182,26,62],[166,164,34,84],[202,176,30,70],[232,156,24,92]];
-  bs.forEach(b=>{x.fillRect(b[0],b[1],b[2],b[3]);});
-  x.fillStyle='rgba(255,214,150,.42)';for(let i=0;i<24;i++){const bx=bs[i%bs.length];x.fillRect(bx[0]+4+((i*7)%(bx[2]-8)),bx[1]+6+((i*13)%(bx[3]-12)),2.5,2.5);}
-  x.fillStyle='rgba(240,246,255,.9)';x.font='300 46px -apple-system';x.textAlign='center';x.fillText('14°',128,86);
-  x.font='14px -apple-system';x.fillStyle='rgba(220,232,255,.65)';x.fillText('上海 · 中雨',128,110);
-  x.strokeStyle='rgba(200,220,255,.5)';x.lineWidth=1.4;
-  for(let i=0;i<120;i++){const seed=i*97.13;const px=(seed*1.7+t*40)%270-14;const off=((seed*0.3+t*260)%286)-14;x.beginPath();x.moveTo(px,off);x.lineTo(px-7,off+18);x.stroke();}
-}
-function scMatch(x){ // 赛事:体育场夜景氛围 + 比分
-  sgSky(x,'#0f5c3e','#052015');
-  let f=x.createRadialGradient(128,10,4,128,10,150);f.addColorStop(0,'rgba(224,255,236,.5)');f.addColorStop(1,'transparent');x.fillStyle=f;x.fillRect(0,0,256,256);
-  let b=x.createLinearGradient(0,0,0,88);b.addColorStop(0,'rgba(120,180,255,.5)');b.addColorStop(1,'transparent');x.fillStyle=b;x.fillRect(0,0,256,88);
-  let s=x.createRadialGradient(128,150,8,128,150,96);s.addColorStop(0,'rgba(180,255,214,.28)');s.addColorStop(1,'transparent');x.fillStyle=s;x.fillRect(0,60,256,196);
-  x.fillStyle='rgba(255,240,200,.45)';for(let i=0;i<44;i++){x.fillRect((i*53.7)%256,(i*29.3)%64,1.6,1.6);}
-  x.fillStyle='rgba(255,255,255,.92)';x.font='600 30px -apple-system';x.textAlign='center';x.fillText('阿根廷 7',128,172);
-  x.font='13px -apple-system';x.fillStyle='rgba(255,255,255,.62)';x.fillText('A 组领跑',128,196);
-}
-function scMem(x){ // 记忆:暖夜 + 月晕 + 光斑 + 歌词意象
-  sgSky(x,'#2a2036','#120d17');
-  let m=x.createRadialGradient(170,70,4,170,70,90);m.addColorStop(0,'rgba(255,224,180,.85)');m.addColorStop(.4,'rgba(255,206,150,.35)');m.addColorStop(1,'transparent');x.fillStyle=m;x.fillRect(0,0,256,256);
-  for(let i=0;i<7;i++){const bx=30+i*33,by=150+((i*53)%80);let b=x.createRadialGradient(bx,by,1,bx,by,14);b.addColorStop(0,'rgba(255,210,170,.6)');b.addColorStop(1,'transparent');x.fillStyle=b;x.fillRect(bx-16,by-16,32,32);}
-  x.fillStyle='rgba(255,236,214,.9)';x.font='italic 20px Georgia';x.textAlign='center';x.fillText('《十年》',128,205);
-  x.font='16px -apple-system';x.fillStyle='rgba(255,230,200,.68)';x.fillText('那晚 · 很轻',128,230);
-}
-function scWall(x){ // 壁纸:直接展示生成的极光图
-  sgSky(x,'#0a1420','#0a0f1a');
-  const cols=[['rgba(90,220,180,.7)',60],['rgba(120,180,255,.6)',110],['rgba(180,130,255,.6)',160],['rgba(255,150,200,.5)',205]];
-  cols.forEach(c=>{let g=x.createLinearGradient(0,c[1]-60,0,c[1]+60);g.addColorStop(0,'transparent');g.addColorStop(.5,c[0]);g.addColorStop(1,'transparent');x.fillStyle=g;x.save();x.translate(128,c[1]);x.rotate(-0.12);x.fillRect(-160,-70,320,140);x.restore();});
-  x.fillStyle='rgba(255,255,255,.8)';for(let i=0;i<40;i++){x.fillRect((i*61.7)%256,(i*37.3)%120,1.5,1.5);}
-}
-function scMoment(x){ // 提车100天:暖庆 + 彩纸 + 100
-  sgSky(x,'#2b1f14','#140d08');
-  let g=x.createRadialGradient(128,118,10,128,118,132);g.addColorStop(0,'rgba(255,214,150,.5)');g.addColorStop(1,'transparent');x.fillStyle=g;x.fillRect(0,0,256,256);
-  const cs=['#ff9aa2','#ffd67a','#9ad0ff','#b6f0c8','#e0b0ff'];for(let i=0;i<38;i++){x.fillStyle=cs[i%5];x.save();x.translate((i*61.3)%256,(i*37.7)%170+8);x.rotate(i);x.fillRect(-3,-2,6,4);x.restore();}
-  x.fillStyle='rgba(255,255,255,.95)';x.font='300 62px -apple-system';x.textAlign='center';x.fillText('100',128,138);
-  x.font='15px -apple-system';x.fillStyle='rgba(255,235,205,.82)';x.fillText('提车 100 天',128,170);
-}
-const SG_SCENES={weather:scWeather,match:scMatch,mem:scMem,wall:scWall,moment:scMoment};
-const SG_FROST={weather:0.12,match:0.14,mem:0.16,wall:0.10,moment:0.14};
-const SG_ANIM={weather:true};   // 只有天气球逐帧下雨
+/* ── 毛玻璃内容球:球里放真实影像(雨夜/球场/极光/星空/烟花),边缘转磨砂,3D 圆顶 ── */
+const SG_IMG={weather:'images/orb-weather.jpg',match:'images/orb-match.jpg',mem:'images/orb-mem.jpg',wall:'images/orb-wall.jpg',moment:'images/orb-moment.jpg'};
+const SG_FROST={weather:0.10,match:0.10,mem:0.11,wall:0.09,moment:0.10};
+const SG_RAIN={weather:true};   // 天气球在真实雨夜照片上再叠一层落雨动画
+const _imgCache={};
+function sgLoadImg(src){if(!src)return null;if(_imgCache[src])return _imgCache[src];const im=new Image();im.src=src;_imgCache[src]=im;return im;}
+function sgCover(x,img,dx){const s=Math.max(256/img.width,256/img.height);const w=img.width*s,h=img.height*s;x.drawImage(img,(256-w)/2+(dx||0),(256-h)/2,w,h);}
+function sgRainOverlay(x,t){x.globalCompositeOperation='lighter';x.strokeStyle='rgba(200,220,255,0.4)';x.lineWidth=1.3;for(let i=0;i<90;i++){const seed=i*97.13;const px=(seed*1.7+t*40)%286-15;const off=((seed*0.3+t*300)%300)-15;x.beginPath();x.moveTo(px,off);x.lineTo(px-6,off+16);x.stroke();}x.globalCompositeOperation='source-over';}
 
 const GLASS_VS='attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
 /* 毛玻璃球:内容纹理 → 球面圆顶(鱼眼鼓起)+ 边缘磨砂扩散 + 亮边 + 左上高光 */
@@ -751,13 +713,13 @@ function makeFrostOrb(canvas,initialType){
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
   const content=document.createElement('canvas');content.width=content.height=256;const cx=content.getContext('2d');
-  let type=initialType||'weather',frost=SG_FROST[type]||0.14,animated=!!SG_ANIM[type];
-  function paint(t){(SG_SCENES[type]||scWall)(cx,t||0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,content);}
-  paint(0);
+  let type=initialType||'weather',frost=SG_FROST[type]||0.1,rainOn=!!SG_RAIN[type],img=sgLoadImg(SG_IMG[type]);
   function size(){const dpr=Math.min(devicePixelRatio||1,2);const w=(canvas.clientWidth||114)*dpr,hh=(canvas.clientHeight||114)*dpr;if(canvas.width!==w||canvas.height!==hh){canvas.width=w;canvas.height=hh;}gl.viewport(0,0,canvas.width,canvas.height);}
   return {
-    draw(t){if(animated)paint(t);size();gl.clear(gl.COLOR_BUFFER_BIT);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(uTex,0);gl.uniform2f(uRes,canvas.width,canvas.height);gl.uniform1f(uT,t);gl.uniform1f(uFrost,frost);gl.drawArrays(gl.TRIANGLES,0,3);},
-    setScene(newType,frostOverride){type=newType;frost=(frostOverride!=null?frostOverride:(SG_FROST[type]||0.14));animated=!!SG_ANIM[type];paint(0);}
+    draw(t){size();cx.clearRect(0,0,256,256);if(img&&img.complete&&img.naturalWidth){sgCover(cx,img,Math.sin(t*0.15)*4);if(rainOn)sgRainOverlay(cx,t);}
+      gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,content);
+      gl.clear(gl.COLOR_BUFFER_BIT);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(uTex,0);gl.uniform2f(uRes,canvas.width,canvas.height);gl.uniform1f(uFrost,frost);gl.drawArrays(gl.TRIANGLES,0,3);},
+    setScene(newType,frostOverride){type=newType;frost=(frostOverride!=null?frostOverride:(SG_FROST[type]||0.1));rainOn=!!SG_RAIN[type];img=sgLoadImg(SG_IMG[type]);}
   };
 }
 requestAnimationFrame(function gloop(now){const t=(now||0)*0.001;if(bloomed){for(let k=0;k<glassInstances.length;k++)glassInstances[k].draw(t);}requestAnimationFrame(gloop);});
@@ -828,7 +790,7 @@ function sgSnapTo(t){t=Math.max(0,Math.min(SGN-1,t));cancelAnimationFrame(sgSnap
 /* 就地展开:球体放大 + 内部内容 */
 function openExp(i){const o=SG_ORBS[i],big=$('orbBig');sgApplyHue(big,o.type);
   var am=$('ambient');if(am)am.style.setProperty('--ahue',SG_HUE[o.type].glow);   // 展开:该类色彩涌入背景
-  if(bigGlass)bigGlass.setScene(o.type, o.img?0.14:0.44);   // 展开:内容化作柔和氛围底,卡片文字在上层清晰(壁纸球保持清晰直接展示图)
+  if(bigGlass)bigGlass.setScene(o.type, o.type==='wall'?0.09:0.24);   // 展开:壁纸球清晰直接展示图;其余真实影像作柔和氛围底、卡片文字在上层
   big.classList.remove('imgbig');
   big.querySelector('.pic')&&big.querySelector('.pic').remove();
   $('expBody').innerHTML=o.body;$('exp').classList.add('show');stage.classList.add('detail');}
