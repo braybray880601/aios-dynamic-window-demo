@@ -425,7 +425,7 @@
     <div class="fxrow">
       <figure class="fxcard">
         <div class="fxstage">
-          <video class="vidp" controls playsinline preload="metadata" poster="videos/siri-poster.png">
+          <video class="vidp" playsinline preload="none" poster="videos/siri-poster.png">
             <source src="videos/siri.mp4" type="video/mp4" />
           </video>
         </div>
@@ -433,7 +433,7 @@
       </figure>
       <figure class="fxcard">
         <div class="fxstage">
-          <video class="vidp" controls playsinline preload="metadata" poster="videos/gemini-poster.png">
+          <video class="vidp" playsinline preload="none" poster="videos/gemini-poster.png">
             <source src="videos/gemini.mp4" type="video/mp4" />
           </video>
         </div>
@@ -672,16 +672,14 @@
     window.addEventListener('scroll', onScroll, {passive:true});
     onScroll();
 
-    var pd = document.getElementById('playDemo');
-    if(pd){ pd.addEventListener('click', function(){
-      var body = pd.parentNode;
-      var f = document.createElement('iframe');
-      f.src = 'AIOS%20Demo%20%C2%B7%20Runner%20%E4%B8%B2%E5%9C%BA.html';
-      f.title = 'Nebula window demo';
-      f.setAttribute('allow', 'autoplay; fullscreen');
-      body.innerHTML = '';
-      body.appendChild(f);
-    }); }
+    document.querySelectorAll('.vidp').forEach(function(v){
+      v.style.cursor = 'pointer';
+      v.addEventListener('click', function(){
+        if(v.hasAttribute('controls')) return;
+        var p = v.play();
+        if(p && p.then) p.then(function(){ v.setAttribute('controls',''); }).catch(function(){});
+      });
+    });
   })();
 </script>
 </body>
