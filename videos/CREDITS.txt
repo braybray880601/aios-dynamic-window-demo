@@ -1,0 +1,22 @@
+Scene loop videos in orb-*.mp4 are short excerpts (cropped/re-encoded) of
+Creative Commons videos from Wikimedia Commons. Attributions:
+
+orb-weather.mp4
+  "Heavy rain in Longhua District, Shenzhen (20250424)" — Zhangjunwenkk
+  CC BY 4.0 — https://commons.wikimedia.org/wiki/File:Heavy_rain_in_Longhua_District,_Shenzhen_(20250424).webm
+
+orb-match.mp4
+  "But de Hoarau vu de Boulogne (PSG 1-0 TFC)" — Thesupermat
+  CC BY 2.0 — https://commons.wikimedia.org/wiki/File:But_de_Hoarau_vu_de_Boulogne_(PSG_1-0_TFC).ogv
+
+orb-mem.mp4
+  "Milky Way Timelapse" — Mike Lewinski
+  CC BY 3.0 — https://commons.wikimedia.org/wiki/File:Milky_Way_Timelapse.webm
+
+orb-wall.mp4
+  "May 2024 aurora timelapse near Calgary" — AlbertaHiker
+  CC BY 3.0 — https://commons.wikimedia.org/wiki/File:May_2024_aurora_timelapse_near_Calgary.webm
+
+orb-moment.mp4
+  "Kurosaki Festival Fireworks - Aerial Video" — Kyushu Aerial Photography
+  CC BY 3.0 — https://commons.wikimedia.org/wiki/File:Kurosaki_Festival_Fireworks_-_Aerial_Video.webm
