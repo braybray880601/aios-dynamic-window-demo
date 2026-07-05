@@ -20,3 +20,19 @@ orb-wall.mp4
 orb-moment.mp4
   "Kurosaki Festival Fireworks - Aerial Video" — Kyushu Aerial Photography
   CC BY 3.0 — https://commons.wikimedia.org/wiki/File:Kurosaki_Festival_Fireworks_-_Aerial_Video.webm
+
+orb-energy.mp4
+  "Ionity Charging Station For Electric Cars (2024)" — Maximilian Schönherr
+  CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Ionity_Charging_Station_For_Electric_Cars_(2024).webm
+
+orb-adas.mp4
+  "Driving under rain - Doha, Qatar" — Muhammad Basheer
+  CC BY 3.0 — https://commons.wikimedia.org/wiki/File:Driving_under_rain_-_Doha,_Qatar.webm
+
+orb-track.mp4
+  "Cars drifting around a race track at twilight and night as viewed from FPV drone" — anotherview
+  CC BY 3.0 — https://commons.wikimedia.org/wiki/File:Cars_drifting_around_a_race_track_at_twilight_and_night_as_viewed_from_FPV_drone.webm
+
+orb-legacy.mp4
+  "1963 Dutch Grand Prix" — Polygoon Hollands Nieuws
+  CC BY-SA 3.0 nl — https://commons.wikimedia.org/wiki/File:1963_Dutch_Grand_Prix.ogv
