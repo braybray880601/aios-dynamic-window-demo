@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>光场语汇 · 语言体系</title>
+<!--
+  光场语汇的「词典」：
+  L0 三问（光场永远在回答什么） → L1 原子参数（8 个可调的物理量） → L2 原语（具名光效 = 原子的固定配方，每个带独立循环小样）
+  → L3 场景（原语的组合句子，对应「场景矩阵」页的 23 个场景）
+  姊妹页：「光场语汇 · 场景矩阵.html」（每个场景的完整演示） / 「光场语汇 · 可见可说与Highlight.html」（C4+C5 链路深挖）
+-->
+<style>
+  @property --a { syntax:'<angle>'; initial-value:0deg; inherits:false }
+  :root{
+    --bg:#05070b; --ink:#eef1f4; --soft:rgba(238,241,244,.62); --faint:rgba(238,241,244,.38);
+    --card:rgba(22,28,40,.72); --card-bd:rgba(255,255,255,.1);
+    --gold:#ffcf6a; --green:#34d06a; --blue:#8fb4ff;
+    --ease:cubic-bezier(.2,.7,.2,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{background:#05070b}
+  body{background:radial-gradient(1400px 800px at 50% 0%,#0b101a 0%,#070a10 45%,rgba(5,7,11,0) 100%);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;
+    padding:56px 40px 90px}
+  .doc{max-width:1240px;margin:0 auto}
+  h1{font-size:26px;font-weight:700;letter-spacing:.01em}
+  .lede{font-size:13px;color:var(--soft);margin-top:10px;line-height:1.8;max-width:760px}
+  .lede b{color:var(--ink)}
+  .links{margin-top:14px;font-size:12px}
+  .links a{color:var(--blue);text-decoration:none;margin-right:18px}
+  h2{font-size:15px;font-weight:800;letter-spacing:.14em;color:rgba(150,185,255,.85);margin:52px 0 6px}
+  h2 span{color:var(--faint);font-weight:600;letter-spacing:0;margin-left:10px;font-size:12px}
+  .h2sub{font-size:12px;color:var(--faint);line-height:1.7;margin-bottom:18px;max-width:760px}
+
+  /* ── L1 原子 ── */
+  .atoms{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .atomc{border-radius:13px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);padding:12px 14px}
+  .atomc b{font-size:13px}
+  .atomc i{display:block;font-style:normal;font-size:11px;color:var(--faint);margin-top:4px;line-height:1.55}
+
+  /* ── L2 原语卡 ── */
+  .fam{margin-top:26px}
+  .famh{font-size:12.5px;font-weight:700;color:var(--soft);margin-bottom:10px}
+  .famh em{font-style:normal;color:var(--faint);font-weight:500;margin-left:8px;font-size:11px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .prim{border-radius:16px;background:var(--card);box-shadow:inset 0 0 0 1px var(--card-bd);overflow:hidden;display:flex;flex-direction:column}
+  .mini{position:relative;height:118px;background:radial-gradient(120% 130% at 50% -20%,#101722 0%,#0a0e15 60%,#080b11 100%);overflow:hidden;flex:none}
+  .pbody{padding:12px 14px 13px}
+  .pname{font-size:13.5px;font-weight:700;display:flex;align-items:baseline;gap:8px}
+  .pname .en{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--faint)}
+  .psay{font-size:11.5px;color:var(--soft);margin-top:5px;line-height:1.6}
+  .psay b{color:var(--ink);font-weight:600}
+  .precipe{font-size:10.5px;color:var(--faint);margin-top:7px;line-height:1.6}
+  .precipe b{color:rgba(170,200,255,.8);font-weight:700}
+  .pscenes{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+  .sc{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:7px;color:rgba(170,200,255,.9);background:rgba(120,160,255,.1);box-shadow:inset 0 0 0 1px rgba(140,175,255,.18)}
+  .sc.gold{color:rgba(255,215,140,.9);background:rgba(255,200,100,.08);box-shadow:inset 0 0 0 1px rgba(255,200,120,.2)}
+
+  /* ── mini 小样通用件 ── */
+  .chip{position:absolute;border-radius:10px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+  .chip .l1{position:absolute;left:10px;top:9px;height:5px;width:46%;border-radius:3px;background:rgba(255,255,255,.14)}
+  .chip .l2{position:absolute;left:10px;top:20px;height:5px;width:30%;border-radius:3px;background:rgba(255,255,255,.09)}
+  .imgb{position:absolute;border-radius:10px;overflow:hidden;background:
+    linear-gradient(160deg,#25324a 0%,#1b2436 40%,#22392e 70%,#182233 100%)}
+  .ring{position:absolute;inset:-1px;border-radius:inherit;padding:1.4px;pointer-events:none;
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+    background:conic-gradient(from var(--a),transparent 0deg 265deg,rgba(190,218,255,0) 275deg,rgba(200,225,255,.95) 325deg,transparent 352deg)}
+
+  /* ── L1.5 能级条(8s 循环：收拢→展开→满场→回家) ── */
+  .lv{position:relative;height:170px;border-radius:16px;overflow:hidden;margin-bottom:6px;
+    background:radial-gradient(120% 140% at 50% -20%,#101722 0%,#0a0e15 60%,#080b11 100%);box-shadow:inset 0 0 0 1px var(--card-bd)}
+  .lv-dock{position:absolute;left:0;right:0;bottom:0;height:26px;background:rgba(12,16,24,.78);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  .lv-hl{position:absolute;left:50%;bottom:25px;width:44px;height:2.5px;border-radius:2px;transform:translateX(-50%);
+    background:linear-gradient(90deg,transparent,rgba(190,215,255,.9) 25% 75%,transparent);box-shadow:0 0 12px rgba(150,190,255,.55);
+    animation:lvhl 8s ease-in-out infinite}
+  @keyframes lvhl{0%{opacity:.35}10%{opacity:.8}20%{opacity:.45}26%,84%{opacity:0}92%,100%{opacity:.5}}
+  .lv-line{position:absolute;left:50%;bottom:24px;height:2.5px;border-radius:2px;transform:translateX(-50%);
+    background:linear-gradient(90deg,transparent,rgba(190,215,255,.95) 15% 85%,transparent);box-shadow:0 0 16px rgba(150,190,255,.6);
+    animation:lvln 8s ease-in-out infinite}
+  @keyframes lvln{0%,24%{width:0;opacity:0}34%,72%{width:74%;opacity:1}82%,100%{width:0;opacity:0}}
+  .lv-band{position:absolute;left:0;right:0;bottom:26px;height:78px;
+    background:radial-gradient(58% 150% at 50% 112%,rgba(130,170,255,.26),rgba(120,160,255,.07) 55%,transparent 80%);
+    animation:lvbd 8s ease-in-out infinite}
+  @keyframes lvbd{0%,26%{opacity:0}36%,70%{opacity:1}80%,100%{opacity:0}}
+  .lv-rim{position:absolute;inset:0;box-shadow:inset 0 0 64px rgba(140,180,255,.38);animation:lvrim 8s ease-in-out infinite}
+  @keyframes lvrim{0%,44%{opacity:0}52%,60%{opacity:1}68%,100%{opacity:0}}
+  .lv-lab{position:absolute;top:14px;font-size:11px;font-weight:700;color:var(--soft);line-height:1.6}
+  .lv-lab i{font-style:normal;font-size:9.5px;color:var(--faint);font-weight:500}
+  /* P1 底缘光带 */
+  .m-dockbar{position:absolute;left:0;right:0;bottom:0;height:20px;background:rgba(12,16,24,.78);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  .m-hl2{position:absolute;left:50%;bottom:19px;width:32px;height:2px;border-radius:2px;transform:translateX(-50%);
+    background:linear-gradient(90deg,transparent,rgba(190,215,255,.9) 25% 75%,transparent);box-shadow:0 0 10px rgba(150,190,255,.5);animation:mp1hl 6s ease-in-out infinite}
+  @keyframes mp1hl{0%{opacity:.35}12%{opacity:.75}24%{opacity:.4}32%,80%{opacity:0}90%,100%{opacity:.5}}
+  .m-line2{position:absolute;left:50%;bottom:18px;height:2px;border-radius:2px;transform:translateX(-50%);
+    background:linear-gradient(90deg,transparent,rgba(190,215,255,.95) 18% 82%,transparent);box-shadow:0 0 14px rgba(150,190,255,.6);animation:mp1ln 6s ease-in-out infinite}
+  @keyframes mp1ln{0%,30%{width:0;opacity:0}42%,72%{width:78%;opacity:1}84%,100%{width:0;opacity:0}}
+  .m-band2{position:absolute;left:0;right:0;bottom:20px;height:56px;
+    background:radial-gradient(60% 150% at 50% 112%,rgba(130,170,255,.3),transparent 78%);animation:mp1bd 6s ease-in-out infinite}
+  @keyframes mp1bd{0%,32%{opacity:0}44%,70%{opacity:1}82%,100%{opacity:0}}
+  /* P21 胶囊张合 */
+  .m-cap21{position:absolute;transform:translateX(-50%);background:rgba(18,24,36,.88);
+    box-shadow:inset 0 0 0 1px rgba(150,185,255,.28);animation:m21 7s ease-in-out infinite}
+  @keyframes m21{
+    0%,6%{left:50%;bottom:26px;width:36px;height:3px;border-radius:2px}
+    14%,30%{left:50%;bottom:32px;width:150px;height:28px;border-radius:15px}
+    40%,58%{left:50%;bottom:36px;width:198px;height:56px;border-radius:16px}
+    68%,86%{left:76%;bottom:27px;width:86px;height:20px;border-radius:11px}
+    94%,100%{left:50%;bottom:26px;width:36px;height:3px;border-radius:2px}}
+  .m-band{position:absolute;left:0;right:0;bottom:0;height:64px;
+    background:radial-gradient(60% 150% at 50% 112%,rgba(130,170,255,.32),rgba(120,160,255,.08) 55%,transparent 80%);animation:bandbr 3.2s ease-in-out infinite}
+  .m-line{position:absolute;left:50%;bottom:8px;width:52%;height:2px;border-radius:2px;transform:translateX(-50%);
+    background:linear-gradient(90deg,transparent,rgba(190,215,255,.95) 20% 80%,transparent);box-shadow:0 0 14px rgba(150,190,255,.6);animation:bandbr 3.2s ease-in-out infinite}
+  @keyframes bandbr{0%,100%{opacity:.45}50%{opacity:1}}
+  /* P2 全场呼吸 */
+  .m-breath{position:absolute;inset:0;box-shadow:inset 0 0 46px rgba(140,180,255,.4);animation:fbreath 3.6s ease-in-out infinite}
+  @keyframes fbreath{0%,18%,100%{opacity:0}38%{opacity:1}58%{opacity:0}}
+  /* P3 边缘余光 */
+  .m-edge{position:absolute;top:0;bottom:0;right:0;width:44px;
+    background:linear-gradient(270deg,rgba(140,180,255,.32),rgba(140,180,255,.07) 60%,transparent);animation:bandbr 2.8s ease-in-out infinite}
+  /* P4 掠光描边 */
+  @keyframes spina{to{--a:360deg}}
+  .m-sweep .ring{animation:sweeploop 2.6s infinite}
+  @keyframes sweeploop{0%{--a:0deg;opacity:0}12%{opacity:1}55%{--a:360deg;opacity:1}62%,100%{--a:360deg;opacity:0}}
+  /* P5 浮起与压暗 */
+  .m-lift{animation:mlift 3s var(--ease) infinite}
+  @keyframes mlift{0%,12%{transform:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+    38%,72%{transform:translateY(-5px) scale(1.03);box-shadow:0 12px 24px rgba(0,0,0,.5),0 0 0 1px rgba(190,215,255,.35),0 0 18px rgba(140,180,255,.2)}
+    94%,100%{transform:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}}
+  .m-dim{animation:mdim 3s var(--ease) infinite}
+  @keyframes mdim{0%,12%{opacity:1;filter:none}38%,72%{opacity:.32;filter:saturate(.7) brightness(.8)}94%,100%{opacity:1;filter:none}}
+  /* P6 焦点遮罩 */
+  .m-mask{position:absolute;inset:0;background:rgba(4,6,10,.68);
+    -webkit-mask:radial-gradient(46px 30px at 62% 55%,transparent 0 55%,#000 100%);mask:radial-gradient(46px 30px at 62% 55%,transparent 0 55%,#000 100%);
+    animation:mmask 3.4s ease-in-out infinite}
+  @keyframes mmask{0%,14%,100%{opacity:0}40%,74%{opacity:1}}
+  /* P7 区域光晕 */
+  .m-rgn{position:absolute;border-radius:8px;box-shadow:inset 0 0 0 1.5px rgba(205,228,255,.8),inset 0 0 18px rgba(160,200,255,.35),0 0 16px rgba(150,195,255,.4);
+    animation:mrgn 3s ease-in-out infinite}
+  @keyframes mrgn{0%,15%,100%{opacity:0}38%,78%{opacity:1}}
+  /* P8 扫描线 */
+  .m-scan{position:absolute;top:0;bottom:0;width:34px;
+    background:linear-gradient(90deg,transparent,rgba(180,215,255,.25) 55%,rgba(220,240,255,.75) 80%,rgba(180,215,255,.1));
+    animation:mscan 2.4s cubic-bezier(.4,.1,.4,.95) infinite}
+  @keyframes mscan{0%{transform:translateX(-40px)}70%,100%{transform:translateX(240px)}}
+  /* P9 光流收敛 */
+  .m-dot{position:absolute;width:6px;height:6px;border-radius:50%;
+    background:radial-gradient(circle,#e8f2ff,rgba(170,205,255,.85) 50%,transparent 80%)}
+  @keyframes mflow1{0%,20%{transform:translate(30px,34px);opacity:0}30%{opacity:1}62%{transform:translate(160px,52px) scale(.5);opacity:0}100%{opacity:0}}
+  @keyframes mflow2{0%,26%{transform:translate(26px,62px);opacity:0}36%{opacity:1}68%{transform:translate(160px,56px) scale(.5);opacity:0}100%{opacity:0}}
+  @keyframes mflow3{0%,32%{transform:translate(40px,88px);opacity:0}42%{opacity:1}74%{transform:translate(162px,62px) scale(.5);opacity:0}100%{opacity:0}}
+  /* P10 行进锁定 */
+  .m-march .ring{animation:mmarch 3s infinite}
+  @keyframes mmarch{0%{--a:0deg;opacity:0}10%{opacity:1}50%{--a:360deg;opacity:1}56%,100%{--a:360deg;opacity:0}}
+  .m-locked{animation:mlock 3s infinite}
+  @keyframes mlock{0%,50%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+    58%,88%{box-shadow:inset 0 0 0 1.5px rgba(170,206,255,.7),0 0 18px rgba(140,180,255,.3)}
+    100%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}}
+  /* P11 摆动凝滞 */
+  .m-wav1{animation:mwav1 3.2s infinite}
+  .m-wav2{animation:mwav2 3.2s infinite}
+  @keyframes mwav1{0%,8%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+    14%,24%{box-shadow:0 0 0 1.3px rgba(205,228,255,.6),0 0 16px rgba(150,190,255,.3)}
+    30%,40%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+    46%,56%{box-shadow:0 0 0 1.3px rgba(205,228,255,.6),0 0 16px rgba(150,190,255,.3)}
+    62%,80%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);filter:saturate(.3) brightness(.85)}
+    92%,100%{filter:none}}
+  @keyframes mwav2{0%,14%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+    30%,40%{box-shadow:0 0 0 1.3px rgba(205,228,255,.6),0 0 16px rgba(150,190,255,.3)}
+    46%,80%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);filter:saturate(.3) brightness(.85)}
+    92%,100%{filter:none}}
+  /* P12 全场冷却 */
+  .m-cool{position:absolute;inset:0;background:linear-gradient(180deg,rgba(70,100,150,.22),rgba(35,52,92,.34));animation:mcool 3.4s ease-in-out infinite}
+  .m-coolwrap{animation:mcoolf 3.4s ease-in-out infinite}
+  @keyframes mcool{0%,16%,100%{opacity:0}42%,72%{opacity:1}}
+  @keyframes mcoolf{0%,16%,100%{filter:none}42%,72%{filter:brightness(.72) saturate(.55) hue-rotate(-16deg)}}
+  /* P13 内部涌出 */
+  .m-well{animation:mwell 2.8s infinite}
+  @keyframes mwell{0%,18%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+    45%,70%{box-shadow:inset 0 0 0 1.3px rgba(255,205,140,.75),inset 0 0 20px rgba(255,190,110,.4),0 0 24px rgba(255,180,100,.45)}
+    100%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}}
+  .m-well::after{content:'';position:absolute;left:50%;top:50%;width:120%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%) scale(.1);
+    background:radial-gradient(circle,rgba(255,215,160,.5),rgba(255,190,120,.15) 45%,transparent 70%);animation:mwellr 2.8s infinite}
+  @keyframes mwellr{0%,18%{transform:translate(-50%,-50%) scale(.08);opacity:0}30%{opacity:.9}62%{transform:translate(-50%,-50%) scale(1);opacity:0}100%{opacity:0}}
+  /* P14 按压回执 */
+  .m-press{animation:mpress 2.6s infinite;transform-origin:center}
+  @keyframes mpress{0%,22%{transform:scale(1)}30%{transform:scale(.955)}40%{transform:scale(1.02)}48%,100%{transform:scale(1)}}
+  .m-press::after{content:'';position:absolute;left:50%;top:50%;width:130%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%) scale(.1);
+    background:radial-gradient(circle,rgba(210,232,255,.55),rgba(180,210,255,.18) 42%,transparent 70%);animation:mpressr 2.6s infinite}
+  @keyframes mpressr{0%,26%{transform:translate(-50%,-50%) scale(.1);opacity:0}34%{opacity:.9}66%{transform:translate(-50%,-50%) scale(1);opacity:0}100%{opacity:0}}
+  /* P15 光带迁移 */
+  .m-r1{animation:mr1 3.6s infinite}.m-r2{animation:mr2 3.6s infinite}.m-r3{animation:mr3 3.6s infinite}
+  @keyframes mr1{0%,8%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);background:rgba(255,255,255,.07)}
+    16%,32%{box-shadow:inset 0 0 0 1.3px rgba(255,200,130,.8),0 0 18px rgba(255,180,100,.5);background:rgba(80,52,28,.5)}
+    44%,100%{box-shadow:inset 0 0 0 1px rgba(255,190,120,.3);background:rgba(56,40,26,.4)}}
+  @keyframes mr2{0%,30%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);background:rgba(255,255,255,.07)}
+    40%,56%{box-shadow:inset 0 0 0 1.3px rgba(255,200,130,.8),0 0 18px rgba(255,180,100,.5);background:rgba(80,52,28,.5)}
+    68%,100%{box-shadow:inset 0 0 0 1px rgba(255,190,120,.3);background:rgba(56,40,26,.4)}}
+  @keyframes mr3{0%,54%{box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);background:rgba(255,255,255,.07)}
+    64%,84%{box-shadow:inset 0 0 0 1.3px rgba(255,200,130,.8),0 0 18px rgba(255,180,100,.5);background:rgba(80,52,28,.5)}
+    96%,100%{box-shadow:inset 0 0 0 1px rgba(255,190,120,.3);background:rgba(56,40,26,.4)}}
+  /* P16 微进度 */
+  .m-prog{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+  .m-prog circle.bg{stroke:rgba(255,255,255,.14)}
+  .m-prog circle.fg{stroke:var(--blue);stroke-linecap:round;stroke-dasharray:88;animation:mprog 3.2s var(--ease) infinite}
+  @keyframes mprog{0%{stroke-dashoffset:88;stroke:#8fb4ff}30%{stroke-dashoffset:62}55%{stroke-dashoffset:34}80%{stroke-dashoffset:6;stroke:#8fb4ff}92%,100%{stroke-dashoffset:0;stroke:#34d06a}}
+  /* P17/P18 shimmer */
+  .m-shim{position:absolute;left:16px;right:16px;top:38px;font-size:12.5px;line-height:1.8;font-weight:600;
+    background:linear-gradient(100deg,rgba(238,241,244,.85) 42%,#fff 50%,rgba(238,241,244,.85) 58%);background-size:280% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 1.6s linear infinite}
+  .m-gold{background:linear-gradient(100deg,#f0cd8c 40%,#fff2cf 50%,#f0cd8c 60%);background-size:260% 100%;
+    -webkit-background-clip:text;background-clip:text}
+  @keyframes shim{from{background-position:120% 0}to{background-position:-120% 0}}
+  /* P19 溶解 */
+  .m-dis a1,.m-dis a2{position:absolute;left:0;right:0;top:44px;text-align:center;font-size:13px;font-weight:600;color:var(--ink)}
+  .m-disA{animation:mdisA 4s infinite}.m-disB{animation:mdisB 4s infinite}
+  @keyframes mdisA{0%,30%{opacity:1;filter:blur(0);transform:none}44%,86%{opacity:0;filter:blur(5px);transform:translateY(-7px)}96%,100%{opacity:1;filter:blur(0);transform:none}}
+  @keyframes mdisB{0%,34%{opacity:0;filter:blur(5px);transform:translateY(7px)}52%,80%{opacity:1;filter:blur(0);transform:none}92%,100%{opacity:0;filter:blur(5px);transform:translateY(7px)}}
+  /* P20 色温 */
+  .m-tone{animation:mtone 4.2s ease-in-out infinite}
+  @keyframes mtone{0%,22%{background:linear-gradient(135deg,rgba(80,52,30,.55),rgba(30,24,18,.75));box-shadow:inset 0 0 0 1px rgba(255,190,120,.35),0 0 22px rgba(255,170,90,.15)}
+    50%,74%{background:linear-gradient(135deg,rgba(30,42,64,.6),rgba(16,22,34,.78));box-shadow:inset 0 0 0 1px rgba(150,190,255,.3),0 0 22px rgba(120,170,255,.12)}
+    100%{background:linear-gradient(135deg,rgba(80,52,30,.55),rgba(30,24,18,.75));box-shadow:inset 0 0 0 1px rgba(255,190,120,.35),0 0 22px rgba(255,170,90,.15)}}
+
+  /* ── L3 场景配方 ── */
+  .recipes{display:grid;grid-template-columns:1fr 1fr;gap:8px 22px}
+  .rrow{display:flex;align-items:baseline;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.028);font-size:12px}
+  .rrow .rid{font-size:10px;font-weight:800;color:rgba(150,185,255,.8);width:24px;flex:none}
+  .rrow .rname{width:118px;flex:none;color:var(--ink);font-weight:600;font-size:11.5px}
+  .rrow .rmix{color:var(--faint);font-size:11px;line-height:1.6}
+  .rrow .rmix b{color:var(--soft);font-weight:600}
+  .foot{margin-top:56px;font-size:11px;color:var(--faint);line-height:1.8;border-top:1px solid rgba(255,255,255,.07);padding-top:16px}
+</style>
+<style id="__aiosgate_css">
+#__aiosgate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(130% 130% at 50% -10%,#141b27 0%,#0a0e15 48%,#05070b 100%);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+#__aiosgate *{box-sizing:border-box}
+#__aiosgate .gcard{width:340px;max-width:86vw;text-align:center;padding:40px 34px 30px}
+#__aiosgate .gorb{width:62px;height:62px;border-radius:50%;margin:0 auto 22px;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);box-shadow:0 0 30px rgba(140,180,255,.45),inset 0 0 16px rgba(255,255,255,.35);animation:__gspin 7s linear infinite}
+#__aiosgate .gt{font-size:19px;font-weight:680;letter-spacing:.2px;color:#fff;margin:0 0 6px}
+#__aiosgate .gs{font-size:12.5px;color:rgba(255,255,255,.5);margin:0 0 26px;letter-spacing:.04em}
+#__aiosgate .gin{width:100%;height:46px;border-radius:13px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;text-align:center;letter-spacing:.18em;outline:none;transition:border-color .2s,background .2s,box-shadow .2s}
+#__aiosgate .gin::placeholder{letter-spacing:.06em;color:rgba(255,255,255,.32)}
+#__aiosgate .gin:focus{border-color:rgba(127,200,255,.6);background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(91,140,255,.18)}
+#__aiosgate .gb{width:100%;height:46px;margin-top:12px;border:0;border-radius:13px;background:linear-gradient(150deg,#5b8cff,#7a5bff);color:#fff;font-size:14.5px;font-weight:640;letter-spacing:.04em;cursor:pointer;transition:filter .2s,transform .1s}
+#__aiosgate .gb:hover{filter:brightness(1.08)}
+#__aiosgate .gb:active{transform:scale(.985)}
+#__aiosgate .ge{height:16px;margin-top:13px;font-size:12px;color:#ff8086;opacity:0;transition:opacity .2s}
+#__aiosgate .gf{margin-top:22px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.26)}
+@keyframes __gspin{to{transform:rotate(360deg)}}
+@keyframes __gshake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(5px)}50%{transform:translateX(-7px)}}
+</style>
+<script>
+(function(){
+  var KEY='aios_demo_unlock_v1';
+  var HASH='cc35f579797e106bb3ea97001fc565e8eb7d6b0a385920f2fc6721ddcc606d59';
+  function ok(){try{return localStorage.getItem(KEY)===HASH;}catch(e){return false;}}
+  if(ok())return;
+  function sha(s){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ('0'+x.toString(16)).slice(-2);}).join('');});}
+  function build(){
+    if(document.getElementById('__aiosgate'))return;
+    var ov=document.createElement('div');
+    ov.id='__aiosgate';
+    ov.innerHTML='<div class="gcard"><div class="gorb"></div><div class="gt">AIOS Dynamic Window</div><div class="gs">Mercedes-Benz · MVA — Private preview</div><input class="gin" id="__gp" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter password"><button class="gb" id="__gb">Unlock</button><div class="ge" id="__ge">Incorrect password</div><div class="gf">Authorized access only</div></div>';
+    (document.body||document.documentElement).appendChild(ov);
+    var inp=document.getElementById('__gp'),btn=document.getElementById('__gb'),err=document.getElementById('__ge'),card=ov.querySelector('.gcard'),busy=false;
+    function go(){
+      if(busy)return;busy=true;
+      sha(inp.value||'').then(function(h){
+        busy=false;
+        if(h===HASH){try{localStorage.setItem(KEY,HASH);}catch(e){}ov.style.transition='opacity .4s ease';ov.style.opacity='0';setTimeout(function(){if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);},420);}
+        else{err.style.opacity='1';inp.value='';card.style.animation='__gshake .42s';setTimeout(function(){card.style.animation='';},440);try{inp.focus();}catch(e){}}
+      });
+    }
+    btn.addEventListener('click',go);
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter')go();else err.style.opacity='0';});
+    setTimeout(function(){try{inp.focus();}catch(e){}},120);
+  }
+  if(document.documentElement)build();else document.addEventListener('DOMContentLoaded',build);
+})();
+</script>
+</head>
+<body>
+<div class="doc">
+  <h1>光场语汇 · 语言体系</h1>
+  <div class="lede">
+    去 avatar 之后，光场是唯一的「身体」。它随时在回答三个问题：<b>① 在不在场</b>（presence）·
+    <b>② 此刻在干嘛</b>（state：听/想/说/动手）· <b>③ 干得怎么样、什么语气</b>（confidence + tone）。<br>
+    整个体系分四层：<b>原子参数</b>（8 个可调物理量）→ <b>锚点能级</b>（光的家在 smartbar：收拢 ⇄ 展开 ⇄ 满场）→ <b>原语</b>（21 个具名光效，每个是原子的一种固定配方）→ <b>场景</b>（原语拼成的句子）。
+  </div>
+  <div class="links">
+    <a href="光场语汇 · 场景矩阵.html">▶ 场景矩阵（23 个场景演示）</a>
+    <a href="光场语汇 · Smartbar 融合.html">▶ Smartbar 融合（光的家 · 生命周期）</a>
+    <a href="光场语汇 · 可见可说与Highlight.html">▶ 可见可说链路（C4+C5 深挖）</a>
+  </div>
+
+  <h2>L1 · 原子参数<span>所有效果都只是在调这 8 个量</span></h2>
+  <div class="h2sub">这是词汇表的最底层。任何一个原语都能表述为「哪几个原子调到了什么值」——设计评审时对齐用这层，不描述像素。</div>
+  <div class="atoms">
+    <div class="atomc"><b>光强</b><i>注意力强度。越亮 = 它越在意这里</i></div>
+    <div class="atomc"><b>色相</b><i>身份 / 状态类别。金=记忆 · 绿=完成 · 蓝白=注意</i></div>
+    <div class="atomc"><b>色温</b><i>情绪温度。暖=亲和 · 冷=克制/安抚</i></div>
+    <div class="atomc"><b>节奏 / 律动</b><i>区分听 / 想 / 说。慢=稳 · 快=急</i></div>
+    <div class="atomc"><b>流向</b><i>内旋=收进来(听/处理) · 外扩=给出去(说) · 朝向内容=注意</i></div>
+    <div class="atomc"><b>空间锚点</b><i>光住在哪：边缘 / 内容上 / 满场 = 注意力在哪</i></div>
+    <div class="atomc"><b>凝聚 vs 湍流</b><i>置信 vs 不确定。收拢=确定 · 摆动/涣散=没把握</i></div>
+    <div class="atomc"><b>材质响应</b><i>内容如何随光发光 / 形变（shimmer · 溶解 · 按压）</i></div>
+  </div>
+
+  <h2>L1.5 · 锚点能级 · 光的家<span>Smartbar 是光的家 —— 光球退役后的在场架构</span></h2>
+  <div class="h2sub">参考新 Siri × 灵动岛的核心关系（光收拢进一个家、从家里长出来），落在我们的架构上：<b>家 = smartbar</b>。
+    锚点有三档能级，<b>双向可逆</b>——任何状态都能沿这条轴回退：</div>
+  <div class="lv" id="lv">
+    <div class="lv-dock"></div>
+    <div class="lv-hl"></div>
+    <div class="lv-band"></div>
+    <div class="lv-line"></div>
+    <div class="lv-rim"></div>
+    <div class="lv-lab" style="left:8%">① 收拢 · bar 内微光<br><i>静息在场 · 接替光球</i></div>
+    <div class="lv-lab" style="left:41%">② 展开 · 底缘光带<br><i>唤醒/交互中 · P1</i></div>
+    <div class="lv-lab" style="left:74%">③ 满场 · 边缘呼吸<br><i>场级事件 · P2 一次为限</i></div>
+  </div>
+
+  <h2>L2 · 原语库<span>每个光效单独长这样 · 左上小窗为循环小样</span></h2>
+  <div class="h2sub">命名规则：原语说的是「它在传达什么」，不是「它长什么样」。同一个原语在不同场景里允许换色相/换尺度，但配方骨架不变。</div>
+  <div id="prims"></div>
+
+  <h2>L3 · 场景配方<span>矩阵里的 23 个场景 = 原语的组合句子</span></h2>
+  <div class="h2sub">读法：场景 = 原语 + 原语（变奏说明）。E2 / E4 / L1 三个场景不引入原语——它们是把某个原子参数本身拿出来对照演示。</div>
+  <div class="recipes" id="recipes"></div>
+
+  <div class="h2sub" style="margin-top:26px"><b style="color:var(--soft)">Smartbar 生命周期</b>（融合页 · 场景标记「Bar」）——同一套原语在 smartbar 架构上的连续句子：</div>
+  <div class="recipes" id="recipes2"></div>
+
+  <div class="foot">
+    体系约定：① 临时光必须退场——只有「状态已变」允许留下（P14 之后）；② 金色只给记忆（P18），绿色只给完成；③ 全场级动作（P2/P12）一次呼吸为限，不循环；
+    ④ 默认临界阻尼，唯一允许的 overshoot 在 P14 按压回执——那是「物理落地」的证据；⑤ 光的原点必须诚实：回执从元件内部涌出（P13/P14），通知从边缘来（P3），理解向命中者收拢（P9）；
+    ⑥ 容器铁律（P21）：胶囊 morph 必须是同一个容器长大/收拢，绝不替换——形态连续性 = 身份连续性；⑦ 能级铁律（L1.5）：锚点三档双向可逆，任何状态都能沿轴回退，光离家多远都记得回家；
+    ⑧ 性能红线：行进光环不与 backdrop-filter 叠加（合成负担，实测会拖死渲染管线）——思考态用呼吸描边 + spinner 表达「进行中」。
+  </div>
+</div>
+
+<script>
+/* ══ 原语定义：name / en / family / say(语义) / recipe(原子配方) / scenes / mini(小样构造) ══ */
+const FAMS=[
+  ['presence','在场','回答「在不在场」——光的家在 smartbar'],
+  ['attention','注意','回答「注意力在哪」——光从家里搬到内容上'],
+  ['confidence','置信','回答「有多确定」——凝聚是确定，摆动是没把握'],
+  ['action','行动','回答「动作落没落地」——光的原点必须诚实'],
+  ['material','材质','回答「什么语气 / 内容处于什么状态」——内容自身发光形变'],
+];
+const P=[
+ {id:'P1',f:'presence',n:'底缘光带 · 家在 smartbar',en:'PRESENCE BAND',
+  say:'「我在。」光的家在 smartbar：收拢态 = bar 内一段微光慢呼吸（接替光球的在场职责），唤醒时从家里长出来，沿 bar 上缘展开成光带。',
+  recipe:'锚点=<b>smartbar(家)</b>→边缘 · 光强=微(收拢)→中(展开) · 能级双向可逆',
+  scenes:['A1','A2','A3','L2','M1','Bar'],
+  mini(m){m.append(el('div','m-band2'),el('div','m-dockbar'),el('div','m-hl2'),el('div','m-line2'));}},
+ {id:'P2',f:'presence',n:'全场呼吸',en:'FIELD BREATH',
+  say:'「有一件场级的事。」四缘极淡内发光掠过一次，一次为限、绝不循环。变体：换成暖色温 = 有性格的通知。',
+  recipe:'锚点=<b>满场</b> · 光强=极低 · 节奏=单次 · (变体)色温=暖',
+  scenes:['A1','D1','E3','Bar'],
+  mini(m){m.append(el('div','m-breath'));}},
+ {id:'P3',f:'presence',n:'边缘余光',en:'PERIPHERAL GLOW',
+  say:'「我这有个事，但不打扰你。」单侧边缘微光呼吸，主内容一个像素都不动。',
+  recipe:'锚点=<b>单侧边缘</b> · 光强=微 · 节奏=呼吸 · 不夺焦',
+  scenes:['D2','Bar'],
+  mini(m){m.append(chipAt(16,26,120,56),el('div','m-edge'));}},
+ {id:'P21',f:'presence',n:'胶囊张合',en:'CAPSULE MORPH',
+  say:'「同一个容器，不同的状态。」听 = bar 上方张开浅胶囊；想 = 同一胶囊长大；转后台 = 缩成进度 chip 收进 bar。铁律：永远是同一个容器在长大/收拢，不是替换——形态连续性就是身份连续性。',
+  recipe:'锚点=bar 上方 · 材质=<b>容器形变</b> · 节奏=状态驱动 · spring 张合',
+  scenes:['Bar'],
+  mini(m){m.append(el('div','m-dockbar'),el('div','m-cap21'));}},
+ {id:'P4',f:'attention',n:'掠光描边',en:'RIM SWEEP',
+  say:'「这里可以。」一道光沿元件边缘掠过一次即消失——揭示可操作/可说的位置，不留下常驻标记。',
+  recipe:'锚点=元件边缘 · 光强=淡 · 节奏=<b>单次掠过</b> · 多目标时 stagger',
+  scenes:['C5'],
+  mini(m){const c=chipAt(56,32,140,52);c.classList.add('m-sweep');c.append(el('div','ring'));m.append(c);}},
+ {id:'P5',f:'attention',n:'浮起与压暗',en:'LIFT & DIM',
+  say:'「注意力在这几个。」相关者物理浮起（位移+投影），无关者光强让渡。一对互补动作，永远同时发生。',
+  recipe:'光强=<b>再分配</b> · 锚点=内容 · 材质=位移+投影',
+  scenes:['B4','链路'],
+  mini(m){const a=chipAt(28,34,100,50);a.classList.add('m-lift');const b=chipAt(148,34,100,50);b.classList.add('m-dim');m.append(a,b);}},
+ {id:'P6',f:'attention',n:'焦点遮罩',en:'FOCUS MASK',
+  say:'「重点看这里。」作用在图像上的压暗版 P5：无关区域整体暗下去，焦点处留光洞。',
+  recipe:'光强=负向(收走) · 锚点=图像区域 · 凝聚=<b>单点</b>',
+  scenes:['B4'],
+  mini(m){m.append(imgAt(36,18,190,84),el('div','m-mask'));}},
+ {id:'P7',f:'attention',n:'区域光晕',en:'REGION GLOW',
+  say:'「我认出了这个 / 我说的是这个。」图像内某块区域亮起光晕。渐进出现 = 理解正在发生；随语音出现 = 空间接地。',
+  recipe:'锚点=图像内区域 · 光强=中 · 节奏=渐进或随语义',
+  scenes:['B2','B3'],
+  mini(m){m.append(imgAt(36,18,190,84));const r=el('div','m-rgn');r.style.cssText+='left:118px;top:38px;width:72px;height:40px';m.append(r);}},
+ {id:'P8',f:'attention',n:'扫描线',en:'SCAN LINE',
+  say:'「正在解析。」一道微光扫过整张图。只承诺「我在看」，不指认任何东西——是 P7 之前的状态。',
+  recipe:'锚点=图像整体 · 流向=<b>定向扫过</b> · 节奏=匀速单次',
+  scenes:['B1'],
+  mini(m){const i=imgAt(36,18,190,84);const s=el('div','m-scan');i.append(s);m.append(i);}},
+ {id:'P9',f:'confidence',n:'光流收敛',en:'CONVERGE FLOW',
+  say:'「理解在收拢。」光从落选者流入命中者——粒子沿弧线迁移，不是淡出。反演变体：内旋(听) / 升流(说)。',
+  recipe:'流向=<b>汇聚</b> · 凝聚=升 · 材质=粒子 · 落选者同步 P5 压暗',
+  scenes:['A2','A3','H1','链路','Bar'],
+  mini(m){const a=chipAt(16,40,84,44);a.classList.add('m-dim');const b=chipAt(150,38,88,48);b.classList.add('m-lift');
+    ['mflow1','mflow2','mflow3'].forEach(k=>{const d=el('div','m-dot');d.style.animation=`${k} 3s cubic-bezier(.3,.05,.25,1) infinite`;m.append(d);});m.append(a,b);}},
+ {id:'P10',f:'confidence',n:'行进锁定',en:'MARCH & LOCK',
+  say:'「确认，就是它。」一段亮弧沿边缘走满一周，走完即驻留为锁定描边。比 P4 亮、比 P4 慢、且会留下。',
+  recipe:'锚点=命中元件 · 光强=高 · 节奏=一周 · 凝聚=<b>锁定驻留</b>',
+  scenes:['C4','链路'],
+  mini(m){const c=chipAt(56,32,140,52);c.classList.add('m-march','m-locked');c.append(el('div','ring'));m.append(c);}},
+ {id:'P11',f:'confidence',n:'摆动凝滞',en:'WAVER & STALL',
+  say:'「我没听清。」光在候选之间来回摆动，然后饱和度抽干、凝住——湍流表达不确定，凝滞表达等待。',
+  recipe:'凝聚=<b>降(湍流)</b> · 节奏=快摆→静止 · 色相=去饱和',
+  scenes:['链路'],
+  mini(m){const a=chipAt(28,34,100,50);a.classList.add('m-wav1');const b=chipAt(148,34,100,50);b.classList.add('m-wav2');m.append(a,b);}},
+ {id:'P12',f:'confidence',n:'全场冷却',en:'COOL-DOWN',
+  say:'「屏上没有这个。」全场一次色温下压 + 亮度收缩，不弹任何文字。失败也用光说，不打断。',
+  recipe:'色温=<b>降</b> · 光强=降 · 锚点=满场 · 单次后恢复',
+  scenes:['链路'],
+  mini(m){const w=el('div','m-coolwrap','position:absolute;inset:0');w.append(chipAt(30,30,90,48),chipAt(140,36,96,52));m.append(w,el('div','m-cool'));}},
+ {id:'P13',f:'action',n:'内部涌出',en:'WELL-UP',
+  say:'「我即将/正在操作这里。」光从元件内部长出来——agent 接管界面前的预告。光的出生地 = 动作发生地。',
+  recipe:'锚点=<b>元件内部</b> · 流向=由内向外 · 色温=按动作语义',
+  scenes:['C3','Bar'],
+  mini(m){const c=chipAt(70,32,116,52);c.classList.add('m-well');m.append(c);}},
+ {id:'P14',f:'action',n:'按压回执',en:'PRESS RECEIPT',
+  say:'「动作落地了。」spring 按压(全库唯一允许的 overshoot) + 涟漪，涟漪原点在元件内部——是「它做到了」，不是「它说它做了」。',
+  recipe:'材质=<b>形变 .955→1.02→1</b> · 流向=内→外 · 之后临时光全退，只留状态已变',
+  scenes:['C3','C4','M1','链路','Bar'],
+  mini(m){const c=chipAt(70,32,116,52);c.classList.add('m-press');m.append(c);}},
+ {id:'P15',f:'action',n:'光带迁移',en:'RELAY',
+  say:'「这个动作正在穿过系统。」同一道光按次序点亮多层载体（光场→UI→物理世界），构成跨层回执链。',
+  recipe:'锚点=<b>逐层迁移</b> · 色温=动作语义色 · 节奏=接力',
+  scenes:['M1'],
+  mini(m){[['m-r1',18],['m-r2',96],['m-r3',174]].forEach(([k,x])=>{const c=chipAt(x,40,64,40);c.classList.add(k);m.append(c);});}},
+ {id:'P16',f:'action',n:'微进度',en:'MICRO PROGRESS',
+  say:'「后台在跑，不用管我。」smartbar 里的微进度环：关键节点轻脉冲，完成才换绿亮一次。长任务的谦逊表达。',
+  recipe:'锚点=smartbar/胶囊 · 光强=微 · 色相=完成时→绿 · 节奏=节点脉冲',
+  scenes:['F1','F2','Bar'],
+  mini(m){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('class','m-prog');s.setAttribute('width','44');s.setAttribute('height','44');
+    s.innerHTML='<circle class="bg" cx="22" cy="22" r="14" fill="none" stroke-width="4"/><circle class="fg" cx="22" cy="22" r="14" fill="none" stroke-width="4" transform="rotate(-90 22 22)"/>';m.append(s);}},
+ {id:'P17',f:'material',n:'生成微光',en:'GEN SHIMMER',
+  say:'「正在生成。」流式文字上的白色 shimmer 扫过。只存在于生成的时间里，完成即恢复普通材质。',
+  recipe:'材质=<b>文字发光</b> · 色相=白 · 节奏=流动 · 完成即撤',
+  scenes:['C1','F1','Bar'],
+  mini(m){m.append(el('div','m-shim','','今晚适合走滨江路，车流很低…'));}},
+ {id:'P18',f:'material',n:'记忆签名',en:'RECALL GOLD',
+  say:'「这是我记得你的部分。」金色 shimmer——与白色生成光一眼可辨。写入时是金色实体飞行归档，调用时是文中金色片段。',
+  recipe:'色相=<b>金(记忆专属)</b> · 材质=同 P17 · 写入变体=P9 单粒子放大',
+  scenes:['H1','H2'],gold:true,
+  mini(m){m.append(el('div','m-shim m-gold','','✦ 按你的习惯走滨江路'));}},
+ {id:'P19',f:'material',n:'溶解转场',en:'DISSOLVE',
+  say:'「同一个东西换了一种存在方式。」旧内容升华(上浮+失焦)，新内容凝结(下落+聚焦)。场级放大版 = 白化身份切换。',
+  recipe:'材质=<b>升华/凝结</b> · 节奏=错峰 · 场级变体=过白',
+  scenes:['C2','L2'],
+  mini(m){const a=el('div','m-disA','position:absolute;left:0;right:0;top:46px;text-align:center;font-size:13px;font-weight:600','今晚路况很顺');
+    const b=el('div','m-disB','position:absolute;left:0;right:0;top:46px;text-align:center;font-size:12px;font-weight:600;color:var(--soft)','Traffic is light tonight');m.append(a,b);}},
+ {id:'P20',f:'material',n:'色温语气',en:'TONE TEMP',
+  say:'「同一句话，不同的语气。」内容容器的色温 = 回答的语气：暖=亲和「没事的」，冷=克制「已办妥」。慢+冷+稳 = 安抚。',
+  recipe:'色温=<b>语气</b> · 光强/节奏=配合(敏感时刻取慢) · 内容不变',
+  scenes:['E1','E3','D1'],
+  mini(m){const c=chipAt(48,30,160,58);c.classList.add('m-tone');c.append(el('div','l1'),el('div','l2'));m.append(c);}},
+];
+/* 场景配方 */
+const RECIPES=[
+ ['A1','唤醒','<b>P1</b> 光带点亮 + <b>P2</b> 全场呼吸一次'],
+ ['A2','识别（听）','<b>P1</b> + 声纹长在光带上（节奏=随声） + <b>P9</b> 反演·微光内旋沉向底缘'],
+ ['A3','反馈（说）','<b>P9</b> 变奏·升流出边缘 + 内容凝结（P19 半段） + P1 光强让渡给内容'],
+ ['B1','扫描态','<b>P8</b> 扫描线'],
+ ['B2','区域点亮','<b>P7</b> ×3 · 渐进 stagger'],
+ ['B3','空间接地','<b>P7</b> · 锚点跟随语义（讲到哪亮哪）'],
+ ['B4','焦点引导','<b>P6</b> 焦点遮罩（P5 的图像版）'],
+ ['C1','流式 shimmer','<b>P17</b> 生成微光'],
+ ['C2','溶解转场','<b>P19</b> 溶解'],
+ ['C3','屏幕感知动作','<b>P13</b> 内部涌出 → <b>P14</b> 按压回执'],
+ ['C4','可见可说点击','<b>P10</b> 行进锁定 → <b>P14</b> 按压回执'],
+ ['C5','highlight 圈出','<b>P4</b> 掠光描边 ×N · stagger'],
+ ['D1','有性格的通知','<b>P2</b> 变奏·色温=暖（先到） + 内容 pill（后到）'],
+ ['D2','余光存在感','<b>P3</b> 边缘余光'],
+ ['E1','色温=语气','<b>P20</b> 暖冷对照'],
+ ['E2','运动幅度','原子直演：<b>幅度/节奏</b> 两档对照，无原语'],
+ ['E3','敏感时刻','<b>P2</b>+<b>P20</b> 变奏：节奏 5s · 色温冷 · 光强稳'],
+ ['E4','运动性格','原子直演：<b>easing</b> 俏皮 spring vs 临界阻尼'],
+ ['F1','思考胶囊','胶囊容器 + <b>P16</b> 变体（环形行进） + <b>P17</b>（思考文本）'],
+ ['F2','smartbar 微交互','<b>P16</b> 微进度 + 完成时 <b>P14</b> 绿色微变奏'],
+ ['H1','写入记忆','<b>P18</b> 实体化：金色条目沿弧线归档（P9 单粒子放大） + 徽标脉冲'],
+ ['H2','调用记忆','<b>P18</b> 金色签名嵌在 <b>P17</b> 白色生成流里'],
+ ['L1','主驾↔副驾','原子直演：<b>锚点</b>位移 + <b>色相</b>切换'],
+ ['L2','profile 切换','<b>P19</b> 场级白化 + <b>P1</b> 材质换装（身份=场的色相）'],
+ ['M1','氛围灯三级传递','<b>P15</b> 接力：P1 变暖 → UI 层 <b>P14</b> → 座舱光带描画'],
+];
+
+/* ══ 渲染 ══ */
+function el(tag,cls,css,html){const e=document.createElement(tag);if(cls)e.className=cls;if(css)e.style.cssText=css;if(html!==undefined)e.innerHTML=html;return e;}
+function chipAt(x,y,w,h){const c=el('div','chip',`left:${x}px;top:${y}px;width:${w}px;height:${h}px`);c.append(el('div','l1'),el('div','l2'));return c;}
+function imgAt(x,y,w,h){return el('div','imgb',`left:${x}px;top:${y}px;width:${w}px;height:${h}px`);}
+const primsRoot=document.getElementById('prims');
+FAMS.forEach(([fk,fn,fd])=>{
+  const fam=el('div','fam');fam.append(el('div','famh','',`${fn}<em>${fd}</em>`));
+  const grid=el('div','grid');
+  P.filter(p=>p.f===fk).forEach(p=>{
+    const card=el('div','prim');
+    const mini=el('div','mini');p.mini(mini);
+    const body=el('div','pbody');
+    body.append(
+      el('div','pname','',`${p.id} · ${p.n}<span class="en">${p.en}</span>`),
+      el('div','psay','',p.say),
+      el('div','precipe','',p.recipe));
+    const sc=el('div','pscenes');
+    p.scenes.forEach(s=>sc.append(el('span','sc'+(p.gold?' gold':''),'',s)));
+    body.append(sc);
+    card.append(mini,body);grid.append(card);
+  });
+  fam.append(grid);primsRoot.append(fam);
+});
+const RECIPES2=[
+ ['S1','静息 · 光在家','<b>P1</b> 收拢态：bar 内微光慢呼吸（接替光球）'],
+ ['S2','唤醒 · 长出来','<b>P13</b> 微光涌出 → <b>P1</b> 展开成光带 + <b>P2</b> 满场呼吸一次'],
+ ['S3','听 · 胶囊张开','<b>P21</b> 张开(听) · 声纹入胶囊（节奏=随声）'],
+ ['S4','想 · 思考胶囊','<b>P21</b> 同一胶囊长大 + <b>P16</b> 变体 + <b>P17</b> 思考流'],
+ ['S5','说 · 升流入内容','<b>P9</b> 变体·升流 + <b>P17</b> · P1 光强让渡'],
+ ['S6','转后台 · 收拢','<b>P21</b> 缩成 chip 收进 bar + <b>P16</b> 微进度'],
+ ['S7','回执 · 归位','<b>P14</b> 微变奏(绿·一次) → 临时光全退 · <b>P1</b> 复位闭环'],
+ ['S8','通知侧漏','<b>P2</b> 变奏(色温=暖·锚点=bar 一端) × <b>P3</b> · 内容后到'],
+];
+[['recipes',RECIPES],['recipes2',RECIPES2]].forEach(([rid,data])=>{
+  const rr=document.getElementById(rid);
+  data.forEach(([id,n,mix])=>{
+    const row=el('div','rrow');
+    row.append(el('span','rid','',id),el('span','rname','',n),el('span','rmix','',mix));
+    rr.append(row);
+  });
+});
+</script>
+</body>
+</html>

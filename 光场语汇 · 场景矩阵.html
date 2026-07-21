@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>光场语汇 · 场景矩阵</title>
+<!--
+  Avatar adaptive UI · 光场语汇 · 场景矩阵版
+  结构与用户的场景矩阵一一对应：A 语音 / B 视觉理解 / C 内容即avatar / D 环境态 / E 情感 / F 后台任务 / H 记忆 / L 多用户 / M 物理回执
+  每个条目 = 一个独立场景 + 一个独立动效。左侧导航即矩阵原文；每个场景标注它调用的「原子参数」。
+  底层逻辑：光场随时在回答三个问题 — 在不在场(presence) / 此刻在干嘛(state) / 干得怎么样·什么语气(confidence+tone)
+-->
+<style>
+  @property --a { syntax:'<angle>'; initial-value:0deg; inherits:false }
+  @property --p { syntax:'<percentage>'; initial-value:0%; inherits:false }
+  :root{
+    --bg:#05070b; --ink:#eef1f4; --soft:rgba(238,241,244,.62); --faint:rgba(238,241,244,.38);
+    --card:rgba(22,28,40,.72); --card-bd:rgba(255,255,255,.1);
+    --reveal:rgba(205,228,255,.9); --lock:rgba(170,206,255,.65);
+    --gold:#ffcf6a; --green:#34d06a; --warm:#ffb267;
+    --ease:cubic-bezier(.2,.7,.2,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--bg);overflow:hidden;color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .frame{position:relative;width:1400px;height:900px;flex:none;transform-origin:center center;display:flex;gap:16px;padding:20px;
+    background:radial-gradient(120% 100% at 50% 0%,#0b101a 0%,#070a10 55%,#05070b 100%);border-radius:20px;box-shadow:0 40px 120px rgba(0,0,0,.6)}
+
+  /* ───── 左 · 矩阵导航 ───── */
+  .nav{width:296px;flex:none;display:flex;flex-direction:column;padding:6px 2px;overflow-y:auto;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav h1{font-size:17px;font-weight:700;padding:2px 10px}
+  .nav .sub{font-size:10.5px;color:var(--faint);padding:5px 10px 8px;line-height:1.6}
+  .g{margin-top:9px}
+  .g .gh{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--faint);padding:4px 10px 3px}
+  .g .gh b{color:rgba(150,185,255,.75);margin-right:5px}
+  .it{display:flex;align-items:center;gap:8px;padding:5.5px 10px;border-radius:9px;cursor:pointer;font-size:12.5px;color:var(--soft);
+    transition:background .2s var(--ease),color .2s var(--ease);user-select:none;line-height:1.3}
+  .it:hover{background:rgba(255,255,255,.05);color:var(--ink)}
+  .it.active{background:rgba(120,160,255,.13);color:var(--ink)}
+  .it .d{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.18);flex:none;transition:.2s}
+  .it.active .d{background:#8fb4ff;box-shadow:0 0 7px #8fb4ff}
+
+  /* ───── 右 · 舞台 ───── */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
+  .hd{display:flex;align-items:flex-start;gap:16px;padding:10px 16px 0}
+  .hd .gname{font-size:10px;font-weight:800;letter-spacing:.14em;color:rgba(150,185,255,.7);margin-bottom:5px}
+  .hd .tt{font-size:19px;font-weight:700}
+  .hd .orig{font-size:11.5px;color:var(--faint);margin-top:6px;line-height:1.65;max-width:640px}
+  .hd .orig q{color:var(--soft);quotes:"「" "」"}
+  .hd .right{margin-left:auto;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+  .atoms{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:230px}
+  .atom{font-size:10px;font-weight:700;color:rgba(170,200,255,.85);background:rgba(120,160,255,.1);
+    padding:3px 9px;border-radius:9px;box-shadow:inset 0 0 0 1px rgba(140,175,255,.2)}
+  .replay{border:0;border-radius:11px;padding:8px 18px;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:700;
+    color:#0a0e16;background:linear-gradient(135deg,#9db9ff,#7fa0f0);transition:transform .15s var(--ease),filter .2s}
+  .replay:hover{filter:brightness(1.08)}.replay:active{transform:scale(.96)}
+  .canvas{position:relative;flex:1;border-radius:18px;overflow:hidden;
+    background:radial-gradient(130% 120% at 50% -10%,#10161f 0%,#0a0e15 52%,#070a10 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+
+  /* ───── 共用元件 ───── */
+  .cap{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:10px;
+    padding:7px 15px;border-radius:20px;background:rgba(16,20,30,.75);backdrop-filter:blur(14px);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);opacity:0;transition:opacity .4s var(--ease);white-space:nowrap}
+  .cap.show{opacity:1}
+  .cap .mic{width:7px;height:7px;border-radius:50%;background:#7fd0ff;box-shadow:0 0 8px #7fd0ff;flex:none;animation:micpulse 1.4s ease-in-out infinite}
+  @keyframes micpulse{0%,100%{opacity:.45}50%{opacity:1}}
+  .cap .utter{font-size:14px;font-weight:600;min-width:8px}
+  .cap .st{font-size:10.5px;color:var(--faint);padding-left:10px;border-left:1px solid rgba(255,255,255,.12)}
+  @keyframes orbspin{to{transform:rotate(360deg)}}
+  /* 去 avatar：没有小球。光场的「家」在屏幕边缘 —— 底缘光带 = 在场本身 */
+  .eband{position:absolute;left:0;right:0;bottom:0;height:120px;pointer-events:none;opacity:0;transition:opacity .8s var(--ease);
+    background:radial-gradient(60% 130% at 50% 108%,rgba(130,170,255,.24),rgba(120,160,255,.07) 55%,transparent 78%)}
+  .eline{position:absolute;left:50%;bottom:10px;width:46%;height:2.5px;border-radius:2px;transform:translateX(-50%) scaleX(0);
+    background:linear-gradient(90deg,transparent,rgba(190,215,255,.9) 18% 82%,transparent);filter:blur(.4px);
+    box-shadow:0 0 18px rgba(150,190,255,.55);pointer-events:none}
+  .ncard{position:absolute;border-radius:16px;background:var(--card);backdrop-filter:blur(16px);
+    box-shadow:inset 0 0 0 1px var(--card-bd);padding:16px 18px}
+  .lbl{font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--faint)}
+  .note{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:10.5px;color:var(--faint);white-space:nowrap}
+  .note.up{bottom:88px}
+  .ring{position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;pointer-events:none;opacity:0;
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+    background:conic-gradient(from var(--a),transparent 0deg 250deg,rgba(170,206,255,0) 262deg,rgba(190,218,255,1) 322deg,transparent 352deg)}
+  .photo{position:absolute;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.1)}
+  .photo img{display:block;width:100%;height:100%;object-fit:cover}
+  .rgn{position:absolute;border-radius:14px;pointer-events:none;opacity:0;
+    box-shadow:inset 0 0 0 1.5px rgba(205,228,255,.75),inset 0 0 30px rgba(160,200,255,.3),0 0 26px rgba(150,195,255,.35)}
+  .rgn .rt{position:absolute;top:-24px;left:2px;font-size:11px;font-weight:700;color:#dcebff;text-shadow:0 1px 8px rgba(0,0,0,.8);white-space:nowrap}
+  .shimtxt{background:linear-gradient(100deg,rgba(238,241,244,.88) 42%,#fff 50%,rgba(238,241,244,.88) 58%);background-size:280% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 1.5s linear infinite}
+  @keyframes shim{from{background-position:120% 0}to{background-position:-120% 0}}
+  .recall{background:linear-gradient(100deg,#f2cf8a 40%,#fff2cf 50%,#f2cf8a 60%);background-size:260% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 1.8s linear infinite;font-weight:700}
+  .pressable{transition:transform .3s var(--ease),box-shadow .35s var(--ease)}
+  .pressed{animation:press .62s cubic-bezier(.3,1.4,.4,1) both}
+  @keyframes press{0%{transform:scale(1)}28%{transform:scale(.955)}62%{transform:scale(1.02)}100%{transform:scale(1)}}
+  .ripple{position:absolute;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle,rgba(210,232,255,.5) 0%,rgba(180,210,255,.18) 40%,transparent 70%)}
+  .veil{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .8s var(--ease)}
+</style>
+<style id="__aiosgate_css">
+#__aiosgate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(130% 130% at 50% -10%,#141b27 0%,#0a0e15 48%,#05070b 100%);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+#__aiosgate *{box-sizing:border-box}
+#__aiosgate .gcard{width:340px;max-width:86vw;text-align:center;padding:40px 34px 30px}
+#__aiosgate .gorb{width:62px;height:62px;border-radius:50%;margin:0 auto 22px;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);box-shadow:0 0 30px rgba(140,180,255,.45),inset 0 0 16px rgba(255,255,255,.35);animation:__gspin 7s linear infinite}
+#__aiosgate .gt{font-size:19px;font-weight:680;letter-spacing:.2px;color:#fff;margin:0 0 6px}
+#__aiosgate .gs{font-size:12.5px;color:rgba(255,255,255,.5);margin:0 0 26px;letter-spacing:.04em}
+#__aiosgate .gin{width:100%;height:46px;border-radius:13px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;text-align:center;letter-spacing:.18em;outline:none;transition:border-color .2s,background .2s,box-shadow .2s}
+#__aiosgate .gin::placeholder{letter-spacing:.06em;color:rgba(255,255,255,.32)}
+#__aiosgate .gin:focus{border-color:rgba(127,200,255,.6);background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(91,140,255,.18)}
+#__aiosgate .gb{width:100%;height:46px;margin-top:12px;border:0;border-radius:13px;background:linear-gradient(150deg,#5b8cff,#7a5bff);color:#fff;font-size:14.5px;font-weight:640;letter-spacing:.04em;cursor:pointer;transition:filter .2s,transform .1s}
+#__aiosgate .gb:hover{filter:brightness(1.08)}
+#__aiosgate .gb:active{transform:scale(.985)}
+#__aiosgate .ge{height:16px;margin-top:13px;font-size:12px;color:#ff8086;opacity:0;transition:opacity .2s}
+#__aiosgate .gf{margin-top:22px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.26)}
+@keyframes __gspin{to{transform:rotate(360deg)}}
+@keyframes __gshake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(5px)}50%{transform:translateX(-7px)}}
+</style>
+<script>
+(function(){
+  var KEY='aios_demo_unlock_v1';
+  var HASH='cc35f579797e106bb3ea97001fc565e8eb7d6b0a385920f2fc6721ddcc606d59';
+  function ok(){try{return localStorage.getItem(KEY)===HASH;}catch(e){return false;}}
+  if(ok())return;
+  function sha(s){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ('0'+x.toString(16)).slice(-2);}).join('');});}
+  function build(){
+    if(document.getElementById('__aiosgate'))return;
+    var ov=document.createElement('div');
+    ov.id='__aiosgate';
+    ov.innerHTML='<div class="gcard"><div class="gorb"></div><div class="gt">AIOS Dynamic Window</div><div class="gs">Mercedes-Benz · MVA — Private preview</div><input class="gin" id="__gp" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter password"><button class="gb" id="__gb">Unlock</button><div class="ge" id="__ge">Incorrect password</div><div class="gf">Authorized access only</div></div>';
+    (document.body||document.documentElement).appendChild(ov);
+    var inp=document.getElementById('__gp'),btn=document.getElementById('__gb'),err=document.getElementById('__ge'),card=ov.querySelector('.gcard'),busy=false;
+    function go(){
+      if(busy)return;busy=true;
+      sha(inp.value||'').then(function(h){
+        busy=false;
+        if(h===HASH){try{localStorage.setItem(KEY,HASH);}catch(e){}ov.style.transition='opacity .4s ease';ov.style.opacity='0';setTimeout(function(){if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);},420);}
+        else{err.style.opacity='1';inp.value='';card.style.animation='__gshake .42s';setTimeout(function(){card.style.animation='';},440);try{inp.focus();}catch(e){}}
+      });
+    }
+    btn.addEventListener('click',go);
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter')go();else err.style.opacity='0';});
+    setTimeout(function(){try{inp.focus();}catch(e){}},120);
+  }
+  if(document.documentElement)build();else document.addEventListener('DOMContentLoaded',build);
+})();
+</script>
+</head>
+<body>
+<div class="viewport">
+<div class="frame" id="frame">
+  <div class="nav" id="nav">
+    <h1>光场语汇 · 场景矩阵</h1>
+    <div class="sub">光场随时在回答三个问题：在不在场 · 此刻在干嘛 · 干得怎么样/什么语气。每条一个独立场景。<br>
+      <a href="光场语汇 · 语言体系.html" style="color:#8fb4ff;text-decoration:none">📖 语言体系（原语词典 + 场景配方）→</a></div>
+  </div>
+  <div class="main">
+    <div class="hd">
+      <div>
+        <div class="gname" id="hGroup"></div>
+        <div class="tt" id="hTitle"></div>
+        <div class="orig" id="hOrig"></div>
+      </div>
+      <div class="right">
+        <div class="atoms" id="hAtoms"></div>
+        <button class="replay" id="replay">↺ 重放</button>
+      </div>
+    </div>
+    <div class="canvas" id="cv"></div>
+  </div>
+</div>
+</div>
+
+<script>
+/* ══════════ 基础 ══════════ */
+const frame=document.getElementById('frame');
+function fit(){frame.style.transform=`scale(${Math.min(innerWidth/1400,innerHeight/900)*0.985})`;}
+addEventListener('resize',fit);fit();
+const cv=document.getElementById('cv');
+let timers=[];
+const later=(fn,ms)=>{const t=setTimeout(fn,ms);timers.push(t);return t;};
+const iv=(fn,ms)=>{const t=setInterval(fn,ms);timers.push(t);return t;};
+function clearTimers(){timers.forEach(t=>{clearTimeout(t);clearInterval(t);});timers=[];}
+function el(tag,cls,css,html){const e=document.createElement(tag);if(cls)e.className=cls;if(css)e.style.cssText=css;if(html!==undefined)e.innerHTML=html;return e;}
+function typeText(node,txt,speed,done){node.textContent='';let i=0;
+  (function tick(){if(i<txt.length){node.textContent+=txt[i++];later(tick,speed||34);}else if(done)done();})();}
+function mkCap(){const c=el('div','cap');c.innerHTML='<span class="mic"></span><span class="utter"></span><span class="st"></span>';cv.appendChild(c);return c;}
+function capSay(c,utter,st,delay){later(()=>{c.classList.add('show');c.querySelector('.st').textContent=st||'';
+  if(utter!=null)typeText(c.querySelector('.utter'),utter);},delay||0);}
+function ringOnce(target,dur){const r=el('div','ring');target.appendChild(r);r.style.opacity=1;
+  const an=r.animate([{'--a':'0deg'},{'--a':'360deg'}],{duration:dur||650,easing:'cubic-bezier(.4,.05,.3,1)'});
+  an.onfinish=()=>r.remove();}
+function rippleAt(parent,x,y,R){const rp=el('div','ripple');
+  rp.style.cssText=`left:${x-R/2}px;top:${y-R/2}px;width:${R}px;height:${R}px`;parent.appendChild(rp);
+  rp.animate([{transform:'scale(.1)',opacity:.9},{transform:'scale(1)',opacity:0}],{duration:700,easing:'cubic-bezier(.2,.7,.2,1)'}).onfinish=()=>rp.remove();}
+
+/* ══════════ 场景注册表：与矩阵一一对应 ══════════ */
+const GROUPS={
+  A:'A · 语音交互',B:'B · 视觉 / 图像理解',C:'C · 内容即 avatar（效果作用在内容上）',
+  D:'D · 环境态 / 主动 / 余光',E:'E · 情感 / 关系层',F:'F · 后台任务 / 长时 agent 工作',
+  H:'H · 记忆 / 个性化 / 「我记得你」',L:'L · 多用户 / 身份（车内强相关）',M:'M · 物理世界动作的「回执」（车内强相关）'};
+
+const SCENES=[
+
+/* ───────── A 语音交互 ───────── */
+{ id:'A1',g:'A',t:'唤醒',orig:'唤醒——presence 的第一问：我来了，我在注意你。没有 avatar：唤醒不是「一个东西出现」，是整个场醒过来。',atoms:['光强','锚点 · 边缘','材质'],
+  play(){
+    cv.appendChild(el('div','note up','','光住在屏幕边缘 · 底缘光带亮起 + 全场轻呼吸一次 = 「我在了」'));
+    const {glow,line}=edgeBand();
+    later(()=>{
+      glow.style.opacity=1;
+      line.animate([{transform:'translateX(-50%) scaleX(0)',opacity:0},
+                    {transform:'translateX(-50%) scaleX(1.04)',opacity:1,offset:.7},
+                    {transform:'translateX(-50%) scaleX(1)',opacity:1}],
+        {duration:900,easing:'cubic-bezier(.25,.9,.3,1)',fill:'forwards'});
+      /* 全场一次呼吸：四缘极淡的内发光掠过 */
+      const rim=el('div','veil','box-shadow:inset 0 0 110px rgba(140,180,255,.3);border-radius:18px');
+      cv.appendChild(rim);
+      rim.animate([{opacity:0},{opacity:1,offset:.35},{opacity:0}],{duration:1900,easing:'ease-in-out'});
+    },600);
+  }},
+{ id:'A2',g:'A',t:'识别（听）',orig:'识别中——state 之「听」：节奏内收，光跟着你的声音起伏。',atoms:['节奏','流向 · 内旋','光强'],
+  play(){
+    const {glow,line}=edgeBand();glow.style.opacity=1;
+    line.style.transform='translateX(-50%) scaleX(1)';line.style.opacity=.35;
+    const cap=mkCap();capSay(cap,'帮我找一家今晚还有位子的日料…','听',300);
+    /* 声纹长在光带上：底缘中央的一排律动 */
+    const bars=el('div','','position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:5px;align-items:flex-end;height:40px');
+    for(let i=0;i<21;i++)bars.appendChild(el('div','',`width:4px;height:6px;border-radius:2px;background:rgba(185,212,255,.85);transition:height .12s ease;box-shadow:0 0 8px rgba(150,190,255,.5)`));
+    cv.appendChild(bars);
+    cv.appendChild(el('div','note up','','声纹长在边缘光带上 · 光随声音起伏 + 微光向底缘汇入 = 「我在收进来」'));
+    iv(()=>{[...bars.children].forEach((b,i)=>{const mid=1-Math.abs(i-10)/12;b.style.height=(5+Math.random()*34*mid)+'px';});},120);
+    /* 内旋：微光从画面各处沉向底缘光带 */
+    iv(()=>{
+      const cx=cv.clientWidth*(0.2+Math.random()*0.6),cy=cv.clientHeight*(0.15+Math.random()*0.5);
+      const p=el('div','',`position:absolute;width:5px;height:5px;border-radius:50%;background:radial-gradient(circle,#dcebff,rgba(160,200,255,.6) 60%,transparent);left:0;top:0`);
+      cv.appendChild(p);
+      p.animate([{transform:`translate(${cx}px,${cy}px)`,opacity:0},{opacity:.8,offset:.3},
+                 {transform:`translate(${cv.clientWidth/2+(cx-cv.clientWidth/2)*.25}px,${cv.clientHeight-22}px) scale(.4)`,opacity:0}],
+        {duration:1500,easing:'cubic-bezier(.3,.05,.25,1)'}).onfinish=()=>p.remove();
+    },180);
+  }},
+{ id:'A3',g:'A',t:'反馈（说）',orig:'反馈——state 之「说」：流向翻转为外扩，光从边缘把答案送进内容。其余状态由思考胶囊承接。',atoms:['流向 · 外扩','节奏','材质'],
+  play(){
+    const {glow,line}=edgeBand();glow.style.opacity=1;
+    line.style.transform='translateX(-50%) scaleX(1)';line.style.opacity=1;
+    cv.appendChild(el('div','note up','','流向翻转：光离开边缘、涌向内容 · 回应在光到达处凝结'));
+    later(()=>{
+      /* 光从底缘升入内容位：几道升流 */
+      for(let i=0;i<4;i++){
+        const x0=cv.clientWidth/2+(i-1.5)*70,x1=cv.clientWidth/2+(i-1.5)*46;
+        const s=el('div','',`position:absolute;left:0;top:0;width:3px;height:64px;border-radius:2px;
+          background:linear-gradient(180deg,transparent,rgba(190,215,255,.85),transparent);filter:blur(.5px)`);
+        cv.appendChild(s);
+        s.animate([{transform:`translate(${x0}px,${cv.clientHeight-40}px)`,opacity:0},
+                   {opacity:.95,offset:.35},
+                   {transform:`translate(${x1}px,${cv.clientHeight*0.33}px)`,opacity:0}],
+          {duration:850,delay:i*110,easing:'cubic-bezier(.3,.05,.25,1)'}).onfinish=()=>s.remove();
+      }
+      /* 边缘的光强随说话被「让渡」给内容 */
+      later(()=>{line.style.transition='opacity 1.2s var(--ease)';line.style.opacity=.3;glow.style.opacity=.45;},500);
+      const card=el('div','ncard','left:50%;top:24%;transform:translateX(-50%);width:420px;opacity:0');
+      card.innerHTML='<div class="lbl">MVA</div><div style="font-size:14.5px;line-height:1.75;margin-top:8px" id="a3t"></div>';
+      cv.appendChild(card);
+      card.animate([{opacity:0,transform:'translateX(-50%) translateY(26px) scale(.96)',filter:'blur(6px)'},
+                    {opacity:1,transform:'translateX(-50%)',filter:'blur(0)'}],
+        {duration:650,delay:520,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
+      later(()=>typeText(card.querySelector('#a3t'),'找到三家：鮨一、割烹室町、竹寿司都还有 8 点后的位子，鮨一离你最近。',26),1000);
+    },500);
+  }},
+
+/* ───────── B 视觉/图像理解 ───────── */
+{ id:'B1',g:'B',t:'扫描态',orig:'一道 scan-line / 微光扫过整张图，表示「正在解析」。',atoms:['材质','节奏','光强'],
+  photo:true,
+  play(){
+    const ph=b_photo();
+    later(()=>{
+      const sc=el('div','',`position:absolute;top:0;bottom:0;left:0;width:90px;pointer-events:none;
+        background:linear-gradient(90deg,transparent,rgba(180,215,255,.22) 55%,rgba(220,240,255,.6) 78%,rgba(180,215,255,.12));filter:blur(1px)`);
+      ph.appendChild(sc);
+      sc.animate([{transform:'translateX(-90px)'},{transform:`translateX(${ph.clientWidth+20}px)`}],
+        {duration:1400,easing:'cubic-bezier(.4,.1,.4,.95)'}).onfinish=()=>sc.remove();
+      ph.querySelector('img').animate([{filter:'brightness(1)'},{filter:'brightness(1.18)',offset:.5},{filter:'brightness(1)'}],{duration:1400});
+    },500);
+    cv.appendChild(el('div','note','','解析中 · 光只承诺「我在看」，还不指认任何东西'));
+  }},
+{ id:'B2',g:'B',t:'区域点亮',orig:'识别出的物体逐个亮起光晕——渐进式揭示，而非一次性框全部。',atoms:['光强','锚点','节奏'],
+  play(){
+    const ph=b_photo();
+    b_regions(ph).forEach((r,i)=>{
+      later(()=>{r.el.style.opacity=1;r.el.animate([{opacity:0,transform:'scale(1.05)'},{opacity:1,transform:'scale(1)'}],
+        {duration:520,easing:'cubic-bezier(.2,.7,.2,1)'});},700+i*620);
+    });
+    cv.appendChild(el('div','note','','识别一个亮一个 · 揭示的节奏本身就是「理解正在发生」'));
+  }},
+{ id:'B3',g:'B',t:'空间接地 grounding',orig:'agent 讲到某个东西时，就点亮画面里对应的那块——用光「指」给你看。',atoms:['锚点','光强','凝聚'],
+  play(){
+    const ph=b_photo();const rs=b_regions(ph);
+    const cap=mkCap();
+    const SEQ=[['看台今晚几乎坐满了',1],['草坪状况很好',2],['照明是四塔布光',0]];
+    SEQ.forEach(([txt,ri],i)=>{
+      later(()=>{
+        capSay(cap,txt,'讲到哪 · 点亮哪');
+        rs.forEach((r,j)=>{r.el.style.opacity=j===ri?1:0;});
+        rs[ri].el.animate([{opacity:0},{opacity:1}],{duration:380,easing:'cubic-bezier(.2,.7,.2,1)'});
+      },600+i*1750);
+    });
+    cv.appendChild(el('div','note','','语言与画面互相锚定 · 光就是它的手指'));
+  }},
+{ id:'B4',g:'B',t:'焦点引导',orig:'无关区域模糊/压暗，把光集中到相关处，替你划重点。',atoms:['光强','锚点','凝聚'],
+  play(){
+    const ph=b_photo();
+    const dark=el('div','veil',`background:rgba(4,6,10,.62);-webkit-mask:radial-gradient(190px 120px at 50% 51%,transparent 0 55%,#000 100%);mask:radial-gradient(190px 120px at 50% 51%,transparent 0 55%,#000 100%);transition:opacity .7s var(--ease)`);
+    ph.appendChild(dark);
+    later(()=>dark.style.opacity=1,700);
+    const cap=mkCap();capSay(cap,'重点看中圈这次进攻','焦点引导',700);
+    cv.appendChild(el('div','note','','不是给相关处加光 · 而是把无关处的光收走'));
+  }},
+
+/* ───────── C 内容即 avatar ───────── */
+{ id:'C1',g:'C',t:'生成中 · 流式 shimmer',orig:'文字流式吐出时，一道 shimmer/渐变扫过。',atoms:['材质','节奏'],
+  play(){
+    const card=el('div','ncard','left:50%;top:26%;transform:translateX(-50%);width:520px');
+    card.innerHTML='<div class="lbl">生成中</div><div id="c1t" class="shimtxt" style="font-size:15px;line-height:1.85;margin-top:10px;min-height:110px"></div>';
+    cv.appendChild(card);
+    const full='今晚适合走滨江路：22 点后车流很低，沿途三段路灯刚换成暖光，江面有薄雾。到家大约 38 分钟，比平时快 6 分钟。要我把空调和氛围灯先按你到家的习惯准备好吗？';
+    later(()=>typeText(card.querySelector('#c1t'),full,38,()=>{card.querySelector('#c1t').classList.remove('shimtxt');}),500);
+    cv.appendChild(el('div','note','','shimmer 只存在于「正在生成」的时间里 · 完成即恢复为普通材质'));
+  }},
+{ id:'C2',g:'C',t:'变换 · 溶解转场',orig:'旧内容溶解成新内容（翻译、改写），作为一次材质转场。',atoms:['材质','凝聚'],
+  play(){
+    const card=el('div','ncard','left:50%;top:28%;transform:translateX(-50%);width:520px');
+    card.innerHTML='<div class="lbl" id="c2l">原文</div><div id="c2t" style="font-size:16px;line-height:1.8;margin-top:10px;min-height:60px"></div>';
+    cv.appendChild(card);
+    const t=card.querySelector('#c2t');
+    const A='今晚的路况很顺，比平时能快六分钟到家。',B='Traffic is light tonight — you’ll be home about six minutes earlier than usual.';
+    t.innerHTML=[...A].map(ch=>`<span style="display:inline-block">${ch}</span>`).join('');
+    later(()=>{
+      [...t.children].forEach((s,i)=>{
+        s.animate([{opacity:1,transform:'none',filter:'blur(0)'},{opacity:0,transform:'translateY(-9px)',filter:'blur(5px)'}],
+          {duration:420,delay:Math.random()*260,easing:'cubic-bezier(.3,.1,.3,1)',fill:'forwards'});
+      });
+      later(()=>{
+        card.querySelector('#c2l').textContent='译文 EN';
+        t.innerHTML=[...B].map(ch=>`<span style="display:inline-block;opacity:0">${ch==' '?'&nbsp;':ch}</span>`).join('');
+        [...t.children].forEach(s=>{
+          s.animate([{opacity:0,transform:'translateY(8px)',filter:'blur(6px)'},{opacity:1,transform:'none',filter:'blur(0)'}],
+            {duration:460,delay:Math.random()*300,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
+        });
+      },760);
+    },900);
+    cv.appendChild(el('div','note','','不是替换 · 是一次材质转场：旧内容升华，新内容凝结'));
+  }},
+{ id:'C3',g:'C',t:'屏幕感知动作',orig:'光从它即将操作的那个 UI 元件里「涌出」。',atoms:['锚点','流向 · 外扩','光强'],
+  play(){
+    const panel=el('div','ncard','left:50%;top:30%;transform:translateX(-50%);width:460px;padding:18px');
+    panel.innerHTML='<div class="lbl">车控</div><div style="display:flex;gap:12px;margin-top:12px" id="c3btns"></div>';
+    cv.appendChild(panel);
+    ['❄ 空调','💡 氛围灯','🪟 车窗'].forEach(txt=>{
+      c3btn(panel.querySelector('#c3btns'),txt);
+    });
+    const target=panel.querySelectorAll('.c3b')[1];
+    const cap=mkCap();capSay(cap,'把氛围灯调暖一点','即将替你操作 → 光先从那里涌出',500);
+    later(()=>{
+      /* 光从元件内部涌出：底层辉光先醒 */
+      target.animate([{boxShadow:'inset 0 0 0 1px rgba(255,255,255,.12)'},
+        {boxShadow:'inset 0 0 0 1.4px rgba(255,205,140,.8),inset 0 0 26px rgba(255,190,110,.35),0 0 34px rgba(255,180,100,.45)'}],
+        {duration:700,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
+      rippleAt(target,target.clientWidth/2,target.clientHeight/2,target.clientWidth*2.2);
+      later(()=>{target.classList.add('pressed');},900);
+    },1400);
+    cv.appendChild(el('div','note','','agent 接管界面前的预告 · 光的出生地 = 即将发生动作的地方'));
+  }},
+{ id:'C4',g:'C',t:'可见可说 · 点击动效',orig:'操作可见可说时候的点击动效。',atoms:['锚点','材质','光强'],
+  link:'光场语汇 · 可见可说与Highlight.html',
+  play(){
+    const panel=el('div','ncard','left:50%;top:30%;transform:translateX(-50%);width:460px;padding:18px');
+    panel.innerHTML='<div class="lbl">导航</div><div style="display:flex;gap:12px;margin-top:12px" id="c4btns"></div>';
+    cv.appendChild(panel);
+    ['回家','去公司','充电站'].forEach(t=>c3btn(panel.querySelector('#c4btns'),t));
+    const target=panel.querySelectorAll('.c3b')[0];
+    const cap=mkCap();capSay(cap,'回家','语音触发 = 一次真实按压',500);
+    later(()=>{
+      ringOnce(target,560);
+      later(()=>{
+        target.classList.add('pressed');
+        rippleAt(target,target.clientWidth/2,target.clientHeight/2,target.clientWidth*2);
+        target.animate([{},{background:'rgba(120,170,255,.22)',boxShadow:'inset 0 0 0 1.4px rgba(150,190,255,.7)'}],
+          {duration:400,fill:'forwards',delay:150});
+      },600);
+    },1300);
+    cv.appendChild(el('div','note','','说出来的指令在界面上有真实的按压回执 · 深挖版见「可见可说与Highlight」链路 demo'));
+  }},
+{ id:'C5',g:'C',t:'highlight · 圈出可操作位置',orig:'需要圈出可操作位置时的交互。',atoms:['光强','锚点','节奏'],
+  link:'光场语汇 · 可见可说与Highlight.html',
+  play(){
+    const panel=el('div','ncard','left:50%;top:24%;transform:translateX(-50%);width:520px;padding:18px');
+    panel.innerHTML=`<div class="lbl">这一屏 · 可说的位置</div>
+      <div style="display:flex;gap:12px;margin-top:12px" id="c5r1"></div>
+      <div style="display:flex;gap:12px;margin-top:12px" id="c5r2"></div>`;
+    cv.appendChild(panel);
+    ['❄ 空调 24°','🎵 继续播放'].forEach(t=>c3btn(panel.querySelector('#c5r1'),t));
+    ['🗺 导航回家','📞 回拨电话'].forEach(t=>c3btn(panel.querySelector('#c5r2'),t));
+    later(()=>{
+      [...panel.querySelectorAll('.c3b')].forEach((b,i)=>later(()=>ringOnce(b,700),i*160));
+    },700);
+    cv.appendChild(el('div','note','','唤醒时呼吸一次 · 界面不被常驻标记污染'));
+  }},
+
+/* ───────── D 环境态/主动/余光 ───────── */
+{ id:'D1',g:'D',t:'有性格的通知',orig:'不是弹 banner，而是整片光场变个色温来暗示「有事情告诉你」。',atoms:['色温','光强'],
+  play(){
+    d_readingCard();
+    const warm=el('div','veil','background:radial-gradient(130% 100% at 50% 110%,rgba(255,178,103,.2),rgba(255,160,80,.06) 45%,transparent 70%)');
+    cv.appendChild(warm);
+    later(()=>{warm.style.opacity=1;},900);
+    later(()=>{
+      const pill=el('div','',`position:absolute;top:18px;left:50%;transform:translateX(-50%) translateY(-8px);opacity:0;
+        padding:8px 16px;border-radius:18px;background:rgba(30,26,20,.8);backdrop-filter:blur(14px);
+        box-shadow:inset 0 0 0 1px rgba(255,190,120,.3);font-size:12.5px;color:#ffd9ac`,'☕ 快到 Manner 了 · 要顺路带一杯吗');
+      cv.appendChild(pill);
+      pill.animate([{opacity:0,transform:'translateX(-50%) translateY(-8px)'},{opacity:1,transform:'translateX(-50%)'}],
+        {duration:600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
+    },1700);
+    later(()=>warm.style.opacity=0,4600);
+    cv.appendChild(el('div','note','','色温先到 · 内容后到 · 你先「感觉到」有事，再决定看不看'));
+  }},
+{ id:'D2',g:'D',t:'余光存在感',orig:'屏幕边缘的微弱临场，表示「我这有个事情」但不影响你现在的交互。',atoms:['锚点 · 边缘','光强 · 微'],
+  play(){
+    d_readingCard();
+    const edge=el('div','',`position:absolute;top:0;bottom:0;right:0;width:110px;pointer-events:none;opacity:0;
+      background:linear-gradient(270deg,rgba(140,180,255,.22),rgba(140,180,255,.05) 55%,transparent)`);
+    cv.appendChild(edge);
+    later(()=>{
+      edge.animate([{opacity:0},{opacity:1,offset:.3},{opacity:.35,offset:.55},{opacity:1,offset:.8},{opacity:.45}],
+        {duration:3600,easing:'ease-in-out',fill:'forwards'});
+    },800);
+    cv.appendChild(el('div','note','','边缘呼吸 · 主内容一个像素都不动 · 你不看它，它就一直只是余光'));
+  }},
+
+/* ───────── E 情感/关系层 ───────── */
+{ id:'E1',g:'E',t:'色温 = 语气',orig:'暖 = 亲和，冷 = 克制。同一句话，两种温度。',atoms:['色温'],
+  play(){
+    const mk=(x,warm)=>{
+      const c=el('div','ncard',`left:${x}px;top:30%;width:400px;padding:18px;transition:box-shadow .9s var(--ease),background .9s var(--ease)`);
+      c.innerHTML=`<div class="lbl">${warm?'暖 · 亲和':'冷 · 克制'}</div>
+        <div style="font-size:14.5px;line-height:1.8;margin-top:9px">好的，已经帮你取消明天的保养预约了。</div>`;
+      cv.appendChild(c);return c;};
+    const L=mk(90,true),R=mk(560,false);
+    later(()=>{
+      L.style.background='linear-gradient(135deg,rgba(80,52,30,.55),rgba(30,24,18,.75))';
+      L.style.boxShadow='inset 0 0 0 1px rgba(255,190,120,.35),0 0 46px rgba(255,170,90,.14)';
+      R.style.background='linear-gradient(135deg,rgba(30,42,64,.6),rgba(16,22,34,.78))';
+      R.style.boxShadow='inset 0 0 0 1px rgba(150,190,255,.3),0 0 46px rgba(120,170,255,.1)';
+    },700);
+    cv.appendChild(el('div','note','','同一句话 · 暖是「没事的」，冷是「已办妥」'));
+  }},
+{ id:'E2',g:'E',t:'运动幅度 = 紧迫感',orig:'运动幅度传达紧迫感 / 兴奋度。',atoms:['运动幅度','节奏'],
+  play(){
+    const mk=(x,lab)=>{const d=el('div','',`position:absolute;left:${x}px;top:46%;width:16px;height:16px;border-radius:50%;
+      background:radial-gradient(circle at 38% 34%,#fff,#9db9ff)`);cv.appendChild(d);
+      cv.appendChild(el('div','lbl',`position:absolute;left:${x-60}px;top:66%;width:140px;text-align:center`,lab));return d;};
+    const calm=mk(330,'低幅 · 从容'),urgent=mk(760,'高幅 · 紧迫');
+    iv(()=>{
+      calm.animate([{transform:'scale(1)'},{transform:'scale(1.25)'},{transform:'scale(1)'}],{duration:1800,easing:'ease-in-out'});
+      const w=el('div','',`position:absolute;left:330px;top:46%;width:16px;height:16px;border-radius:50%;border:1.2px solid rgba(180,210,255,.5)`);
+      cv.appendChild(w);w.animate([{transform:'scale(1)',opacity:.5},{transform:'scale(3)',opacity:0}],{duration:1800,easing:'ease-out'}).onfinish=()=>w.remove();
+    },1900);
+    iv(()=>{
+      urgent.animate([{transform:'scale(1)'},{transform:'scale(2)'},{transform:'scale(.9)'},{transform:'scale(1.6)'},{transform:'scale(1)'}],
+        {duration:700,easing:'cubic-bezier(.3,.1,.3,1)'});
+      const w=el('div','',`position:absolute;left:760px;top:46%;width:16px;height:16px;border-radius:50%;border:1.6px solid rgba(255,180,140,.7)`);
+      cv.appendChild(w);w.animate([{transform:'scale(1)',opacity:.8},{transform:'scale(5)',opacity:0}],{duration:700,easing:'ease-out'}).onfinish=()=>w.remove();
+    },800);
+  }},
+{ id:'E3',g:'E',t:'敏感时刻 · 慢冷稳',orig:'慢、冷、稳，用来传达「安抚」。',atoms:['节奏 · 慢','色温 · 冷','凝聚 · 稳'],
+  play(){
+    const cool=el('div','veil','background:radial-gradient(120% 100% at 50% 46%,rgba(110,150,210,.13),transparent 62%);opacity:1');
+    cv.appendChild(cool);
+    /* 没有实体：只有一片极慢呼吸的冷光场 */
+    cool.animate([{opacity:.55},{opacity:1},{opacity:.55}],{duration:5200,iterations:Infinity,easing:'ease-in-out'});
+    const t=el('div','',`position:absolute;left:50%;top:62%;transform:translateX(-50%);font-size:14px;color:rgba(200,218,240,.8);line-height:2;text-align:center;width:480px;opacity:0`,
+      '前方有事故，已经报了警。<br>你现在很安全，我陪你等。');
+    cv.appendChild(t);
+    t.animate([{opacity:0},{opacity:1}],{duration:1600,delay:900,easing:'ease-in',fill:'forwards'});
+    cv.appendChild(el('div','note','','呼吸周期放到 5 秒 · 色彩饱和度收干 · 没有任何东西在急'));
+  }},
+{ id:'E4',g:'E',t:'运动性格 · 俏皮 vs 严肃',orig:'俏皮 vs 严肃，全在动效的 easing 变化里。',atoms:['easing','节奏'],
+  play(){
+    const mk=(x,lab)=>{const c=el('div','ncard',`left:${x}px;top:26%;width:360px;padding:16px;opacity:0`);
+      c.innerHTML=`<div class="lbl">${lab}</div><div style="font-size:14px;margin-top:8px">周末要去的露营地，找到啦。</div>`;
+      cv.appendChild(c);return c;};
+    const L=mk(110,'俏皮 · spring 带弹'),R=mk(560,'严肃 · 临界阻尼');
+    later(()=>{
+      L.animate([{opacity:0,transform:'translateY(-70px) rotate(-2.5deg) scale(.9)'},
+                 {opacity:1,transform:'translateY(6px) rotate(.8deg) scale(1.02)',offset:.62},
+                 {transform:'translateY(-2px) rotate(-.3deg)',offset:.82},
+                 {opacity:1,transform:'none'}],
+        {duration:950,easing:'cubic-bezier(.3,1.2,.35,1)',fill:'forwards'});
+      R.animate([{opacity:0,transform:'translateY(-34px)'},{opacity:1,transform:'none'}],
+        {duration:620,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
+    },600);
+    cv.appendChild(el('div','note','','同一张卡 · 同一段路 · 性格全在到达的方式里'));
+  }},
+
+/* ───────── F 后台任务 ───────── */
+{ id:'F1',g:'F',t:'思考胶囊（主交互）',orig:'主交互反馈应该由思考胶囊来完成。',atoms:['材质','节奏','凝聚'],
+  play(){
+    const cap=mkCap();capSay(cap,'帮我订下周五东京的机票','长任务 · 交给思考胶囊',300);
+    const pill=el('div','',`position:absolute;left:50%;top:38%;transform:translateX(-50%);width:430px;border-radius:22px;
+      background:rgba(20,26,38,.8);backdrop-filter:blur(16px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);padding:15px 20px;opacity:0`);
+    pill.innerHTML=`<div style="display:flex;align-items:center;gap:10px">
+      <div id="f1spin" style="width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.15);border-top-color:#8fb4ff;animation:orbspin 1s linear infinite"></div>
+      <div id="f1t" style="font-size:13.5px;color:var(--soft)"></div></div>
+      <div id="f1sub" style="font-size:11px;color:var(--faint);margin-top:8px;padding-left:26px"></div>`;
+    const ring=el('div','ring');ring.style.opacity=1;pill.appendChild(ring);
+    ring.animate([{'--a':'0deg'},{'--a':'360deg'}],{duration:2400,iterations:Infinity,easing:'linear'});
+    cv.appendChild(pill);
+    pill.animate([{opacity:0,transform:'translateX(-50%) translateY(14px) scale(.96)'},{opacity:1,transform:'translateX(-50%)'}],
+      {duration:550,delay:900,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
+    const STEPS=[['正在比对三家航司的直飞航班…','已排除中转 > 2h 的选项'],
+                 ['锁定 NH968 · 周五 09:30 浦东起飞','正在核对你的常旅客信息'],
+                 ['✓ 订好了 · 确认单发到手机','全程 2 小时 55 分 · 靠窗']];
+    STEPS.forEach(([a,b],i)=>later(()=>{
+      pill.querySelector('#f1t').textContent=a;pill.querySelector('#f1sub').textContent=b;
+      if(i===2){pill.querySelector('#f1spin').style.cssText='width:16px;height:16px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)';
+        ring.getAnimations().forEach(an=>an.cancel());ring.style.opacity=0;}
+    },1500+i*1900));
+    cv.appendChild(el('div','note','','思考过程可见 · 但收在一颗胶囊里 · 不占领屏幕'));
+  }},
+{ id:'F2',g:'F',t:'后台光效 + smartbar 微交互',orig:'后台任务应该由光效 + smartbar 的微交互反馈来体现。',atoms:['锚点 · smartbar','节奏 · 微','光强 · 微'],
+  play(){
+    d_readingCard('你在做别的事：内容区不受任何打扰');
+    const bar=el('div','',`position:absolute;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:16px;padding:0 20px;
+      background:rgba(12,16,24,.7);backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)`);
+    bar.innerHTML=`<div style="width:26px;height:3px;border-radius:2px;background:linear-gradient(90deg,rgba(150,190,255,.9),rgba(150,190,255,.2));box-shadow:0 0 10px rgba(150,190,255,.5)"></div>
+      <div style="font-size:12px;color:var(--soft)">Home · MVA</div><div style="flex:1"></div>`;
+    const chip=el('div','',`display:flex;align-items:center;gap:9px;padding:6px 13px;border-radius:14px;
+      background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);font-size:11.5px;color:var(--soft);position:relative;overflow:hidden`);
+    chip.innerHTML=`<svg width="15" height="15" viewBox="0 0 16 16" style="flex:none">
+        <circle cx="8" cy="8" r="6.4" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="2.4"/>
+        <circle id="f2p" cx="8" cy="8" r="6.4" fill="none" stroke="#8fb4ff" stroke-width="2.4" stroke-linecap="round"
+          stroke-dasharray="40.2" stroke-dashoffset="40.2" transform="rotate(-90 8 8)"/></svg>
+      <span id="f2t">订票中 · 比价</span>`;
+    bar.appendChild(chip);cv.appendChild(bar);
+    const p=chip.querySelector('#f2p');
+    [[0.25,'订票中 · 比价',1000],[0.55,'订票中 · 锁座',3000],[0.85,'订票中 · 支付确认',5000]].forEach(([v,t,d])=>
+      later(()=>{p.style.transition='stroke-dashoffset .9s var(--ease)';p.style.strokeDashoffset=40.2*(1-v);chip.querySelector('#f2t').textContent=t;
+        chip.animate([{},{boxShadow:'inset 0 0 0 1px rgba(150,190,255,.4)'},{}],{duration:700});},d));
+    later(()=>{p.style.strokeDashoffset=0;p.style.stroke='var(--green)';
+      chip.querySelector('#f2t').textContent='✓ 订好了';
+      chip.animate([{boxShadow:'inset 0 0 0 1px rgba(52,208,106,.0)'},{boxShadow:'inset 0 0 0 1px rgba(52,208,106,.7),0 0 22px rgba(52,208,106,.35)'},
+        {boxShadow:'inset 0 0 0 1px rgba(52,208,106,.35)'}],{duration:1100,fill:'forwards'});},7000);
+    cv.appendChild(el('div','note','','长任务住在 smartbar 里 · 微进度环 + 关键节点轻脉冲 · 完成才亮一次'));
+  }},
+
+/* ───────── H 记忆 ───────── */
+{ id:'H1',g:'H',t:'写入记忆 · 归档微光',orig:'它记住了你的偏好，一个「归档」到 profile 的微光。',atoms:['色相 · 金','流向','锚点'],
+  play(){
+    const badge=el('div','',`position:absolute;top:22px;right:26px;display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:15px;
+      background:rgba(28,26,18,.75);box-shadow:inset 0 0 0 1px rgba(255,207,106,.25);font-size:11.5px;color:rgba(255,220,150,.85)`,
+      '<span style="filter:drop-shadow(0 0 5px rgba(255,207,106,.8))">✦</span> 你的 Profile');
+    cv.appendChild(badge);
+    const card=el('div','ncard','left:90px;top:34%;width:460px');
+    card.innerHTML='<div class="lbl">对话</div><div style="font-size:14.5px;line-height:1.8;margin-top:8px">「以后回家别走高架，走滨江路。」<br><span style="color:var(--soft)">好，记住了。</span></div>';
+    cv.appendChild(card);
+    later(()=>{
+      const chip=el('div','',`position:absolute;left:0;top:0;padding:6px 13px;border-radius:13px;font-size:12px;font-weight:600;color:#3a2f14;
+        background:linear-gradient(135deg,#ffe1a0,#ffcf6a);box-shadow:0 6px 20px rgba(255,190,90,.4);white-space:nowrap`,
+        '✦ 偏好 · 回家走滨江路');
+      cv.appendChild(chip);
+      const c=card.getBoundingClientRect(),b=badge.getBoundingClientRect(),f=cv.getBoundingClientRect();
+      const sc=f.width/cv.clientWidth;
+      const sx=(c.left-f.left)/sc+40,sy=(c.top-f.top)/sc+58,ex=(b.left-f.left)/sc+30,ey=(b.top-f.top)/sc+8;
+      const cx=(sx+ex)/2+60,cy=Math.min(sy,ey)-110;
+      const N=26,kf=[];
+      for(let j=0;j<=N;j++){const u=j/N,v=1-u;
+        kf.push({transform:`translate(${v*v*sx+2*v*u*cx+u*u*ex}px,${v*v*sy+2*v*u*cy+u*u*ey}px) scale(${1-.45*u})`,opacity:u<.08?u*8:(1-u*.35)});}
+      chip.animate(kf,{duration:1150,easing:'cubic-bezier(.35,.05,.3,1)',fill:'forwards'}).onfinish=()=>{
+        chip.remove();
+        badge.animate([{transform:'scale(1)',boxShadow:'inset 0 0 0 1px rgba(255,207,106,.25)'},
+          {transform:'scale(1.09)',boxShadow:'inset 0 0 0 1.4px rgba(255,207,106,.8),0 0 30px rgba(255,190,90,.45)'},
+          {transform:'scale(1)',boxShadow:'inset 0 0 0 1px rgba(255,207,106,.35)'}],{duration:800,easing:'cubic-bezier(.3,1.2,.4,1)'});
+      };
+    },1200);
+    cv.appendChild(el('div','note','','记忆写入是看得见的一次「归档」 · 金色 = 记忆的专属色相'));
+  }},
+{ id:'H2',g:'H',t:'调用记忆 · recall 签名',orig:'回答里带出它记得的东西时，有个区别于普通生成的「recall」签名动效。',atoms:['色相 · 金','材质'],
+  play(){
+    const card=el('div','ncard','left:50%;top:28%;transform:translateX(-50%);width:520px');
+    card.innerHTML='<div class="lbl">MVA</div><div id="h2t" style="font-size:15px;line-height:1.9;margin-top:10px;min-height:80px"></div>';
+    cv.appendChild(card);
+    const t=card.querySelector('#h2t');
+    later(()=>{
+      typeText(t,'导航设好了。',30,()=>{
+        const r=el('span','recall','',' ✦ 按你的习惯走滨江路，');
+        r.style.opacity=0;t.appendChild(r);
+        r.animate([{opacity:0,filter:'blur(4px)'},{opacity:1,filter:'blur(0)'}],{duration:600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
+        later(()=>{
+          const rest=el('span','','','到家大约 38 分钟。');rest.style.opacity=0;t.appendChild(rest);
+          rest.animate([{opacity:0},{opacity:1}],{duration:400,fill:'forwards'});
+        },800);
+      });
+    },500);
+    cv.appendChild(el('div','note','','普通生成是白光 shimmer · 带记忆的那一段是金色签名 · 一眼可辨「它记得我」'));
+  }},
+
+/* ───────── L 多用户/身份 ───────── */
+{ id:'L1',g:'L',t:'主驾 ↔ 副驾 · 光场随人移动',orig:'它现在在服务谁？主驾 vs 副驾不同的色/锚点，转头问副驾时光场往右移。',atoms:['锚点','色相'],
+  play(){
+    /* 简化座舱俯视：两个座位区 */
+    const cab=el('div','',`position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:640px;height:300px;border-radius:26px;
+      background:rgba(16,21,31,.7);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)`);
+    cab.innerHTML=`<div class="lbl" style="position:absolute;left:24px;top:18px">主驾 · Brayden</div>
+      <div class="lbl" style="position:absolute;right:24px;top:18px">副驾 · 同行者</div>
+      <div style="position:absolute;left:70px;top:70px;width:190px;height:180px;border-radius:18px;background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)"></div>
+      <div style="position:absolute;right:70px;top:70px;width:190px;height:180px;border-radius:18px;background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)"></div>`;
+    cv.appendChild(cab);
+    const blob=el('div','',`position:absolute;left:105px;top:100px;width:120px;height:120px;border-radius:50%;filter:blur(22px);
+      background:radial-gradient(circle,rgba(120,165,255,.75),rgba(120,165,255,.12) 65%,transparent);transition:transform 1.1s var(--ease),background 1.1s var(--ease)`);
+    cab.appendChild(blob);
+    const cap=mkCap();
+    capSay(cap,null,'正在服务：主驾',400);
+    later(()=>{
+      capSay(cap,'你想听点什么？','转头问副驾 → 光场右移 · 换色相');
+      blob.style.transform='translateX(320px)';
+      blob.style.background='radial-gradient(circle,rgba(150,120,255,.75),rgba(150,120,255,.12) 65%,transparent)';
+    },2100);
+    cv.appendChild(el('div','note','','锚点 = 它此刻在听谁 · 色相 = 它认得每个人'));
+  }},
+{ id:'L2',g:'L',t:'多 profile 切换 · 身份感',orig:'多 profile 切换有身份感。',atoms:['色相','材质'],
+  play(){
+    /* 身份 = 整个光场的色相，不是一个小球的颜色 */
+    const tint=el('div','veil','background:linear-gradient(160deg,rgba(90,140,255,.17),rgba(255,207,106,.07) 70%);opacity:1;transition:none');
+    cv.appendChild(tint);
+    const {glow,line}=edgeBand();glow.style.opacity=1;line.style.transform='translateX(-50%) scaleX(1)';line.style.opacity=.6;
+    const name=el('div','',`position:absolute;left:50%;top:42%;transform:translateX(-50%);font-size:17px;font-weight:700;letter-spacing:.06em`,'Brayden');
+    cv.appendChild(name);
+    const sub=el('div','',`position:absolute;left:50%;top:49%;transform:translateX(-50%);font-size:11.5px;color:var(--faint)`,'蓝金主题 · 滨江路 · Eason Chan');
+    cv.appendChild(sub);
+    later(()=>{
+      /* 白化：旧身份先归零，新身份再着色 —— 身份有边界 */
+      const flash=el('div','veil','background:rgba(255,255,255,.9);transition:opacity .5s ease');
+      cv.appendChild(flash);
+      flash.animate([{opacity:0},{opacity:.85,offset:.45},{opacity:0}],{duration:1150,easing:'ease-in-out'}).onfinish=()=>flash.remove();
+      later(()=>{
+        tint.style.background='linear-gradient(160deg,rgba(255,170,90,.18),rgba(255,120,80,.07) 70%)';
+        line.style.background='linear-gradient(90deg,transparent,rgba(255,200,140,.9) 18% 82%,transparent)';
+        line.style.boxShadow='0 0 18px rgba(255,180,110,.55)';
+        name.textContent='家人 · 妈妈';sub.textContent='暖橙主题 · 大字号 · 戏曲频道';
+        name.animate([{opacity:0,transform:'translateX(-50%) translateY(6px)'},{opacity:1,transform:'translateX(-50%)'}],{duration:500,fill:'forwards'});
+        sub.animate([{opacity:0},{opacity:1}],{duration:500,fill:'forwards'});
+      },540);
+    },1000);
+    cv.appendChild(el('div','note up','','身份 = 整个场的色相与光带材质 · 切换必经一次白化 · 不是从一个人渐变成另一个人'));
+  }},
+
+/* ───────── M 物理回执 ───────── */
+{ id:'M1',g:'M',t:'氛围灯 · 三级传递回执',orig:'它锁了门、调了温、开始导航——需要一个闭环回执。例：氛围灯调节，由 avatar 的光效，过渡到整个 UI 层的光效，过渡到座舱氛围灯的光效。',atoms:['锚点 · 迁移','色温','流向'],
+  play(){
+    const ph=el('div','photo','left:0;top:0;width:100%;height:100%;border-radius:0');
+    ph.innerHTML='<img src="images/mb-interior.jpg" alt="">';
+    ph.appendChild(el('div','veil','background:rgba(5,8,14,.66);opacity:1'));
+    cv.appendChild(ph);
+    const cap=mkCap();capSay(cap,'氛围灯调成暖橙','三级传递：光场 → UI 层 → 座舱',300);
+    /* 1 · 光场（底缘光带）先变暖 —— 去 avatar：第一级是场，不是球 */
+    const {glow,line}=edgeBand();
+    later(()=>{
+      glow.style.opacity=1;
+      glow.style.background='radial-gradient(60% 130% at 50% 108%,rgba(255,178,103,.3),rgba(255,160,80,.09) 55%,transparent 78%)';
+      line.style.background='linear-gradient(90deg,transparent,rgba(255,200,140,.9) 18% 82%,transparent)';
+      line.style.boxShadow='0 0 18px rgba(255,180,110,.6)';
+      line.animate([{transform:'translateX(-50%) scaleX(0)',opacity:0},{transform:'translateX(-50%) scaleX(1)',opacity:1}],
+        {duration:750,easing:'cubic-bezier(.25,.9,.3,1)',fill:'forwards'});
+    },1300);
+    /* 2 · UI 层被光洗过 */
+    const panel=el('div','ncard','left:50%;top:60px;transform:translateX(-50%);width:300px;padding:14px 16px;opacity:.94');
+    panel.innerHTML='<div class="lbl">氛围灯</div><div style="display:flex;align-items:center;gap:10px;margin-top:9px"><div id="m1sw" style="width:44px;height:24px;border-radius:13px;background:rgba(255,255,255,.14);position:relative;transition:background .5s"><i style="position:absolute;top:3px;left:4px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.6);transition:transform .5s var(--ease),background .5s"></i></div><span style="font-size:13px;color:var(--soft)" id="m1t">白光 · 30%</span></div>';
+    cv.appendChild(panel);
+    later(()=>{
+      const wash=el('div','veil','background:linear-gradient(180deg,rgba(255,178,103,.16),transparent 60%)');cv.appendChild(wash);
+      wash.style.opacity=1;later(()=>wash.style.opacity=0,1400);
+      panel.animate([{boxShadow:'inset 0 0 0 1px var(--card-bd)'},
+        {boxShadow:'inset 0 0 0 1.4px rgba(255,190,120,.7),0 0 40px rgba(255,170,90,.35)'},
+        {boxShadow:'inset 0 0 0 1px rgba(255,190,120,.35)'}],{duration:1200,fill:'forwards'});
+      const sw=panel.querySelector('#m1sw');sw.style.background='rgba(255,178,103,.85)';
+      sw.querySelector('i').style.transform='translateX(18px)';sw.querySelector('i').style.background='#fff';
+      panel.querySelector('#m1t').textContent='暖橙 · 60%';
+    },2300);
+    /* 3 · 座舱氛围灯条点亮（沿中控轮廓） */
+    later(()=>{
+      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('viewBox','0 0 1000 660');svg.setAttribute('preserveAspectRatio','xMidYMid slice');
+      svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+      svg.innerHTML=`<defs><filter id="mglow"><feGaussianBlur stdDeviation="7"/></filter></defs>
+        <path id="m1p" d="M 40 470 C 230 380 420 355 520 360 C 700 368 850 320 980 300" fill="none"
+          stroke="rgba(255,178,103,.9)" stroke-width="5" stroke-linecap="round" filter="url(#mglow)"/>
+        <path d="M 40 470 C 230 380 420 355 520 360 C 700 368 850 320 980 300" fill="none"
+          stroke="rgba(255,214,170,.9)" stroke-width="1.6" stroke-linecap="round" id="m1p2"/>`;
+      cv.appendChild(svg);
+      [svg.querySelector('#m1p'),svg.querySelector('#m1p2')].forEach(p=>{
+        const L=p.getTotalLength();p.style.strokeDasharray=L;p.style.strokeDashoffset=L;
+        p.animate([{strokeDashoffset:L},{strokeDashoffset:0}],{duration:1300,easing:'cubic-bezier(.3,.1,.3,1)',fill:'forwards'});
+      });
+      capSay(cap,null,'✓ 座舱氛围灯已切到暖橙 · 动作落地');
+    },3600);
+    cv.appendChild(el('div','note up','','同一道暖光走完三层 · 你确信「它真的做了」，而不是「它说它做了」'));
+  }},
+];
+
+/* A/M 组共用：底缘光带（去 avatar 后「在场」的家） */
+function edgeBand(){
+  const glow=el('div','eband'),line=el('div','eline');
+  cv.appendChild(glow);cv.appendChild(line);return {glow,line};}
+/* B 组共用：球场照片 + 三个区域 */
+function b_photo(){
+  const ph=el('div','photo','left:50%;top:50%;transform:translate(-50%,-50%);width:430px;height:430px');
+  ph.innerHTML='<img src="images/orb-match.jpg" alt="">';
+  cv.appendChild(ph);return ph;}
+function b_regions(ph){
+  const defs=[['灯光','left:8%;top:14%;width:84%;height:13%'],
+              ['看台','left:6%;top:36%;width:88%;height:15%'],
+              ['球场','left:10%;top:52%;width:66%;height:16%']];
+  return defs.map(([name,css])=>{
+    const r=el('div','rgn',css);r.appendChild(el('div','rt','',name));ph.appendChild(r);return {name,el:r};});}
+/* D/F 组共用：中央阅读卡（表示「你正在做别的事」） */
+function d_readingCard(txt){
+  const c=el('div','ncard','left:50%;top:26%;transform:translateX(-50%);width:520px;padding:20px');
+  c.innerHTML=`<div class="lbl">${txt||'你正在看的内容 · 不被打断'}</div>
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:9px">
+      ${'<div style="height:8px;border-radius:4px;background:rgba(255,255,255,.09)"></div>'.repeat(4)}
+      <div style="height:8px;width:55%;border-radius:4px;background:rgba(255,255,255,.09)"></div></div>`;
+  cv.appendChild(c);return c;}
+/* C 组共用：按钮 */
+function c3btn(row,txt){
+  const b=el('div','c3b pressable',`flex:1;position:relative;padding:15px 10px;border-radius:13px;text-align:center;font-size:13.5px;font-weight:600;
+    background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);overflow:hidden`,txt);
+  row.appendChild(b);return b;}
+
+/* ══════════ 导航 & 播放 ══════════ */
+const nav=document.getElementById('nav');
+let curScene=null;
+Object.keys(GROUPS).forEach(gk=>{
+  const g=el('div','g');g.appendChild(el('div','gh','',`<b>${gk}</b>${GROUPS[gk].slice(4)}`));
+  SCENES.filter(s=>s.g===gk).forEach(s=>{
+    const it=el('div','it');it.dataset.id=s.id;
+    it.innerHTML=`<span class="d"></span><span>${s.t}</span>`;
+    it.onclick=()=>show(s.id);
+    g.appendChild(it);
+  });
+  nav.appendChild(g);
+});
+function show(id){
+  const s=SCENES.find(x=>x.id===id);if(!s)return;curScene=s;
+  document.querySelectorAll('.it').forEach(e=>e.classList.toggle('active',e.dataset.id===id));
+  document.getElementById('hGroup').textContent=GROUPS[s.g];
+  document.getElementById('hTitle').textContent=s.t;
+  document.getElementById('hOrig').innerHTML='<q>'+s.orig+'</q>'+(s.link?` <a href="${encodeURI(s.link)}" style="color:#8fb4ff;text-decoration:none">深挖版链路 demo →</a>`:'');
+  document.getElementById('hAtoms').innerHTML=s.atoms.map(a=>`<span class="atom">${a}</span>`).join('');
+  replayScene();
+}
+function replayScene(){
+  clearTimers();cv.innerHTML='';
+  if(curScene)curScene.play();
+}
+document.getElementById('replay').onclick=replayScene;
+show('A1');
+</script>
+</body>
+</html>

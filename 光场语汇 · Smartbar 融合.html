@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="robots" content="noindex,nofollow"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>光场语汇 · Smartbar 融合</title>
+<!--
+  光场语汇 × Smartbar(dock/灵动岛) 融合 demo
+  参考新 Siri × Dynamic Island 的核心关系——「光有一个家：收拢进去，从里面长出来」——但用我们自己的语汇(P1-P20)实现。
+  关键提案：光球(mva-orb)退役。smartbar 本身就是光的家：
+    锚点三档能级  收拢(bar 内微光) ⇄ 展开(底缘光带) ⇄ 满场(边缘呼吸)
+  生命周期：静息 → 唤醒 → 听 → 想 → 说 → 转后台 → 回执 → 归位；通知从 bar 一端色温侧漏。
+  姊妹页：语言体系(词典) / 场景矩阵(单场景) / 可见可说链路(C4+C5)
+-->
+<style>
+  @property --a { syntax:'<angle>'; initial-value:0deg; inherits:false }
+  :root{
+    --bg:#05070b; --ink:#eef1f4; --soft:rgba(238,241,244,.62); --faint:rgba(238,241,244,.38);
+    --card:rgba(22,28,40,.72); --card-bd:rgba(255,255,255,.1);
+    --gold:#ffcf6a; --green:#34d06a; --blue:#8fb4ff; --warm:#ffb267;
+    --ease:cubic-bezier(.2,.7,.2,1);
+    --spring:cubic-bezier(.3,1.15,.35,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--bg);overflow:hidden;color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+  .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .frame{position:relative;width:1400px;height:900px;flex:none;transform-origin:center center;display:flex;gap:16px;padding:20px;
+    background:radial-gradient(120% 100% at 50% 0%,#0b101a 0%,#070a10 55%,#05070b 100%);border-radius:20px;box-shadow:0 40px 120px rgba(0,0,0,.6)}
+
+  /* ── 左 · 生命周期 ── */
+  .rail{width:250px;flex:none;display:flex;flex-direction:column;padding:8px 4px}
+  .rail h1{font-size:18px;font-weight:700;line-height:1.4}
+  .rail h1 span{font-weight:400;color:var(--soft)}
+  .rail .sub{font-size:11px;color:var(--faint);margin-top:8px;line-height:1.7}
+  .rail .sub b{color:var(--soft);font-weight:600}
+  .steps{margin-top:16px;display:flex;flex-direction:column;gap:3px}
+  .step{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;cursor:pointer;font-size:12.5px;color:var(--soft);
+    transition:background .25s var(--ease),color .25s var(--ease);user-select:none}
+  .step:hover{background:rgba(255,255,255,.05);color:var(--ink)}
+  .step.active{background:rgba(120,160,255,.12);color:var(--ink)}
+  .step .n{width:19px;height:19px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:700;background:rgba(255,255,255,.07);color:var(--faint)}
+  .step.active .n{background:rgba(140,180,255,.85);color:#0a0e16}
+  .step .t b{font-weight:600;font-size:12.5px}
+  .step .t i{display:block;font-style:normal;font-size:9.5px;color:var(--faint);margin-top:1px}
+  .step .pp{margin-left:auto;display:flex;gap:3px;flex:none}
+  .step .pc{font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:5px;color:rgba(170,200,255,.75);background:rgba(120,160,255,.09)}
+  .sep{height:1px;background:rgba(255,255,255,.07);margin:9px 2px}
+  .playbtn{margin-top:13px;border:0;border-radius:12px;padding:11px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;
+    color:#0a0e16;background:linear-gradient(135deg,#9db9ff,#7fa0f0)}
+  .playbtn:hover{filter:brightness(1.08)}.playbtn:active{transform:scale(.97)}
+  .rail .note{margin-top:auto;font-size:10px;color:var(--faint);line-height:1.7;border-top:1px solid rgba(255,255,255,.07);padding-top:10px}
+  .rail .note b{color:var(--soft);font-weight:600}
+  .rail .note a{color:var(--blue);text-decoration:none}
+
+  /* ── 右 · 车机舞台 ── */
+  .stage{position:relative;flex:1;border-radius:18px;overflow:hidden;min-width:0;
+    background:radial-gradient(135% 115% at 50% 8%,#141c2a 0%,#0e1420 46%,#080b12 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+  .mapbg{position:absolute;inset:0;opacity:.5}.mapbg svg{width:100%;height:100%}
+  .mapbg-scrim{position:absolute;inset:0;background:radial-gradient(125% 105% at 50% 40%,rgba(8,11,18,.45),rgba(6,9,15,.75))}
+  .statusbar{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 22px;z-index:40;color:#dfe3e8;font-size:14px}
+  .statusbar .clk{font-weight:500;font-size:16px}
+  .phase{position:absolute;top:13px;left:20px;z-index:40;font-size:10px;font-weight:800;letter-spacing:.16em;color:var(--faint)}
+
+  /* dock：沿用现有 smartbar 形制(64px 玻璃条),但没有光球 */
+  .dock{position:absolute;left:0;right:0;bottom:0;height:64px;z-index:30;display:flex;align-items:center;gap:16px;padding:0 22px;
+    background:rgba(12,16,24,.62);backdrop-filter:blur(26px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+  .dock .home2{width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5);flex:none}
+  .dock .tt{font-size:13px;color:var(--soft)}
+  .dock .sep2{flex:1}
+  .dock .ctrl{display:flex;align-items:center;gap:22px;color:rgba(238,241,244,.7);font-size:17px}
+
+  /* ── 光的家：三档能级 ── */
+  /* ① 收拢态：dock 中央一小段微光(接替光球的「在场」职责) */
+  .homelight{position:absolute;left:50%;bottom:59px;width:56px;height:2.5px;border-radius:2px;transform:translateX(-50%);z-index:35;
+    background:linear-gradient(90deg,transparent,rgba(190,215,255,.9) 22% 78%,transparent);
+    box-shadow:0 0 12px rgba(150,190,255,.55);animation:hl-idle 3.6s ease-in-out infinite;
+    transition:opacity .5s var(--ease)}
+  @keyframes hl-idle{0%,100%{opacity:.35}50%{opacity:.8}}
+  /* ② 展开态：底缘光带(沿 dock 上缘) */
+  .band{position:absolute;left:0;right:0;bottom:64px;height:100px;pointer-events:none;z-index:28;opacity:0;transition:opacity .7s var(--ease);
+    background:radial-gradient(58% 140% at 50% 112%,rgba(130,170,255,.22),rgba(120,160,255,.06) 55%,transparent 80%)}
+  .bandline{position:absolute;left:50%;bottom:63px;width:0%;height:2.5px;border-radius:2px;transform:translateX(-50%);z-index:36;pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(190,215,255,.95) 15% 85%,transparent);
+    box-shadow:0 0 16px rgba(150,190,255,.6);transition:width .9s var(--spring),opacity .6s var(--ease);opacity:0}
+  /* ③ 满场态：四缘呼吸 */
+  .rim{position:absolute;inset:0;z-index:45;pointer-events:none;opacity:0;box-shadow:inset 0 0 110px rgba(140,180,255,.32);border-radius:18px}
+
+  /* ── 胶囊(灵动岛 morph)：听 → 想 → 后台 chip ── */
+  .cab{position:absolute;left:50%;bottom:76px;transform:translateX(-50%);z-index:38;overflow:hidden;
+    width:56px;height:0;opacity:0;border-radius:22px;
+    background:rgba(18,24,36,.82);backdrop-filter:blur(18px);
+    box-shadow:inset 0 0 0 1px rgba(150,185,255,.22),0 14px 40px rgba(0,0,0,.45);
+    transition:width .55s var(--spring),height .55s var(--spring),opacity .4s var(--ease),transform .55s var(--spring),bottom .55s var(--spring)}
+  .cab.listen{width:340px;height:46px;opacity:1}
+  .cab.think{width:440px;height:112px;opacity:1;border-radius:20px}
+  .cab .cwrap{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 18px}
+  .cab .row1{display:flex;align-items:center;gap:11px}
+  .cab .micdot{width:7px;height:7px;border-radius:50%;background:#7fd0ff;box-shadow:0 0 8px #7fd0ff;flex:none;animation:hl-idle 1.4s ease-in-out infinite}
+  .cab .utter{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+  .cab .bars{display:flex;gap:3.5px;align-items:flex-end;height:22px;flex:none}
+  .cab .bars i{width:3px;height:5px;border-radius:2px;background:rgba(185,212,255,.85);transition:height .12s ease}
+  .cab .trow{display:none;align-items:center;gap:10px}
+  .cab.think .trow{display:flex}
+  .cab .spin{width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.15);border-top-color:var(--blue);animation:cspin 1s linear infinite;flex:none}
+  @keyframes cspin{to{transform:rotate(360deg)}}
+  .cab .ttext{font-size:13px;color:var(--soft)}
+  .cab .tsub{font-size:10.5px;color:var(--faint);margin-top:7px;padding-left:25px}
+  .cab .cring{display:none}
+  /* 思考态：呼吸描边(避免 conic+backdrop-filter 的合成负担;「进行中」由 spinner 表达) */
+  .cab.think{animation:thinkpulse 2.4s ease-in-out infinite}
+  @keyframes thinkpulse{
+    0%,100%{box-shadow:inset 0 0 0 1px rgba(150,185,255,.2),0 14px 40px rgba(0,0,0,.45)}
+    50%{box-shadow:inset 0 0 0 1.5px rgba(160,195,255,.55),0 0 26px rgba(140,180,255,.22),0 14px 40px rgba(0,0,0,.45)}}
+
+  /* 后台 chip：胶囊收拢进 dock 右侧 */
+  .chip{position:absolute;right:150px;bottom:14px;z-index:39;display:flex;align-items:center;gap:8px;padding:6px 13px;border-radius:14px;
+    background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);font-size:11.5px;color:var(--soft);
+    opacity:0;transform:translateY(6px) scale(.9);transition:opacity .4s var(--ease),transform .5s var(--spring)}
+  .chip.show{opacity:1;transform:none}
+  .chip svg{flex:none}
+  .chip circle.bg{stroke:rgba(255,255,255,.15)}
+  .chip circle.fg{stroke:var(--blue);stroke-linecap:round;stroke-dasharray:40.2;stroke-dashoffset:40.2;transition:stroke-dashoffset .8s var(--ease),stroke .4s}
+  .chip.done circle.fg{stroke:var(--green)}
+  .chip.done{box-shadow:inset 0 0 0 1px rgba(52,208,106,.5),0 0 20px rgba(52,208,106,.28)}
+
+  /* 内容回应卡 */
+  .reply{position:absolute;left:50%;top:24%;transform:translateX(-50%);width:470px;border-radius:16px;background:var(--card);
+    backdrop-filter:blur(16px);box-shadow:inset 0 0 0 1px var(--card-bd);padding:16px 18px;opacity:0;z-index:20}
+  .reply .lbl{font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--faint)}
+  .reply .txt{font-size:14.5px;line-height:1.8;margin-top:8px;min-height:52px}
+  .shimtxt{background:linear-gradient(100deg,rgba(238,241,244,.88) 42%,#fff 50%,rgba(238,241,244,.88) 58%);background-size:280% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 1.5s linear infinite}
+  @keyframes shim{from{background-position:120% 0}to{background-position:-120% 0}}
+
+  /* 通知侧漏(bar 一端色温变暖) */
+  .warmleak{position:absolute;right:0;bottom:64px;width:38%;height:90px;pointer-events:none;z-index:28;opacity:0;transition:opacity .8s var(--ease);
+    background:radial-gradient(70% 150% at 88% 112%,rgba(255,178,103,.3),rgba(255,160,80,.08) 55%,transparent 80%)}
+  .warmline{position:absolute;right:22px;bottom:63px;width:0%;height:2.5px;border-radius:2px;z-index:36;pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(255,200,140,.95) 30% 90%,transparent);
+    box-shadow:0 0 14px rgba(255,180,110,.6);transition:width .8s var(--spring)}
+  .notipill{position:absolute;right:26px;bottom:112px;z-index:39;padding:8px 15px;border-radius:16px;
+    background:rgba(30,26,20,.82);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px rgba(255,190,120,.3);
+    font-size:12px;color:#ffd9ac;opacity:0;transform:translateY(8px);transition:opacity .5s var(--ease),transform .55s var(--spring)}
+  .notipill.show{opacity:1;transform:none}
+
+  .note2{position:absolute;bottom:76px;left:26px;z-index:40;font-size:10.5px;color:var(--faint);max-width:300px;line-height:1.65}
+</style>
+<style id="__aiosgate_css">
+#__aiosgate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(130% 130% at 50% -10%,#141b27 0%,#0a0e15 48%,#05070b 100%);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+#__aiosgate *{box-sizing:border-box}
+#__aiosgate .gcard{width:340px;max-width:86vw;text-align:center;padding:40px 34px 30px}
+#__aiosgate .gorb{width:62px;height:62px;border-radius:50%;margin:0 auto 22px;background:conic-gradient(from 210deg,#7ab7ff,#c08bff,#ff9bb0,#ffd27a,#8be0c0,#7ab7ff);box-shadow:0 0 30px rgba(140,180,255,.45),inset 0 0 16px rgba(255,255,255,.35);animation:__gspin 7s linear infinite}
+#__aiosgate .gt{font-size:19px;font-weight:680;letter-spacing:.2px;color:#fff;margin:0 0 6px}
+#__aiosgate .gs{font-size:12.5px;color:rgba(255,255,255,.5);margin:0 0 26px;letter-spacing:.04em}
+#__aiosgate .gin{width:100%;height:46px;border-radius:13px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;text-align:center;letter-spacing:.18em;outline:none;transition:border-color .2s,background .2s,box-shadow .2s}
+#__aiosgate .gin::placeholder{letter-spacing:.06em;color:rgba(255,255,255,.32)}
+#__aiosgate .gin:focus{border-color:rgba(127,200,255,.6);background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(91,140,255,.18)}
+#__aiosgate .gb{width:100%;height:46px;margin-top:12px;border:0;border-radius:13px;background:linear-gradient(150deg,#5b8cff,#7a5bff);color:#fff;font-size:14.5px;font-weight:640;letter-spacing:.04em;cursor:pointer;transition:filter .2s,transform .1s}
+#__aiosgate .gb:hover{filter:brightness(1.08)}
+#__aiosgate .gb:active{transform:scale(.985)}
+#__aiosgate .ge{height:16px;margin-top:13px;font-size:12px;color:#ff8086;opacity:0;transition:opacity .2s}
+#__aiosgate .gf{margin-top:22px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.26)}
+@keyframes __gspin{to{transform:rotate(360deg)}}
+@keyframes __gshake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(5px)}50%{transform:translateX(-7px)}}
+</style>
+<script>
+(function(){
+  var KEY='aios_demo_unlock_v1';
+  var HASH='cc35f579797e106bb3ea97001fc565e8eb7d6b0a385920f2fc6721ddcc606d59';
+  function ok(){try{return localStorage.getItem(KEY)===HASH;}catch(e){return false;}}
+  if(ok())return;
+  function sha(s){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ('0'+x.toString(16)).slice(-2);}).join('');});}
+  function build(){
+    if(document.getElementById('__aiosgate'))return;
+    var ov=document.createElement('div');
+    ov.id='__aiosgate';
+    ov.innerHTML='<div class="gcard"><div class="gorb"></div><div class="gt">AIOS Dynamic Window</div><div class="gs">Mercedes-Benz · MVA — Private preview</div><input class="gin" id="__gp" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter password"><button class="gb" id="__gb">Unlock</button><div class="ge" id="__ge">Incorrect password</div><div class="gf">Authorized access only</div></div>';
+    (document.body||document.documentElement).appendChild(ov);
+    var inp=document.getElementById('__gp'),btn=document.getElementById('__gb'),err=document.getElementById('__ge'),card=ov.querySelector('.gcard'),busy=false;
+    function go(){
+      if(busy)return;busy=true;
+      sha(inp.value||'').then(function(h){
+        busy=false;
+        if(h===HASH){try{localStorage.setItem(KEY,HASH);}catch(e){}ov.style.transition='opacity .4s ease';ov.style.opacity='0';setTimeout(function(){if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);},420);}
+        else{err.style.opacity='1';inp.value='';card.style.animation='__gshake .42s';setTimeout(function(){card.style.animation='';},440);try{inp.focus();}catch(e){}}
+      });
+    }
+    btn.addEventListener('click',go);
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter')go();else err.style.opacity='0';});
+    setTimeout(function(){try{inp.focus();}catch(e){}},120);
+  }
+  if(document.documentElement)build();else document.addEventListener('DOMContentLoaded',build);
+})();
+</script>
+</head>
+<body>
+<div class="viewport">
+<div class="frame" id="frame">
+
+  <div class="rail">
+    <h1>光场 × Smartbar<br><span>光的家 · 收拢与生长</span></h1>
+    <div class="sub">参考新 Siri × 灵动岛的核心关系，用我们的语汇重写：<b>光球退役，smartbar 就是光的家</b>。锚点三档能级：收拢(bar 内微光) ⇄ 展开(底缘光带) ⇄ 满场(边缘呼吸)，双向可逆。</div>
+    <div class="steps" id="steps">
+      <div class="step" data-k="1"><span class="n">1</span><div class="t"><b>静息 · 光在家</b><i>bar 内一段微光慢呼吸</i></div><div class="pp"><span class="pc">P1</span></div></div>
+      <div class="step" data-k="2"><span class="n">2</span><div class="t"><b>唤醒 · 从家里长出来</b><i>微光展开成光带 + 全场呼吸</i></div><div class="pp"><span class="pc">P13</span><span class="pc">P1</span><span class="pc">P2</span></div></div>
+      <div class="step" data-k="3"><span class="n">3</span><div class="t"><b>听 · 胶囊张开</b><i>bar 上方张开听觉胶囊，声纹入内</i></div><div class="pp"><span class="pc">P1</span></div></div>
+      <div class="step" data-k="4"><span class="n">4</span><div class="t"><b>想 · 思考胶囊</b><i>同一胶囊长大，行进环+思考流</i></div><div class="pp"><span class="pc">P16</span><span class="pc">P17</span></div></div>
+      <div class="step" data-k="5"><span class="n">5</span><div class="t"><b>说 · 升流入内容</b><i>光离带升入内容位，回应凝结</i></div><div class="pp"><span class="pc">P9</span><span class="pc">P17</span></div></div>
+      <div class="step" data-k="6"><span class="n">6</span><div class="t"><b>转后台 · 收拢</b><i>胶囊缩成 bar 里的进度 chip</i></div><div class="pp"><span class="pc">P16</span></div></div>
+      <div class="step" data-k="7"><span class="n">7</span><div class="t"><b>回执 · 归位</b><i>chip 绿脉冲，光回家复静息</i></div><div class="pp"><span class="pc">P14</span><span class="pc">P1</span></div></div>
+    </div>
+    <div class="sep"></div>
+    <div class="steps">
+      <div class="step" data-k="8"><span class="n">✦</span><div class="t"><b>通知侧漏</b><i>bar 一端色温变暖，光沿底缘漏出</i></div><div class="pp"><span class="pc">P2</span><span class="pc">P3</span></div></div>
+    </div>
+    <button class="playbtn" id="play">▶ 连播生命周期</button>
+    <div class="note"><b>与新 Siri 的同与不同</b>：同——光有家、双向收放、状态即形态(morph)。不同——我们的家在 smartbar 不在岛，色相语义(金=记忆/绿=完成)与三档能级是自己的体系。<br>
+    <a href="光场语汇 · 语言体系.html">📖 语言体系</a> · <a href="光场语汇 · 场景矩阵.html">▶ 场景矩阵</a></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="mapbg">
+      <svg viewBox="0 0 1120 860" preserveAspectRatio="xMidYMid slice">
+        <rect width="1120" height="860" fill="#131a26"/>
+        <path d="M 860 140 C 950 130 1020 180 1010 260 C 1002 330 920 350 860 310 C 810 275 800 175 860 140 Z" fill="#1c2f26"/>
+        <g stroke="#222b39" stroke-width="14" fill="none" stroke-linecap="round"><path d="M-20 520 C 230 490 440 480 640 488 C 900 498 1000 460 1140 420"/><path d="M 480 -20 C 520 180 560 340 660 520 C 720 620 760 700 800 880"/></g>
+        <g stroke="#46505f" stroke-width="8" fill="none" stroke-linecap="round"><path d="M-20 520 C 230 490 440 480 640 488 C 900 498 1000 460 1140 420"/><path d="M 480 -20 C 520 180 560 340 660 520 C 720 620 760 700 800 880"/></g>
+      </svg>
+      <div class="mapbg-scrim"></div>
+    </div>
+    <div class="phase" id="phase">静息</div>
+    <div class="statusbar"><span><sup style="font-size:9px;font-weight:700">5G</sup> ▮▮▮</span><span class="clk">21:36</span></div>
+
+    <div class="reply" id="reply"><div class="lbl">MVA</div><div class="txt" id="replyTxt"></div></div>
+    <div class="note2" id="note2"></div>
+
+    <div class="rim" id="rim"></div>
+    <div class="band" id="band"></div>
+    <div class="bandline" id="bandline"></div>
+    <div class="warmleak" id="warmleak"></div>
+    <div class="warmline" id="warmline"></div>
+    <div class="notipill" id="notipill">☕ 快到 Manner 了 · 顺路带一杯吗</div>
+
+    <div class="cab" id="cab">
+      <div class="cring"></div>
+      <div class="cwrap">
+        <div class="row1"><span class="micdot"></span><span class="utter" id="cabUtter"></span><span class="bars" id="cabBars"></span></div>
+        <div class="trow" style="margin-top:9px"><span class="spin" id="cabSpin"></span><span class="ttext" id="cabT"></span></div>
+        <div class="tsub" id="cabSub"></div>
+      </div>
+    </div>
+    <div class="chip" id="chip">
+      <svg width="15" height="15" viewBox="0 0 16 16">
+        <circle class="bg" cx="8" cy="8" r="6.4" fill="none" stroke-width="2.4"/>
+        <circle class="fg" id="chipFg" cx="8" cy="8" r="6.4" fill="none" stroke-width="2.4" transform="rotate(-90 8 8)"/></svg>
+      <span id="chipT">查门票中</span>
+    </div>
+
+    <div class="homelight" id="homelight"></div>
+    <div class="dock">
+      <div class="home2"></div><div class="tt">🏠 桌面 · MVA Nebula</div><div class="sep2"></div>
+      <div class="ctrl"><span>❄</span><span>🚘</span><span>360</span><span>📞</span><span>▦</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const frame=document.getElementById('frame');
+function fit(){frame.style.transform=`scale(${Math.min(innerWidth/1400,innerHeight/900)*0.985})`;}
+addEventListener('resize',fit);fit();
+const $=id=>document.getElementById(id);
+let timers=[];const later=(fn,ms)=>{const t=setTimeout(fn,ms);timers.push(t);return t;};
+const iv=(fn,ms)=>{const t=setInterval(fn,ms);timers.push(t);return t;};
+function clearAll(){timers.forEach(t=>{clearTimeout(t);clearInterval(t);});timers=[];}
+function typeText(node,txt,speed,done){node.textContent='';let i=0;
+  (function tick(){if(i<txt.length){node.textContent+=txt[i++];later(tick,speed||32);}else if(done)done();})();}
+
+/* cab 声纹条 */
+const barsBox=$('cabBars');for(let i=0;i<9;i++)barsBox.appendChild(document.createElement('i'));
+let barsTimer=null;
+function barsOn(on){if(barsTimer){clearInterval(barsTimer);barsTimer=null;}
+  if(on)barsTimer=iv(()=>{[...barsBox.children].forEach(b=>b.style.height=(4+Math.random()*17)+'px');},110);
+  else [...barsBox.children].forEach(b=>b.style.height='4px');}
+
+/* ── 状态归位工具 ── */
+const PHASES={1:'静息 · 光在家',2:'唤醒',3:'听',4:'想',5:'说',6:'后台任务',7:'完成 · 回执',8:'通知侧漏'};
+function setPhase(k){$('phase').textContent=PHASES[k]||'';}
+function resetAll(noanim){
+  clearAll();barsOn(false);
+  const st=$('stage');if(noanim)st.style.setProperty('--noop','1');
+  $('homelight').style.opacity=1;
+  $('band').style.opacity=0;
+  const bl=$('bandline');bl.style.width='0%';bl.style.opacity=0;
+  $('rim').getAnimations().forEach(a=>a.cancel());$('rim').style.opacity=0;
+  const cab=$('cab');cab.classList.remove('listen','think');
+  $('cabUtter').textContent='';$('cabT').textContent='';$('cabSub').textContent='';
+  $('chip').classList.remove('show','done');$('chipFg').style.strokeDashoffset=40.2;$('chipT').textContent='查门票中';
+  const r=$('reply');r.style.opacity=0;r.getAnimations().forEach(a=>a.cancel());$('replyTxt').textContent='';$('replyTxt').classList.remove('shimtxt');
+  $('warmleak').style.opacity=0;$('warmline').style.width='0%';$('notipill').classList.remove('show');
+  $('note2').textContent='';
+}
+/* 把舞台无动画地摆到第 k 拍之前的状态 */
+function setup(k){
+  resetAll(true);
+  const bl=$('bandline'),cab=$('cab');
+  if(k>=3){ $('band').style.opacity=1;bl.style.opacity=1;bl.style.width='72%';$('homelight').style.opacity=0; }
+  if(k===4){ cab.classList.add('listen');$('cabUtter').textContent='明天带娃去哪玩比较好？'; }
+  if(k===5){ cab.classList.add('think'); }
+  if(k===6){ /* 说完:回应卡已在场 */ showReplyInstant(); }
+  if(k===7){ showReplyInstant();$('chip').classList.add('show');$('chipFg').style.strokeDashoffset=40.2*(1-0.62);
+             $('band').style.opacity=0;bl.style.width='0%';bl.style.opacity=0;$('homelight').style.opacity=1; }
+}
+function showReplyInstant(){
+  const r=$('reply');r.style.opacity=1;
+  $('replyTxt').textContent='推荐滨江森林公园：明天多云 24°，有新开的亲子营地和无动力乐园，早上人少，路上 40 分钟。';
+}
+
+/* ══ 八拍 ══ */
+const BEATS={
+  /* 1 静息：光在家(收拢态) */
+  1(){ setPhase(1);
+    $('note2').textContent='收拢态 · P1 的最小形：光球退役后，「在场」由 bar 中央这段微光承接。慢呼吸 = 睡着但在。';
+  },
+  /* 2 唤醒：光从家里长出来(P13 涌出 → P1 展开 → P2 满场呼吸) */
+  2(){ setPhase(2);
+    $('note2').textContent='「你好 MVA」 · 微光先涌一下(P13)，沿底缘展开成光带(P1 展开态)，强唤醒补一次全场呼吸(P2)。';
+    const hl=$('homelight');
+    hl.animate([{transform:'translateX(-50%) scaleX(1)',opacity:.6},{transform:'translateX(-50%) scaleX(1.9)',opacity:1},{transform:'translateX(-50%) scaleX(1)',opacity:0}],
+      {duration:520,easing:'cubic-bezier(.3,.9,.35,1)',fill:'forwards'});
+    later(()=>{
+      $('band').style.opacity=1;
+      const bl=$('bandline');bl.style.opacity=1;bl.style.width='72%';
+      $('homelight').style.opacity=0;
+    },380);
+    later(()=>{
+      $('rim').animate([{opacity:0},{opacity:1,offset:.35},{opacity:0}],{duration:1900,easing:'ease-in-out'});
+    },700);
+  },
+  /* 3 听：胶囊张开 · 声纹入内 */
+  3(){ setPhase(3);
+    $('note2').textContent='听觉胶囊从光带上方张开(灵动岛式 morph) · 声纹长在胶囊里，光带随声呼吸。';
+    later(()=>{ $('cab').classList.add('listen');barsOn(true);
+      later(()=>typeText($('cabUtter'),'明天带娃去哪玩比较好？',52),300);
+    },300);
+  },
+  /* 4 想：同一胶囊长大成思考胶囊 */
+  4(){ setPhase(4);
+    $('note2').textContent='同一个胶囊长大(不是换一个) · P16 行进环沿胶囊边缘走 + P17 思考流。';
+    barsOn(false);
+    later(()=>{
+      $('cab').classList.add('think');
+      $('cabUtter').textContent='明天带娃去哪玩比较好？';
+      const STEPS=[['查明天天气与限行…','多云 24° · 不限行'],
+                   ['筛选 1h 内亲子场地…','滨江森林公园 · 新营地评分 4.8'],
+                   ['组织答案…','']];
+      STEPS.forEach(([a,b],i)=>later(()=>{$('cabT').textContent=a;$('cabSub').textContent=b;},350+i*1150));
+    },250);
+  },
+  /* 5 说：升流入内容 · 回应凝结 */
+  5(){ setPhase(5);
+    $('note2').textContent='流向翻转(P9 变体·升流) · 光离开光带升入内容位，回应在光到达处凝结，光带光强让渡。';
+    const cab=$('cab');cab.classList.remove('think','listen');
+    const st=$('stage');
+    for(let i=0;i<4;i++){
+      const x0=st.clientWidth/2+(i-1.5)*80,x1=st.clientWidth/2+(i-1.5)*50;
+      const s=document.createElement('div');
+      s.style.cssText=`position:absolute;left:0;top:0;width:3px;height:60px;border-radius:2px;z-index:25;
+        background:linear-gradient(180deg,transparent,rgba(190,215,255,.85),transparent);filter:blur(.5px)`;
+      st.appendChild(s);
+      s.animate([{transform:`translate(${x0}px,${st.clientHeight-100}px)`,opacity:0},
+                 {opacity:.95,offset:.35},
+                 {transform:`translate(${x1}px,${st.clientHeight*0.3}px)`,opacity:0}],
+        {duration:820,delay:i*100,easing:'cubic-bezier(.3,.05,.25,1)'}).onfinish=()=>s.remove();
+    }
+    later(()=>{const bl=$('bandline');bl.style.opacity=.35;},450);
+    const r=$('reply');
+    r.animate([{opacity:0,transform:'translateX(-50%) translateY(24px) scale(.97)',filter:'blur(6px)'},
+               {opacity:1,transform:'translateX(-50%)',filter:'blur(0)'}],
+      {duration:640,delay:480,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
+    later(()=>{
+      const t=$('replyTxt');t.classList.add('shimtxt');
+      typeText(t,'推荐滨江森林公园：明天多云 24°，有新开的亲子营地和无动力乐园，早上人少，路上 40 分钟。',30,
+        ()=>t.classList.remove('shimtxt'));
+    },900);
+  },
+  /* 6 转后台：胶囊收拢成 bar 里的进度 chip */
+  6(){ setPhase(6);
+    $('note2').textContent='「顺便查下门票」 · 长任务不占屏：胶囊收拢成 bar 里的微进度 chip(P16)，内容区还给你。';
+    const cab=$('cab');
+    cab.classList.add('listen');barsOn(true);
+    later(()=>typeText($('cabUtter'),'顺便帮我查下门票',48),200);
+    later(()=>{barsOn(false);cab.classList.remove('listen','think');},1500);
+    later(()=>{
+      $('chip').classList.add('show');
+      later(()=>{$('chipFg').style.strokeDashoffset=40.2*(1-0.32);},300);
+      later(()=>{$('chipFg').style.strokeDashoffset=40.2*(1-0.62);},1300);
+    },1750);
+    /* 光带同步回撤一半:注意力回到用户 */
+    later(()=>{const bl=$('bandline');bl.style.width='34%';},1700);
+  },
+  /* 7 回执：chip 完成脉冲 · 光回家 */
+  7(){ setPhase(7);
+    $('note2').textContent='P14 微变奏(绿·一次) · 「门票已存进行程」。临时光全退，bar 微光复位——闭环。';
+    later(()=>{
+      $('chipFg').style.strokeDashoffset=0;
+      $('chip').classList.add('done');$('chipT').textContent='✓ 门票 ¥60 已存行程';
+      $('chip').animate([{transform:'scale(1)'},{transform:'scale(.96)'},{transform:'scale(1.03)'},{transform:'scale(1)'}],
+        {duration:620,easing:'cubic-bezier(.3,1.4,.4,1)'});
+    },400);
+    later(()=>{
+      $('band').style.opacity=0;const bl=$('bandline');bl.style.width='0%';bl.style.opacity=0;
+      $('homelight').style.opacity=1;
+    },1900);
+    later(()=>{$('chip').classList.remove('show');},3600);
+  },
+  /* 8 通知侧漏：bar 一端色温变暖 */
+  8(){ setPhase(8);
+    $('note2').textContent='有性格的通知(P2 变奏×P3) · 光从 bar 右端以暖色温漏出，内容后到。你不看它，它就退回去。';
+    later(()=>{$('warmleak').style.opacity=1;$('warmline').style.width='30%';},500);
+    later(()=>{$('notipill').classList.add('show');},1300);
+    later(()=>{$('notipill').classList.remove('show');$('warmleak').style.opacity=0;$('warmline').style.width='0%';},4300);
+  },
+};
+
+/* ── 控制 ── */
+const stepEls=[...document.querySelectorAll('.step')];
+function mark(k){stepEls.forEach(e=>e.classList.toggle('active',+e.dataset.k===k));}
+function playBeat(k){setup(k);mark(k);setPhase(k);later(()=>BEATS[k](),80);}
+stepEls.forEach(e=>e.onclick=()=>playBeat(+e.dataset.k));
+const CHAIN=[[1,1400],[2,2300],[3,2400],[4,4300],[5,4400],[6,3600],[7,4200]];
+$('play').onclick=()=>{
+  resetAll();let t=80;
+  CHAIN.forEach(([k,d])=>{later(()=>{mark(k);setPhase(k);BEATS[k]();},t);t+=d;});
+  later(()=>mark(0),t+400);
+};
+later(()=>$('play').click(),900);
+</script>
+</body>
+</html>
