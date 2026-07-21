@@ -21,8 +21,17 @@ for fn in glob.glob("*.html"):
     )
 PY
 
-# 3) Inject the shared-password gate into every page (stripped by re-inject, so re-add here)
-python3 _inject_gate.py *.html >/dev/null 2>&1
+# 3) Password gate removed (2026-07-21, Brayden's call) — strip any gate left in built pages.
+#    To bring it back: replace this block with  python3 _inject_gate.py *.html
+python3 - <<'PY'
+import glob, re
+GATE_RE = re.compile(r'\s*<style id="__aiosgate_css">.*?</script>', re.S)
+for fn in glob.glob("*.html"):
+    s = open(fn, encoding="utf-8").read()
+    s2 = GATE_RE.sub('', s)
+    if s2 != s:
+        open(fn, "w", encoding="utf-8").write(s2)
+PY
 
 # 4) Commit + push (no-op if nothing changed)
 MSG="${1:-update demo}"
